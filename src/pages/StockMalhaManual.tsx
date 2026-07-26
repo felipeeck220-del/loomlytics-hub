@@ -22,7 +22,8 @@ import { formatWeight, formatNumber } from '@/lib/formatters';
 import { logAudit } from '@/lib/auditLog';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Warehouse, Plus, ChevronDown, Info } from 'lucide-react';
+import { Warehouse, Plus, ChevronDown, Info, Package, Truck, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type EstoqueKPIs = {
   entradaKg: number; deliveredKg: number;
@@ -365,130 +366,176 @@ export default function StockMalhaManual() {
 
         {/* ============= ESTOQUE ============= */}
         <TabsContent value="estoque" className="space-y-3">
+          {/* KPIs no estilo Estoque (Clientes) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas manuais</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(kpis?.entradaKg || 0)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue (OF coletadas)</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(kpis?.deliveredKg || 0)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Lock className="h-3.5 w-3.5" />Reservado (OFs Pronto)</div>
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(kpis?.reservedKg || 0)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
+              <p className={cn('text-xl font-bold', (kpis?.availableKg || 0) < 0 ? 'text-destructive' : 'text-success')}>
+                {formatWeight(kpis?.availableKg || 0)}
+              </p>
+            </CardContent></Card>
+          </div>
+
+          {/* Filtros no estilo Estoque (Clientes) */}
           <Card>
-            <CardContent className="p-3">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                <div>
-                  <Label className="text-xs">Cliente</Label>
-                  <SearchableSelect value={fClient} onValueChange={(v) => { setFClient(v); setFArticle('all'); }}
-                    options={clientOpts} placeholder="Todos" searchPlaceholder="Buscar cliente..." />
-                </div>
-                <div>
-                  <Label className="text-xs">Artigo</Label>
-                  <SearchableSelect value={fArticle} onValueChange={setFArticle}
-                    options={articleOpts} placeholder="Todos" searchPlaceholder="Buscar artigo..." />
-                </div>
-                <div>
-                  <Label className="text-xs">Mês</Label>
-                  <Select value={fMonth} onValueChange={setFMonth}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os meses</SelectItem>
-                      {(bootstrap?.available_months || []).map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button variant="outline" size="sm" className="w-full"
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={fMonth} onValueChange={setFMonth}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todo período</SelectItem>
+                    {(bootstrap?.available_months || []).map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SearchableSelect
+                  value={fClient === 'all' ? '' : fClient}
+                  onValueChange={(v) => { setFClient(v || 'all'); setFArticle('all'); }}
+                  options={clientOpts.map(o => o.value === 'all' ? { value: 'all', label: 'Todos clientes' } : o)}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={fArticle === 'all' ? '' : fArticle}
+                  onValueChange={(v) => setFArticle(v || 'all')}
+                  options={articleOpts.map(o => o.value === 'all' ? { value: 'all', label: 'Todos artigos' } : o)}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                {(fClient !== 'all' || fArticle !== 'all' || fMonth !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8"
                     onClick={() => { setFClient('all'); setFArticle('all'); setFMonth('all'); }}>
                     Limpar
                   </Button>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <KpiCard title="Entradas (Kg)" value={formatWeight(kpis?.entradaKg || 0)} />
-            <KpiCard title="Saídas OF (Kg)" value={formatWeight(kpis?.deliveredKg || 0)} />
-            <KpiCard title="Reservado (Kg)" value={formatWeight(kpis?.reservedKg || 0)} />
-            <KpiCard title="Disponível (Kg)" value={formatWeight(kpis?.availableKg || 0)} highlight />
-          </div>
-
           {loadingEstoque ? (
-            <Card><CardContent className="p-6 text-sm text-muted-foreground">Carregando estoque…</CardContent></Card>
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">Carregando estoque…</CardContent></Card>
           ) : groups.length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
               <Info className="h-6 w-6" />
               Nenhum saldo. Adicione uma entrada manual para começar.
             </CardContent></Card>
           ) : (
             <div className="space-y-3">
               {groups.map((g) => (
-                <Card key={g.clientId}>
-                  <CardHeader className="p-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm">{g.clientName}</CardTitle>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className="text-[10px]">Estoque {formatWeight(g.totalStockKg)}</Badge>
-                      <Badge variant="secondary" className="text-[10px]">Reservado {formatWeight(g.totalReservedKg)}</Badge>
-                      <Badge className="text-[10px]">Disponível {formatWeight(g.totalAvailableKg)}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {/* Mobile cards */}
-                    <div className="md:hidden divide-y divide-border">
-                      {g.articles.map((a) => (
-                        <ArticleRowMobile key={a.articleId} article={a}
-                          expanded={expandedArticle === a.articleId}
-                          onToggle={() => setExpandedArticle(expandedArticle === a.articleId ? null : a.articleId)} />
-                      ))}
-                    </div>
-                    {/* Desktop table */}
-                    <div className="hidden md:block">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Artigo</TableHead>
-                            <TableHead className="text-right">Entradas Kg</TableHead>
-                            <TableHead className="text-right">Saídas OF Kg</TableHead>
-                            <TableHead className="text-right">Reservado Kg</TableHead>
-                            <TableHead className="text-right">Estoque Kg</TableHead>
-                            <TableHead className="text-right">Estoque Rolos</TableHead>
-                            <TableHead className="text-right">Disponível Kg</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                <Collapsible key={g.clientId} defaultOpen>
+                  <Card>
+                    <CollapsibleTrigger className="w-full group">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
+                          <CardTitle className="text-sm font-semibold">{g.clientName}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Entradas: <span className="font-semibold text-foreground">{formatWeight(g.totalEntradaKg)}</span></span>
+                          <span>Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatWeight(g.totalReservedKg)}</span></span>
+                          <span>Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(g.totalAvailableKg)}</span></span>
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="p-0">
+                        {/* Mobile cards */}
+                        <div className="md:hidden divide-y divide-border">
                           {g.articles.map((a) => (
-                            <React.Fragment key={a.articleId}>
-                              <TableRow className="cursor-pointer" onClick={() => setExpandedArticle(expandedArticle === a.articleId ? null : a.articleId)}>
-                                <TableCell className="font-medium flex items-center gap-2">
-                                  <ChevronDown className={`h-3 w-3 transition-transform ${expandedArticle === a.articleId ? 'rotate-0' : '-rotate-90'}`} />
-                                  {a.articleName}
-                                </TableCell>
-                                <TableCell className="text-right">{formatWeight(a.entradaKg)}</TableCell>
-                                <TableCell className="text-right">{formatWeight(a.deliveredKg)}</TableCell>
-                                <TableCell className="text-right">{formatWeight(a.reservedKg)}</TableCell>
-                                <TableCell className="text-right">{formatWeight(a.stockKg)}</TableCell>
-                                <TableCell className="text-right">{formatNumber(a.stockRolls)}</TableCell>
-                                <TableCell className="text-right font-semibold">{formatWeight(a.availableKg)}</TableCell>
-                              </TableRow>
-                              {expandedArticle === a.articleId && (
-                                <TableRow>
-                                  <TableCell colSpan={7} className="bg-muted/40 p-3">
-                                    <div className="text-[11px] font-medium mb-2 text-muted-foreground">Por máquina</div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                      {a.byMachine.map((m, i) => (
-                                        <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-md p-2 text-xs bg-background">
-                                          <div className="font-medium">{m.machineName}</div>
-                                          <div className="flex justify-between text-[11px] mt-1"><span>Entradas</span><span>{formatWeight(m.entradaKg)}</span></div>
-                                          <div className="flex justify-between text-[11px]"><span>Saídas OF</span><span>{formatWeight(m.deliveredKg)}</span></div>
-                                          <div className="flex justify-between text-[11px]"><span>Reservado</span><span>{formatWeight(m.reservedKg)}</span></div>
-                                          <div className="flex justify-between text-[11px] font-semibold"><span>Disponível</span><span>{formatWeight(m.availableKg)}</span></div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </React.Fragment>
+                            <ArticleRowMobile key={a.articleId} article={a}
+                              expanded={expandedArticle === `${g.clientId}::${a.articleId}`}
+                              onToggle={() => setExpandedArticle(expandedArticle === `${g.clientId}::${a.articleId}` ? null : `${g.clientId}::${a.articleId}`)} />
                           ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                        </div>
+                        {/* Desktop table — mesmo layout de Estoque (Clientes) */}
+                        <div className="hidden md:block">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">Artigo</TableHead>
+                                <TableHead className="text-xs text-right">Entradas (kg)</TableHead>
+                                <TableHead className="text-xs text-right">Rolos entrados</TableHead>
+                                <TableHead className="text-xs text-right">Entregue (kg)</TableHead>
+                                <TableHead className="text-xs text-right">Rolos entregues</TableHead>
+                                <TableHead className="text-xs text-right">Físico kg</TableHead>
+                                <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Rolos reservados</TableHead>
+                                <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Reservado kg</TableHead>
+                                <TableHead className="text-xs text-right font-bold">Disponível kg</TableHead>
+                                <TableHead className="text-xs text-right font-bold">Disp. Rolos</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {g.articles.map((a) => {
+                                const key = `${g.clientId}::${a.articleId}`;
+                                const isOpen = expandedArticle === key;
+                                return (
+                                  <React.Fragment key={a.articleId}>
+                                    <TableRow className="cursor-pointer hover:bg-muted/50"
+                                      onClick={() => setExpandedArticle(isOpen ? null : key)}>
+                                      <TableCell className="text-xs">
+                                        <div className="flex items-center gap-1.5">
+                                          <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen ? '' : '-rotate-90')} />
+                                          <span>{a.articleName}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-xs text-right">{formatWeight(a.entradaKg)}</TableCell>
+                                      <TableCell className="text-xs text-right">{formatNumber(a.entradaRolls)}</TableCell>
+                                      <TableCell className="text-xs text-right">{formatWeight(a.deliveredKg)}</TableCell>
+                                      <TableCell className="text-xs text-right">{formatNumber(a.deliveredRolls)}</TableCell>
+                                      <TableCell className={cn('text-xs text-right', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-foreground')}>
+                                        {formatWeight(a.stockKg)}
+                                        {a.stockKg < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                                      </TableCell>
+                                      <TableCell className="text-xs text-right text-amber-700 dark:text-amber-400">{formatNumber(a.reservedRolls)}</TableCell>
+                                      <TableCell className="text-xs text-right text-amber-700 dark:text-amber-400">{formatWeight(a.reservedKg)}</TableCell>
+                                      <TableCell className={cn('text-xs text-right font-bold', a.availableKg < 0 ? 'text-destructive' : a.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>
+                                        {formatWeight(a.availableKg)}
+                                      </TableCell>
+                                      <TableCell className={cn('text-xs text-right font-bold', a.availableRolls < 0 ? 'text-destructive' : a.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
+                                        {formatNumber(a.availableRolls)}
+                                      </TableCell>
+                                    </TableRow>
+                                    {isOpen && a.byMachine.filter(m => m.machineId).map((m, i) => (
+                                      <TableRow key={`${a.articleId}-${m.machineId || i}`} className="bg-muted/30">
+                                        <TableCell className="text-[11px] pl-8 text-muted-foreground">
+                                          ↳ <span className="font-medium text-indigo-700 dark:text-indigo-300">{m.machineName}</span>
+                                        </TableCell>
+                                        <TableCell className="text-[11px] text-right">{formatWeight(m.entradaKg)}</TableCell>
+                                        <TableCell className="text-[11px] text-right">{formatNumber(m.entradaRolls)}</TableCell>
+                                        <TableCell className="text-[11px] text-right">{formatWeight(m.deliveredKg)}</TableCell>
+                                        <TableCell className="text-[11px] text-right">{formatNumber(m.deliveredRolls)}</TableCell>
+                                        <TableCell className={cn('text-[11px] text-right', m.stockKg < 0 ? 'text-destructive' : 'text-foreground')}>{formatWeight(m.stockKg)}</TableCell>
+                                        <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatNumber(m.reservedRolls)}</TableCell>
+                                        <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatWeight(m.reservedKg)}</TableCell>
+                                        <TableCell className={cn('text-[11px] text-right font-semibold', m.availableKg < 0 ? 'text-destructive' : m.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(m.availableKg)}</TableCell>
+                                        <TableCell className={cn('text-[11px] text-right font-semibold', m.availableRolls < 0 ? 'text-destructive' : m.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(m.availableRolls)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               ))}
             </div>
           )}
