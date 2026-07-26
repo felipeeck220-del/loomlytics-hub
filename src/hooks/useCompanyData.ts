@@ -204,8 +204,10 @@ export function useCompanyData() {
        setLoading(false);
        return;
      }
-    // Reset do flag de settings a cada (re)load para garantir gating correto
-    setSettingsLoaded(false);
+    // Só zera o flag no PRIMEIRO load — em refresh (botão do header) manter
+    // settingsLoaded=true evita que o sidebar volte a esconder os itens e
+    // reintroduza a piscada que já corrigimos.
+    if (!hasLoadedOnceRef.current) setSettingsLoaded(false);
      if (skipHeavyLoad) {
       // Freteiro/roles leves: ainda precisamos do enabled_nav_items para o sidebar
       try {
