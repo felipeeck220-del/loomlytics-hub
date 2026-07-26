@@ -5,14 +5,14 @@ export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'me
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin: ['ordens', 'dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'freight-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
+  admin: ['ordens', 'dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'estoque-malha-manual', 'billing-orders', 'freight-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
   lider: ['ordens', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
   lider_noite: ['ordens', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
   lider_mecanica: ['ordens', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'mecanica'],
   mecanico: ['ordens', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'mecanica'],
   eletricista: ['ordens', 'mecanica-oe'],
   revisador: ['revision'],
-  expedicao: ['billing-orders', 'estoque-malha', 'clients-articles'],
+  expedicao: ['billing-orders', 'estoque-malha', 'estoque-malha-manual', 'clients-articles'],
   freteiro: ['freight-orders'],
   lider_frete: ['freight-orders'],
 };
@@ -45,6 +45,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   'contas-pagar': 'contas-pagar',
   residuos: 'residuos',
   'estoque-malha': 'estoque-malha',
+  'estoque-malha-manual': 'estoque-malha-manual',
   'billing-orders': 'billing-orders',
   'freight-orders': 'freight-orders',
   invoices: 'invoices',
