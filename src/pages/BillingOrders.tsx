@@ -143,6 +143,7 @@ const BillingOrders = () => {
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
+  const [palletToDelete, setPalletToDelete] = useState<null | { id: string; pallet_number: number; pieces: number; weight: number; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>(null);
   const [ownArticles, setOwnArticles] = useState<Array<{ id: string; name: string }>>([]);
   useEffect(() => {
     if (!user?.company_id) return;
