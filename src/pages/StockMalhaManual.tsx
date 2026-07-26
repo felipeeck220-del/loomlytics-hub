@@ -747,7 +747,19 @@ export default function StockMalhaManual() {
                                       <TableCell className="text-xs">
                                         <div className="flex items-center gap-1.5">
                                           <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen ? '' : '-rotate-90')} />
-                                          <span>{a.articleName}</span>
+                                          <span className="flex-1">{a.articleName}</span>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            title="Baixar PDF do estoque deste artigo"
+                                            onClick={(e) => { e.stopPropagation(); handleExportArticlePdf(g, a); }}
+                                            disabled={exportingArticleId === `${g.clientId}::${a.articleId}`}
+                                          >
+                                            {exportingArticleId === `${g.clientId}::${a.articleId}`
+                                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                              : <Download className="h-3.5 w-3.5" />}
+                                          </Button>
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-xs text-right">{formatWeight(a.entradaKg)}</TableCell>
