@@ -2638,7 +2638,7 @@ const BillingOrders = () => {
                             <td className="p-2 text-right">{p.pieces}</td>
                             <td className="p-2 text-right">{p.weight.toFixed(2)}</td>
                             <td className="p-2 text-right font-semibold text-indigo-700 dark:text-indigo-300">
-                              {p.pieces > 0 ? (p.weight / p.pieces).toFixed(3) : '—'}
+                              {p.pieces > 0 ? `${(p.weight / p.pieces).toFixed(2)}kg` : '—'}
                             </td>
                             <td className="p-2">
                               <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
