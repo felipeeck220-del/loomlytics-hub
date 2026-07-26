@@ -341,6 +341,251 @@ export default function StockMalhaManual() {
 
   const kpis = estoque?.kpis;
   const groups = estoque?.groups || [];
+  const companyInfo = bootstrap?.company as { name?: string; logo_url?: string | null } | undefined;
+
+  // ============== EXPORT PDF ==============
+  const [exportingArticleId, setExportingArticleId] = useState<string | null>(null);
+  const [clientExportGroup, setClientExportGroup] = useState<ClientGroup | null>(null);
+  const [exportingClientId, setExportingClientId] = useState<string | null>(null);
+
+  const loadLogoDataUrl = (url: string): Promise<{ data: string; width: number; height: number } | null> =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+
+  const drawStandardHeader = (
+    pdf: any,
+    opts: { company?: { name?: string; logo_url?: string | null }; logoInfo: any; title: string; subtitle?: string }
+  ) => {
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 12;
+    const dateStr = new Date().toLocaleString('pt-BR');
+    const colors = {
+      grayBg: [249, 250, 251] as [number, number, number],
+      border: [229, 231, 235] as [number, number, number],
+      textDark: [17, 24, 39] as [number, number, number],
+      textMid: [75, 85, 99] as [number, number, number],
+    };
+    const headerH = 25;
+    const leftX = margin + 5;
+    const y = margin;
+    const titleMaxWidth = pageWidth - 2 * margin - 90;
+    pdf.setFillColor(...colors.grayBg);
+    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+    pdf.setDrawColor(...colors.border);
+    pdf.setLineWidth(0.5);
+    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+    if (opts.logoInfo) {
+      try {
+        const w = opts.logoInfo.width, h = opts.logoInfo.height;
+        const s = Math.min(24 / w, 14 / h);
+        pdf.addImage(opts.logoInfo.data, 'PNG', leftX, y + 2.5, w * s, h * s);
+      } catch {
+        if (opts.company?.name) {
+          pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+          pdf.text(sanitizePdfText(opts.company.name), leftX, y + 10);
+        }
+      }
+    } else if (opts.company?.name) {
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text(sanitizePdfText(opts.company.name), leftX, y + 10);
+    }
+    pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    pdf.text(sanitizePdfText(dateStr), leftX, y + 22);
+
+    pdf.setFontSize(13); pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.textDark);
+    const titleLines = pdf.splitTextToSize(sanitizePdfText(opts.title), titleMaxWidth) as string[];
+    let titleY = y + 9;
+    titleLines.forEach((line: string) => {
+      const tw = pdf.getTextWidth(line);
+      pdf.text(line, (pageWidth - tw) / 2, titleY);
+      titleY += 6;
+    });
+    if (opts.subtitle) {
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textMid);
+      const sub = sanitizePdfText(opts.subtitle);
+      const sw = pdf.getTextWidth(sub);
+      pdf.text(sub, (pageWidth - sw) / 2, titleY + 1);
+    }
+    return y + headerH + 10;
+  };
+
+  const handleExportArticlePdf = async (group: ClientGroup, article: ArticleNode) => {
+    const key = `${group.clientId}::${article.articleId}`;
+    if (exportingArticleId) return;
+    setExportingArticleId(key);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const margin = 12;
+      const logoInfo = companyInfo?.logo_url ? await loadLogoDataUrl(companyInfo.logo_url) : null;
+      const startY = drawStandardHeader(pdf, {
+        company: companyInfo,
+        logoInfo,
+        title: 'ESTOQUE DE MALHA (MANUAL) POR ARTIGO',
+        subtitle: `${article.articleName} — ${group.clientName}`,
+      });
+
+      const rows = (article.byMachine || [])
+        .filter((m) => m.machineId && Number(m.availableRolls || 0) >= 1)
+        .sort((a, b) => (a.machineName || '').localeCompare(b.machineName || ''));
+      if (rows.length === 0) {
+        toast.info('Nenhuma máquina com saldo disponível (≥ 1 rolo) para este artigo.');
+        setExportingArticleId(null);
+        return;
+      }
+      const total = rows.reduce((s, r) => s + Number(r.availableRolls || 0), 0);
+      const body: any[] = rows.map((m) => [
+        sanitizePdfText(m.machineName || 'Máquina removida'),
+        formatNumber(Number(m.availableRolls || 0)),
+        sanitizePdfText(article.articleName),
+      ]);
+      body.push(['TOTAL', formatNumber(total), sanitizePdfText(article.articleName)]);
+
+      autoTable(pdf, {
+        head: [['MÁQUINA', 'DISP. ROLOS', 'ARTIGO']],
+        body,
+        startY,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        bodyStyles: { halign: 'center' },
+        columnStyles: {
+          0: { halign: 'left', fontStyle: 'bold' },
+          1: { halign: 'center' },
+          2: { halign: 'left' },
+        },
+        didParseCell: (d: any) => {
+          if (d.section === 'body' && d.row.index === body.length - 1) {
+            d.cell.styles.fillColor = [243, 244, 246];
+            d.cell.styles.fontStyle = 'bold';
+          }
+        },
+      });
+      const safe = (article.articleName || 'artigo').replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 40);
+      pdf.save(`estoque_manual_${safe}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Falha ao gerar PDF: ' + (e?.message || 'erro desconhecido'));
+    } finally {
+      setExportingArticleId(null);
+    }
+  };
+
+  const handleExportClientPdf = async (group: ClientGroup | null, mode: 'geral' | 'byMachine') => {
+    if (!group) return;
+    const key = `${group.clientId}::${mode}`;
+    if (exportingClientId) return;
+    setExportingClientId(key);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const margin = 12;
+      const logoInfo = companyInfo?.logo_url ? await loadLogoDataUrl(companyInfo.logo_url) : null;
+      const title = mode === 'geral'
+        ? 'ESTOQUE DE MALHA (MANUAL) POR CLIENTE — GERAL'
+        : 'ESTOQUE DE MALHA (MANUAL) POR CLIENTE — POR MÁQUINA';
+      const startY = drawStandardHeader(pdf, {
+        company: companyInfo,
+        logoInfo,
+        title,
+        subtitle: group.clientName,
+      });
+
+      const articles = (group.articles || []).filter((a) => Number(a.availableRolls || 0) >= 1);
+      if (articles.length === 0) {
+        toast.info('Nenhum artigo com saldo disponível (≥ 1 rolo) para este cliente.');
+        setExportingClientId(null);
+        return;
+      }
+
+      if (mode === 'geral') {
+        const body = articles.map((a) => [
+          sanitizePdfText(a.articleName || '-'),
+          formatNumber(Number(a.availableRolls || 0)),
+        ]);
+        autoTable(pdf, {
+          head: [['ARTIGO', 'DISP. ROLOS']],
+          body,
+          startY,
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+          bodyStyles: { halign: 'center' },
+          columnStyles: { 0: { halign: 'left', fontStyle: 'bold' }, 1: { halign: 'center' } },
+          didParseCell: (d: any) => {
+            if (d.section === 'head') {
+              d.cell.styles.halign = d.column.index === 0 ? 'left' : 'center';
+            }
+          },
+        });
+      } else {
+        const body: any[] = [];
+        for (const a of articles) {
+          const machines = (a.byMachine || [])
+            .filter((m) => m.machineId && Number(m.availableRolls || 0) >= 1)
+            .sort((x, y) => (x.machineName || '').localeCompare(y.machineName || ''));
+          if (machines.length === 0) continue;
+          machines.forEach((m) => {
+            body.push([
+              sanitizePdfText(a.articleName || '-'),
+              sanitizePdfText(m.machineName || 'Máquina removida'),
+              formatNumber(Number(m.availableRolls || 0)),
+            ]);
+          });
+          const subtotal = machines.reduce((s, m) => s + Number(m.availableRolls || 0), 0);
+          body.push([
+            { content: `Subtotal — ${sanitizePdfText(a.articleName || '-')}`, colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [243, 244, 246] } },
+            { content: formatNumber(subtotal), styles: { halign: 'center', fontStyle: 'bold', fillColor: [243, 244, 246] } },
+          ]);
+        }
+        if (body.length === 0) {
+          toast.info('Nenhuma máquina com saldo disponível (≥ 1 rolo) para este cliente.');
+          setExportingClientId(null);
+          return;
+        }
+        autoTable(pdf, {
+          head: [['ARTIGO', 'MÁQUINA', 'DISP. ROLOS']],
+          body,
+          startY,
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
+          bodyStyles: { halign: 'center' },
+          columnStyles: { 0: { halign: 'left' }, 1: { halign: 'left' }, 2: { halign: 'center' } },
+        });
+      }
+
+      const safe = (group.clientName || 'cliente').replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 40);
+      pdf.save(`estoque_manual_cliente_${safe}_${mode}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+      setClientExportGroup(null);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Falha ao gerar PDF: ' + (e?.message || 'erro desconhecido'));
+    } finally {
+      setExportingClientId(null);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-full">
