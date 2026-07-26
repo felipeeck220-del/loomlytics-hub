@@ -9,6 +9,7 @@ import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { getMobileFooterKeys } from '@/components/MobileBottomNav';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
@@ -61,9 +62,13 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
   const { role, filterNavItems } = usePermissions();
   const { sidebarLocked } = useSubscription();
+  // enabled_nav_items vem do carregamento inicial da empresa (mesmo load
+  // que gera a LoadingScreen). Enquanto settingsLoaded=false, não
+  // renderizamos os itens — evita a piscada de módulos aparecendo e
+  // sumindo depois da validação.
+  const { enabledNavItems, settingsLoaded } = useSharedCompanyData();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
-  const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [openOMCount, setOpenOMCount] = useState(0);
   const [openOCCount, setOpenOCCount] = useState(0);
@@ -87,16 +92,6 @@ export function AppSidebar() {
       .then(({ data }: any) => {
         if (data?.logo_url) setLogoUrl(data.logo_url);
         if (data?.name) setCompanyName(data.name);
-      });
-
-    (supabase.from as any)('company_settings')
-      .select('enabled_nav_items')
-      .eq('company_id', user.company_id)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data?.enabled_nav_items) {
-          setEnabledNavItems(data.enabled_nav_items);
-        }
       });
   }, [user?.company_id]);
 
@@ -159,6 +154,10 @@ export function AppSidebar() {
   }, [user?.company_id]);
 
   const items = useMemo(() => {
+    // Gate: enquanto a validação de enabled_nav_items não chegou, não
+    // renderiza itens (evita flash). Só permite a lista quando o load
+    // concluiu.
+    if (!settingsLoaded) return [];
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
@@ -193,7 +192,7 @@ export function AppSidebar() {
       title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount, ordersInProgressCount]);
+  }, [enabledNavItems, settingsLoaded, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount, ordersInProgressCount, isAdmin]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
