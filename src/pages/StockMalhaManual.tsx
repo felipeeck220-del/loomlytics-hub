@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { DialogDescription } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -22,8 +23,10 @@ import { formatWeight, formatNumber } from '@/lib/formatters';
 import { logAudit } from '@/lib/auditLog';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Warehouse, Plus, ChevronDown, Info, Package, Truck, Lock } from 'lucide-react';
+import { Warehouse, Plus, ChevronDown, Info, Package, Truck, Lock, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 
 type EstoqueKPIs = {
   entradaKg: number; deliveredKg: number;
