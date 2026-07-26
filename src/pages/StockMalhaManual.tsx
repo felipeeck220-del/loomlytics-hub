@@ -692,6 +692,15 @@ export default function StockMalhaManual() {
                         <div className="flex items-center gap-2">
                           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
                           <CardTitle className="text-sm font-semibold">{g.clientName}</CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            title="Exportar PDF do cliente (todos os artigos)"
+                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setClientExportGroup(g); }}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>Entradas: <span className="font-semibold text-foreground">{formatWeight(g.totalEntradaKg)}</span></span>
