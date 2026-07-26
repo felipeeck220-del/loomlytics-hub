@@ -42,6 +42,12 @@ export function useCompanyData() {
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
    const [loadingProgress, setLoadingProgress] = useState(0);
+   // enabled_nav_items da empresa. `null` = todos habilitados (default).
+   // `settingsLoaded=false` significa que ainda estamos buscando — o sidebar
+   // usa esse flag para não renderizar itens antes da validação (evita a
+   // piscada de itens sumindo depois do load).
+   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
+   const [settingsLoaded, setSettingsLoaded] = useState(false);
    const hasLoadedOnceRef = useRef(false);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
@@ -198,23 +204,40 @@ export function useCompanyData() {
        setLoading(false);
        return;
      }
+    // Reset do flag de settings a cada (re)load para garantir gating correto
+    setSettingsLoaded(false);
      if (skipHeavyLoad) {
-       hasLoadedOnceRef.current = true;
-       setLoadingProgress(100);
-       setLoading(false);
-       return;
+      // Freteiro/roles leves: ainda precisamos do enabled_nav_items para o sidebar
+      try {
+        const { data: cs } = await sb('company_settings')
+          .select('enabled_nav_items')
+          .eq('company_id', companyId)
+          .maybeSingle();
+        setEnabledNavItems(cs?.enabled_nav_items ?? null);
+      } catch (err) {
+        console.error('Falha ao carregar company_settings (skipHeavyLoad):', err);
+      } finally {
+        setSettingsLoaded(true);
+      }
+      hasLoadedOnceRef.current = true;
+      setLoadingProgress(100);
+      setLoading(false);
+      return;
      }
      if (liderFreteLightLoad) {
        try {
-         const [aData, ytData] = await Promise.all([
+        const [aData, ytData, csRes] = await Promise.all([
            fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
            fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name'),
+          sb('company_settings').select('enabled_nav_items').eq('company_id', companyId).maybeSingle(),
          ]);
          setArticles(aData.map(mapArticle));
          setYarnTypes(ytData);
+        setEnabledNavItems((csRes as any)?.data?.enabled_nav_items ?? null);
        } catch (err) {
          console.error('Falha no carregamento leve (lider_frete):', err);
        } finally {
+        setSettingsLoaded(true);
          hasLoadedOnceRef.current = true;
          setLoadingProgress(100);
          setLoading(false);
@@ -283,11 +306,15 @@ export function useCompanyData() {
            shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
            shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
          });
+        setEnabledNavItems((csRes.data as any).enabled_nav_items ?? null);
+      } else {
+        setEnabledNavItems(null);
        }
         if (isInitial) setLoadingProgress(100);
      } catch (err) {
        console.error('Failed to load company data:', err);
      } finally {
+      setSettingsLoaded(true);
        hasLoadedOnceRef.current = true;
        if (isInitial) {
          setTimeout(() => setLoading(false), 300); // Pequeno delay para a barra chegar a 100% suavemente
@@ -786,6 +813,8 @@ export function useCompanyData() {
     return {
      loading,
      loadingProgress,
+     enabledNavItems,
+     settingsLoaded,
      refreshData: loadAllData,
     dbCompanyId: companyId,
     shiftSettings,
