@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
