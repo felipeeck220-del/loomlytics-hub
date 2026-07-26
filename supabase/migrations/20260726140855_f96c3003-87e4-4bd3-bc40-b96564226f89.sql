@@ -1,0 +1,1 @@
+DELETE FROM public.manual_stock_movements WHERE company_id = 'a664927c-a285-4997-8faa-8c90985c6fac';
