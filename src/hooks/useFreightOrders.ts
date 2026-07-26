@@ -187,8 +187,14 @@ export function useFreightOrders() {
     queryKey: ['freight_orders', user?.company_id],
     queryFn: async () => {
       if (!user?.company_id) return [];
-      const { data, error } = await (supabase.from as any)('freight_orders')
-        .select(`
+      const PAGE = 1000;
+      const all: any[] = [];
+      let from = 0;
+      // Paginação ilimitada: PostgREST limita cada resposta a 1000 linhas.
+      // Iteramos por .range() até esgotar para nunca truncar OFRs (Relatórios/históricos).
+      while (true) {
+        const { data, error } = await (supabase.from as any)('freight_orders')
+          .select(`
           *,
           freighter:freighters(*),
           cost_company:freight_cost_companies(*),
@@ -203,10 +209,18 @@ export function useFreightOrders() {
           edit_authorizer:profiles!freight_orders_edit_authorized_by_fkey(name, code),
           editor:profiles!freight_orders_edited_by_fkey(name, code)
         `)
-        .eq('company_id', user.company_id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as FreightOrder[];
+          .eq('company_id', user.company_id)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = (data || []) as any[];
+        if (rows.length === 0) break;
+        all.push(...rows);
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
+      return all as FreightOrder[];
     },
     enabled: !!user?.company_id,
   });
@@ -242,14 +256,25 @@ export function useFreightOrders() {
   }, [user?.company_id, queryClient]);
 
   async function nextOfrNumber(): Promise<string> {
-    // Busca todos os números da empresa (não paginado) para achar o maior real
-    const { data } = await (supabase.from as any)('freight_orders')
-      .select('ofr_number')
-      .eq('company_id', user?.company_id as string);
+    // Paginação ilimitada — sem cap de 1000 no cálculo do próximo número
+    const PAGE = 1000;
+    let from = 0;
     let max = 0;
-    for (const r of (data || [])) {
-      const n = parseInt(String(r.ofr_number).replace(/\D/g, ''), 10);
-      if (!Number.isNaN(n) && n > max) max = n;
+    while (true) {
+      const { data, error } = await (supabase.from as any)('freight_orders')
+        .select('ofr_number')
+        .eq('company_id', user?.company_id as string)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      const rows = (data || []) as any[];
+      if (rows.length === 0) break;
+      for (const r of rows) {
+        const n = parseInt(String(r.ofr_number).replace(/\D/g, ''), 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      }
+      if (rows.length < PAGE) break;
+      from += PAGE;
     }
     return String(max + 1);
   }
