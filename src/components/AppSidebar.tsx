@@ -46,6 +46,7 @@ const allItems = [
   { title: 'Contas a Pagar', path: 'contas-pagar', icon: Receipt, key: 'contas-pagar' },
   { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
   { title: 'Estoque Malha', path: 'estoque-malha', icon: Warehouse, key: 'estoque-malha' },
+  { title: 'Estoque Malha (Manual)', path: 'estoque-malha-manual', icon: Warehouse, key: 'estoque-malha-manual' },
   { title: 'Ordem de Faturamento (OF)', path: 'billing-orders', icon: ClipboardList, key: 'billing-orders' },
   { title: 'Ordem de Frete (OFR)', path: 'freight-orders', icon: Truck, key: 'freight-orders' },
   { title: 'Notas Fiscais', path: 'invoices', icon: FileText, key: 'invoices' },
