@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -142,6 +143,7 @@ const BillingOrders = () => {
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
+  const [palletToDelete, setPalletToDelete] = useState<null | { id: string; pallet_number: number; pieces: number; weight: number; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>(null);
   const [ownArticles, setOwnArticles] = useState<Array<{ id: string; name: string }>>([]);
   useEffect(() => {
     if (!user?.company_id) return;
@@ -2624,6 +2626,7 @@ const BillingOrders = () => {
                           <th className="text-left p-2">Máquina</th>
                           <th className="text-right p-2">Peças</th>
                           <th className="text-right p-2">Peso (kg)</th>
+                          <th className="text-right p-2">Média (kg/pç)</th>
                           <th className="p-2 w-8"></th>
                         </tr>
                       </thead>
@@ -2634,15 +2637,36 @@ const BillingOrders = () => {
                             <td className="p-2 font-medium text-indigo-700 dark:text-indigo-300">{p.machine_id ? machineName(p.machine_id) : <span className="text-muted-foreground italic">—</span>}</td>
                             <td className="p-2 text-right">{p.pieces}</td>
                             <td className="p-2 text-right">{p.weight.toFixed(2)}</td>
+                            <td className="p-2 text-right font-semibold text-indigo-700 dark:text-indigo-300">
+                              {p.pieces > 0 ? (p.weight / p.pieces).toFixed(3) : '—'}
+                            </td>
                             <td className="p-2">
                               <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
                                 disabled={palletBusy}
-                                onClick={async () => {
-                                  if (!user?.company_id) return;
-                                  const order = showPalletsModal;
-                                  setPalletBusy(true);
-                                  try {
-                                    if (p.own_article_id) {
+                                onClick={() => setPalletToDelete(p)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <DeleteConfirmDialog
+                    open={!!palletToDelete}
+                    onOpenChange={(o) => { if (!o) setPalletToDelete(null); }}
+                    title="Excluir palete?"
+                    description={palletToDelete ? `Deseja realmente excluir o Palete ${palletToDelete.pallet_number} (${palletToDelete.pieces} pç · ${palletToDelete.weight.toFixed(2)} kg)? O estoque reservado será liberado.` : ''}
+                    confirmLabel="Excluir"
+                    cancelLabel="Cancelar"
+                    onConfirm={async () => {
+                      const p = palletToDelete;
+                      if (!p || !user?.company_id) return;
+                      const order = showPalletsModal;
+                      setPalletBusy(true);
+                      try {
+                        if (p.own_article_id) {
                                       // Palete de Estoque Próprio: reverte a saída
                                       const { error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
                                         company_id: user.company_id,
@@ -2705,17 +2729,10 @@ const BillingOrders = () => {
                                     toast({ title: 'Erro ao remover palete', description: e.message, variant: 'destructive' });
                                   } finally {
                                     setPalletBusy(false);
+                                    setPalletToDelete(null);
                                   }
-                                }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    }}
+                  />
                   {/* Resumo por máquina */}
                   <div className="rounded-md border p-2 space-y-1 bg-indigo-50/40 dark:bg-indigo-950/20">
                     <div className="text-[10px] uppercase text-muted-foreground font-semibold">Resumo por máquina</div>
