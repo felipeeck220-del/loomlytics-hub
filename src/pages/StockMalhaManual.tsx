@@ -705,7 +705,7 @@ export default function StockMalhaManual() {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>Entradas: <span className="font-semibold text-foreground">{formatWeight(g.totalEntradaKg)}</span></span>
                           <span>Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatWeight(g.totalReservedKg)}</span></span>
-                          <span>Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(g.totalAvailableKg)}</span></span>
+                          <span>Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} peças</span></span>
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
