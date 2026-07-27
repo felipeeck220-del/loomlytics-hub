@@ -685,7 +685,7 @@ export default function StockMalhaManual() {
           ) : (
             <div className="space-y-3">
               {groups.map((g) => (
-                <Collapsible key={g.clientId} defaultOpen>
+                <Collapsible key={g.clientId}>
                   <Card>
                     <CollapsibleTrigger className="w-full group">
                       <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
