@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -141,6 +141,7 @@ export default function ArticleChangeOrdersTab() {
     | 'concluidas'
   >('aberto');
   const [showNew, setShowNew] = useState(false);
+  const [editTarget, setEditTarget] = useState<OT | null>(null);
   const [finalizeTarget, setFinalizeTarget] = useState<OT | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
   const [concluidasSearch, setConcluidasSearch] = useState('');
@@ -410,6 +411,7 @@ export default function ArticleChangeOrdersTab() {
                   onCancel={() => cancelOrder(o)}
                   onDelete={() => setDeleteTarget(o)}
                   onDownload={() => downloadReport(o)}
+                  onEdit={() => setEditTarget(o)}
                 />
                   ))}
                 </div>
@@ -458,6 +460,18 @@ export default function ArticleChangeOrdersTab() {
           articles={articles}
           yarnTypes={yarnTypes}
           orders={orders}
+        />
+      )}
+
+      {editTarget && (
+        <NewOTModal
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { setEditTarget(null); load({ silent: true }); }}
+          machines={machines}
+          articles={articles}
+          yarnTypes={yarnTypes}
+          orders={orders}
+          editing={editTarget}
         />
       )}
 
