@@ -140,7 +140,9 @@ function ManualEntryModal({
 
       toast.success(type === 'adjust_in' ? 'Entrada manual registrada' : 'Saída manual registrada');
       onSaved();
-      onOpenChange(false);
+      // Limpa só peças/peso para novo lançamento em sequência; mantém cliente/artigo/máquina/motivo
+      setPieces('');
+      setWeight('');
     } catch (err: any) {
       toast.error(getFriendlyErrorMessage(err));
     } finally {
