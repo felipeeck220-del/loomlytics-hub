@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -141,6 +141,7 @@ export default function ArticleChangeOrdersTab() {
     | 'concluidas'
   >('aberto');
   const [showNew, setShowNew] = useState(false);
+  const [editTarget, setEditTarget] = useState<OT | null>(null);
   const [finalizeTarget, setFinalizeTarget] = useState<OT | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
   const [concluidasSearch, setConcluidasSearch] = useState('');
@@ -410,6 +411,7 @@ export default function ArticleChangeOrdersTab() {
                   onCancel={() => cancelOrder(o)}
                   onDelete={() => setDeleteTarget(o)}
                   onDownload={() => downloadReport(o)}
+                  onEdit={() => setEditTarget(o)}
                 />
                   ))}
                 </div>
@@ -461,6 +463,18 @@ export default function ArticleChangeOrdersTab() {
         />
       )}
 
+      {editTarget && (
+        <NewOTModal
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { setEditTarget(null); load({ silent: true }); }}
+          machines={machines}
+          articles={articles}
+          yarnTypes={yarnTypes}
+          orders={orders}
+          editing={editTarget}
+        />
+      )}
+
       {finalizeTarget && (
         <FinalizeModal
           o={finalizeTarget}
@@ -498,6 +512,7 @@ function OTCard(props: {
   onCancel: () => void;
   onDelete: () => void;
   onDownload: () => void;
+  onEdit: () => void;
 }) {
   const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
@@ -665,6 +680,11 @@ function OTCard(props: {
                   <PlayCircle className="h-3.5 w-3.5" /> Iniciar troca
                 </Button>
               )}
+              {o.status === 'aberto' && (isLider || isAdmin) && (
+                <Button size="sm" variant="outline" onClick={props.onEdit} className="gap-1.5">
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Button>
+              )}
               {o.status === 'troca_fio_em_curso' && (isLider || isAdmin) && (
                 <Button size="sm" onClick={props.onFinishYarn} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar troca
@@ -791,26 +811,46 @@ function ElastanoEditor({ elastano, onChange, yarnOptions }: {
   );
 }
 
-function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }: {
+function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders, editing }: {
   onClose: () => void;
   onSaved: () => void;
   machines: any[];
   articles: any[];
   yarnTypes: any[];
   orders: OT[];
+  editing?: OT | null;
 }) {
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
-  const [machineId, setMachineId] = useState('');
-  const [currentArticleId, setCurrentArticleId] = useState('');
-  const [nextArticleId, setNextArticleId] = useState('');
-  const [observations, setObservations] = useState('');
+  const isEdit = !!editing;
+  const [machineId, setMachineId] = useState(editing?.machine_id || '');
+  const [currentArticleId, setCurrentArticleId] = useState(editing?.current_article_id || '');
+  const [nextArticleId, setNextArticleId] = useState(editing?.next_article_id || '');
+  const [observations, setObservations] = useState(editing?.observations || '');
   const [saving, setSaving] = useState(false);
   // Guarda anti double-click (evita "Nova OT" e push duplicados).
   const savingRef = useRef(false);
 
-  const [fitas, setFitas] = useState<Fita[]>([{ ...EMPTY_FITA }]);
-  const [elastano, setElastano] = useState<Elast>({ ...EMPTY_ELAST });
+  const [fitas, setFitas] = useState<Fita[]>(() => {
+    if (editing?.yarns?.length) {
+      const fs = editing.yarns
+        .filter(y => y.feeder_type === 'fio')
+        .sort((a, b) => (a.feeder_position || 0) - (b.feeder_position || 0))
+        .map(y => ({ yarn_type_id: y.yarn_type_id || '', lfa: y.lfa != null ? String(y.lfa).replace('.', ',') : '' }));
+      return fs.length ? fs : [{ ...EMPTY_FITA }];
+    }
+    return [{ ...EMPTY_FITA }];
+  });
+  const [elastano, setElastano] = useState<Elast>(() => {
+    const e = editing?.yarns?.find(y => y.feeder_type === 'elastano');
+    if (e) return {
+      active: true,
+      yarn_type_id: e.yarn_type_id || '',
+      lfa: e.lfa != null ? String(e.lfa).replace('.', ',') : '',
+      stretch: e.stretch != null ? String(e.stretch).replace('.', ',') : '',
+    };
+    return { ...EMPTY_ELAST };
+  });
 
   const updateFita = (i: number, patch: Partial<Fita>) => {
     setFitas(prev => prev.map((f, idx) => idx === i ? { ...f, ...patch } : f));
@@ -820,11 +860,12 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
   const copyFirstToAll = () => setFitas(prev => prev.map((f, idx) => idx === 0 ? f : { ...prev[0] }));
 
   useEffect(() => {
+    if (isEdit) return; // não sobrescrever seleção durante edição
     // pré-preencher artigo atual pela máquina selecionada
     if (!machineId) return;
     const m = machines.find(x => x.id === machineId);
     if (m?.article_id) setCurrentArticleId(m.article_id);
-  }, [machineId, machines]);
+  }, [machineId, machines, isEdit]);
 
   const canSave = machineId && nextArticleId && !saving;
 
@@ -840,7 +881,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
 
     // Bloqueio de OT duplicada na mesma máquina (aberta ou em qualquer etapa em curso)
     const busy = orders.find(
-      o => o.machine_id === machineId &&
+      o => o.machine_id === machineId && o.id !== editing?.id &&
       (o.status === 'aberto' || IN_PROGRESS.includes(o.status))
     );
     if (busy) {
@@ -854,6 +895,55 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
     savingRef.current = true;
     setSaving(true);
     try {
+    if (isEdit && editing) {
+      // UPDATE do cabeçalho
+      const { error: upErr } = await (supabase.from as any)('article_change_orders')
+        .update({
+          machine_id: machineId,
+          current_article_id: currentArticleId || null,
+          next_article_id: nextArticleId,
+          observations: observations || null,
+        })
+        .eq('id', editing.id);
+      if (upErr) { toast.error(getFriendlyErrorMessage(upErr.message)); return; }
+      // Substitui fitas
+      const { error: delErr } = await (supabase.from as any)('article_change_yarns').delete().eq('order_id', editing.id);
+      if (delErr) { toast.error('OT atualizada, mas erro ao limpar fitas: ' + getFriendlyErrorMessage(delErr.message)); }
+      const yarnRows: any[] = [];
+      fitas.forEach((f, i) => {
+        if (!f.yarn_type_id && !f.lfa) return;
+        yarnRows.push({
+          order_id: editing.id,
+          company_id: user.company_id,
+          feeder_type: 'fio',
+          feeder_position: i + 1,
+          yarn_type_id: f.yarn_type_id || null,
+          lfa: f.lfa ? Number(String(f.lfa).replace(',', '.')) : null,
+          stretch: null,
+          observation: null,
+        });
+      });
+      if (elastano.active) {
+        yarnRows.push({
+          order_id: editing.id,
+          company_id: user.company_id,
+          feeder_type: 'elastano',
+          feeder_position: 1,
+          yarn_type_id: elastano.yarn_type_id || null,
+          lfa: elastano.lfa ? Number(String(elastano.lfa).replace(',', '.')) : null,
+          stretch: elastano.stretch ? Number(String(elastano.stretch).replace(',', '.')) : null,
+          observation: null,
+        });
+      }
+      if (yarnRows.length) {
+        const { error: yErr } = await (supabase.from as any)('article_change_yarns').insert(yarnRows);
+        if (yErr) toast.error('OT atualizada, mas erro nas fitas: ' + getFriendlyErrorMessage(yErr.message));
+      }
+      logAction('ot_edit', { ot: editing.ot_number, machine_id: machineId });
+      toast.success(`OT #${editing.ot_number} atualizada`);
+      onSaved();
+      return;
+    }
     const { data: ins, error } = await (supabase.from as any)('article_change_orders')
       .insert({
         company_id: user.company_id,
@@ -939,7 +1029,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Ordem de Troca de Artigo</DialogTitle>
+          <DialogTitle>{isEdit ? `Editar OT #${String(editing!.ot_number).padStart(3, '0')}` : 'Nova Ordem de Troca de Artigo'}</DialogTitle>
           <DialogDescription>Configure a máquina, o artigo destino e as fitas.</DialogDescription>
         </DialogHeader>
 
@@ -998,8 +1088,8 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={save} disabled={!canSave}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
-            Criar OT
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : (isEdit ? <Pencil className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />)}
+            {isEdit ? 'Salvar alterações' : 'Criar OT'}
           </Button>
         </DialogFooter>
       </DialogContent>
