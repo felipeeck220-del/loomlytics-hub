@@ -512,6 +512,7 @@ function OTCard(props: {
   onCancel: () => void;
   onDelete: () => void;
   onDownload: () => void;
+  onEdit: () => void;
 }) {
   const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
@@ -677,6 +678,11 @@ function OTCard(props: {
               {o.status === 'aberto' && (isLider || isAdmin) && (
                 <Button size="sm" onClick={props.onStartYarn} className="gap-1.5">
                   <PlayCircle className="h-3.5 w-3.5" /> Iniciar troca
+                </Button>
+              )}
+              {o.status === 'aberto' && (isLider || isAdmin) && (
+                <Button size="sm" variant="outline" onClick={props.onEdit} className="gap-1.5">
+                  <Pencil className="h-3.5 w-3.5" /> Editar
                 </Button>
               )}
               {o.status === 'troca_fio_em_curso' && (isLider || isAdmin) && (
