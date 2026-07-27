@@ -1102,7 +1102,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders, e
 }
 
 // -------------- Finalize (peça + relatório) ----------------
-function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onDone: () => void }) {
+function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onClose: () => void; onDone: () => void; machines: any[]; articles: any[] }) {
   const { logAction, userName, userCode } = useAuditLog();
   const { refreshData } = useSharedCompanyData() as any;
   const [turns, setTurns] = useState('');
@@ -1151,11 +1151,24 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
     try {
       const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
       const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
+      const machine = machines.find((m: any) => m.id === o.machine_id);
+      const machineName = machine?.name || 'Máquina';
+      const nextArt = articles.find((a: any) => a.id === (o as any).next_article_id);
+      const nextName = nextArt ? (nextArt.client_name ? `${nextArt.name} (${nextArt.client_name})` : nextArt.name) : null;
+      const authorLabel = userCode ? `${userName} #${userCode}` : userName;
+      const msgParts = [
+        `Concluída por ${authorLabel}`,
+        nextName ? `Artigo: ${nextName}` : null,
+        parsedTurns != null ? `${parsedTurns} voltas` : null,
+        `${Number(holes) || 0} furos`,
+        `${Number(flaws) || 0} falhas`,
+        report.trim() ? `Relatório: ${report.trim().slice(0, 100)}` : null,
+      ].filter(Boolean);
       supabase.functions.invoke('send-push-notification', {
         body: {
           company_id: o.company_id,
-          title: `OT #${String(o.ot_number).padStart(3, '0')} concluída`,
-          message: report.trim().slice(0, 140),
+          title: `OT #${String(o.ot_number).padStart(3, '0')} concluída — ${machineName}`,
+          message: msgParts.join(' • '),
           url: targetPath,
           roles: ['lider', 'lider_noite', 'mecanico', 'lider_mecanica'],
           include_admins: true,
