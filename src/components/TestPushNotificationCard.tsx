@@ -109,6 +109,7 @@ export default function TestPushNotificationCard() {
       };
       if (audience === 'self') {
         body.target_user_ids = [user.id];
+        body.allow_self = true;
       }
       const { data, error } = await supabase.functions.invoke('send-push-notification', { body });
       if (error) throw error;
