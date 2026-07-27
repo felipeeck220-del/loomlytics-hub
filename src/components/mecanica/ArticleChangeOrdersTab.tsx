@@ -403,6 +403,7 @@ export default function ArticleChangeOrdersTab() {
                   isAdmin={isAdmin}
                   isLider={isLider}
                   isMecanico={isMecanico}
+                  isLiderMecanica={role === 'lider_mecanica'}
                   onStartYarn={() => startYarnChange(o)}
                   onFinishYarn={() => finishYarnChange(o)}
                   onStartAdj={() => startAdjustment(o)}
