@@ -1017,7 +1017,7 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="p-3 bg-muted/30 space-y-2">
-          {article.byMachine.map((m, i) => (
+          {(article.byMachine || []).map((m, i) => (
             <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-md p-2 text-xs bg-background">
               <div className="font-medium">{m.machineName}</div>
               <div className="flex justify-between text-[11px] mt-1"><span>Entradas</span><span>{formatWeight(m.entradaKg)}</span></div>
