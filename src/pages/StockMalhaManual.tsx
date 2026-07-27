@@ -713,7 +713,7 @@ export default function StockMalhaManual() {
                       <CardContent className="p-0">
                         {/* Mobile cards */}
                         <div className="md:hidden divide-y divide-border">
-                          {g.articles.map((a) => (
+                          {(g.articles || []).map((a) => (
                             <ArticleRowMobile key={a.articleId} article={a}
                               expanded={expandedArticle === `${g.clientId}::${a.articleId}`}
                               onToggle={() => setExpandedArticle(expandedArticle === `${g.clientId}::${a.articleId}` ? null : `${g.clientId}::${a.articleId}`)} />
@@ -737,7 +737,7 @@ export default function StockMalhaManual() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {g.articles.map((a) => {
+                              {(g.articles || []).map((a) => {
                                 const key = `${g.clientId}::${a.articleId}`;
                                 const isOpen = expandedArticle === key;
                                 return (
@@ -779,7 +779,7 @@ export default function StockMalhaManual() {
                                         {formatNumber(a.availableRolls)}
                                       </TableCell>
                                     </TableRow>
-                                    {isOpen && a.byMachine.filter(m => m.machineId).map((m, i) => (
+                                    {isOpen && (a.byMachine || []).filter(m => m.machineId).map((m, i) => (
                                       <TableRow key={`${a.articleId}-${m.machineId || i}`} className="bg-muted/30">
                                         <TableCell className="text-[11px] pl-8 text-muted-foreground">
                                           ↳ <span className="font-medium text-indigo-700 dark:text-indigo-300">{m.machineName}</span>
