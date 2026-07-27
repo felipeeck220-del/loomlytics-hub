@@ -481,6 +481,8 @@ export default function ArticleChangeOrdersTab() {
           o={finalizeTarget}
           onClose={() => setFinalizeTarget(null)}
           onDone={() => { setFinalizeTarget(null); load({ silent: true }); }}
+          machines={machines}
+          articles={articles}
         />
       )}
 
