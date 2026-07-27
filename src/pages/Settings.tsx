@@ -1264,6 +1264,9 @@ export default function SettingsPage() {
                 </div>
               )}
 
+              {/* Test Push Notifications */}
+              {isAdmin && <TestPushNotificationCard />}
+
               {/* Email Patterns */}
               <div className="card-glass p-5 border-primary/10">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Padrões de Email</p>
