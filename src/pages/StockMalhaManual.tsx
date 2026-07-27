@@ -641,10 +641,18 @@ export default function StockMalhaManual() {
               <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(kpis?.reservedKg || 0)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
-              <p className={cn('text-xl font-bold', (kpis?.availableKg || 0) < 0 ? 'text-destructive' : 'text-success')}>
-                {formatWeight(kpis?.availableKg || 0)}
-              </p>
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Rolos disp.</div>
+              {(() => {
+                const totalRolls = (estoque?.groups || []).reduce(
+                  (s: number, g: any) => s + (g.articles || []).reduce((sa: number, a: any) => sa + Number(a.availableRolls || 0), 0),
+                  0,
+                );
+                return (
+                  <p className={cn('text-xl font-bold', totalRolls < 0 ? 'text-destructive' : 'text-success')}>
+                    {formatNumber(totalRolls)}
+                  </p>
+                );
+              })()}
             </CardContent></Card>
           </div>
 
