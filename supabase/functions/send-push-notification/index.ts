@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
       ref_number,      // 'OM #012', 'OFR #45'…
       include_admins,  // boolean — adiciona todos os admins da empresa aos destinatários
       target_user_ids, // string[] — usuários específicos (ex.: freteiro)
+      allow_self,      // boolean — se true, NÃO remove o autor da lista (usado no card de teste)
     } = body || {};
     if (!company_id || !title) {
       return new Response(JSON.stringify({ error: 'missing_fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -77,7 +78,7 @@ Deno.serve(async (req) => {
     }
 
     // Não notifica o próprio autor da ação
-    userIdsSet.delete(uid);
+    if (!allow_self) userIdsSet.delete(uid);
 
     const userIds = Array.from(userIdsSet);
     if (userIds.length === 0) {
