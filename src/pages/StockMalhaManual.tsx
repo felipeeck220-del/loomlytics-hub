@@ -443,7 +443,7 @@ export default function StockMalhaManual() {
       const startY = drawStandardHeader(pdf, {
         company: companyInfo,
         logoInfo,
-        title: 'ESTOQUE DE MALHA (MANUAL) POR ARTIGO',
+        title: 'ESTOQUE DE MALHA POR ARTIGO',
         subtitle: `${article.articleName} — ${group.clientName}`,
       });
 
@@ -458,28 +458,29 @@ export default function StockMalhaManual() {
       const total = rows.reduce((s, r) => s + Number(r.availableRolls || 0), 0);
       const body: any[] = rows.map((m) => [
         sanitizePdfText(m.machineName || 'Máquina removida'),
-        formatNumber(Number(m.availableRolls || 0)),
         sanitizePdfText(article.articleName),
+        formatNumber(Number(m.availableRolls || 0)),
       ]);
-      body.push(['TOTAL', formatNumber(total), sanitizePdfText(article.articleName)]);
+      body.push([
+        { content: 'TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: formatNumber(total), styles: { halign: 'center', fontStyle: 'bold' } },
+      ]);
 
       autoTable(pdf, {
-        head: [['MÁQUINA', 'DISP. ROLOS', 'ARTIGO']],
+        head: [['MÁQUINA', 'ARTIGO', 'DISP. ROLOS']],
         body,
         startY,
         margin: { left: margin, right: margin },
         styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
-        bodyStyles: { halign: 'center' },
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
         columnStyles: {
           0: { halign: 'left', fontStyle: 'bold' },
-          1: { halign: 'center' },
-          2: { halign: 'left' },
+          1: { halign: 'left' },
+          2: { halign: 'center' },
         },
         didParseCell: (d: any) => {
-          if (d.section === 'body' && d.row.index === body.length - 1) {
-            d.cell.styles.fillColor = [243, 244, 246];
-            d.cell.styles.fontStyle = 'bold';
+          if (d.section === 'head') {
+            d.cell.styles.halign = d.column.index === 2 ? 'center' : 'left';
           }
         },
       });
@@ -505,8 +506,8 @@ export default function StockMalhaManual() {
       const margin = 12;
       const logoInfo = companyInfo?.logo_url ? await loadLogoDataUrl(companyInfo.logo_url) : null;
       const title = mode === 'geral'
-        ? 'ESTOQUE DE MALHA (MANUAL) POR CLIENTE — GERAL'
-        : 'ESTOQUE DE MALHA (MANUAL) POR CLIENTE — POR MÁQUINA';
+        ? 'ESTOQUE DE MALHA POR CLIENTE — GERAL'
+        : 'ESTOQUE DE MALHA POR CLIENTE — POR MÁQUINA';
       const startY = drawStandardHeader(pdf, {
         company: companyInfo,
         logoInfo,
@@ -533,7 +534,6 @@ export default function StockMalhaManual() {
           margin: { left: margin, right: margin },
           styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
           headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
-          bodyStyles: { halign: 'center' },
           columnStyles: { 0: { halign: 'left', fontStyle: 'bold' }, 1: { halign: 'center' } },
           didParseCell: (d: any) => {
             if (d.section === 'head') {
@@ -567,14 +567,24 @@ export default function StockMalhaManual() {
           return;
         }
         autoTable(pdf, {
-          head: [['ARTIGO', 'MÁQUINA', 'DISP. ROLOS']],
-          body,
+          head: [['MÁQUINA', 'ARTIGO', 'DISP. ROLOS']],
+          body: body.map((row: any) => {
+            // reorder cells from [ARTIGO, MÁQUINA, DISP] to [MÁQUINA, ARTIGO, DISP]
+            if (Array.isArray(row) && row.length === 3) {
+              return [row[1], row[0], row[2]];
+            }
+            return row;
+          }),
           startY,
           margin: { left: margin, right: margin },
           styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
-          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
-          bodyStyles: { halign: 'center' },
-          columnStyles: { 0: { halign: 'left' }, 1: { halign: 'left' }, 2: { halign: 'center' } },
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+          columnStyles: { 0: { halign: 'left', fontStyle: 'bold' }, 1: { halign: 'left' }, 2: { halign: 'center' } },
+          didParseCell: (d: any) => {
+            if (d.section === 'head') {
+              d.cell.styles.halign = d.column.index === 2 ? 'center' : 'left';
+            }
+          },
         });
       }
 
