@@ -620,11 +620,22 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const machineName = machineById[finishOrder.machine_id]?.name || 'Máquina';
       const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
       const targetPath = slug ? `/${slug}/mecanica/${isElec ? 'oe' : (isCorr ? 'oc' : 'om')}` : '/';
+      const machineMeta = machineById[finishOrder.machine_id] as any;
+      const machineExtra = machineMeta ? [machineMeta.model, machineMeta.diameter ? `Ø${machineMeta.diameter}` : null, machineMeta.finura ? `F${machineMeta.finura}` : null].filter(Boolean).join(' · ') : '';
+      const openedBy = (finishOrder as any).created_by_name || null;
+      const msgParts = [
+        `Finalizada por ${authorLabel}`,
+        `Duração ${fmtDuration(seconds)}`,
+        itemsInsertedCount > 0 ? `${itemsInsertedCount} ite${itemsInsertedCount === 1 ? 'm' : 'ns'}` : null,
+        openedBy && openedBy !== authorLabel ? `Aberta por ${openedBy}` : null,
+        machineExtra || null,
+        finishNotes ? `Obs.: ${finishNotes}` : null,
+      ].filter(Boolean);
       supabase.functions.invoke('send-push-notification', {
         body: {
           company_id: companyId,
           title: `${finLabel} #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`,
-          message: `Duração: ${fmtDuration(seconds)}${finishNotes ? ` — ${finishNotes}` : ''}`,
+          message: msgParts.join(' • '),
           url: targetPath,
           roles: isElec ? ['eletricista'] : ['mecanico', 'lider_mecanica', 'lider_noite'],
           include_admins: true,
