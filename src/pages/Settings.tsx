@@ -83,6 +83,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import ProductionModeModal from '@/components/ProductionModeModal';
 import IotDevicesManager from '@/components/IotDevicesManager';
+import TestPushNotificationCard from '@/components/TestPushNotificationCard';
 import SettingsTelasTab from '@/components/SettingsTelasTab';
 import AuditHistoryModal from '@/components/AuditHistoryModal';
 import { QRCodeSVG } from 'qrcode.react';
