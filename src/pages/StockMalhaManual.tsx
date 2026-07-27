@@ -483,12 +483,6 @@ export default function StockMalhaManual() {
             d.cell.styles.halign = d.column.index === 2 ? 'center' : 'left';
           }
         },
-        didParseCell: (d: any) => {
-          if (d.section === 'body' && d.row.index === body.length - 1) {
-            d.cell.styles.fillColor = [243, 244, 246];
-            d.cell.styles.fontStyle = 'bold';
-          }
-        },
       });
       const safe = (article.articleName || 'artigo').replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 40);
       pdf.save(`estoque_manual_${safe}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
