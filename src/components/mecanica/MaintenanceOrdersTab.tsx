@@ -631,6 +631,54 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
 
     toast.success(`${finLabel} finalizada`);
+    // Fotos da finalização (OE) — comprime e anexa ao array oc_photos existente
+    if (isElec && finishPhotoDrafts.length > 0) {
+      const uploadedPaths: string[] = [];
+      try {
+        const { compressImage } = await import('@/lib/imageCompression');
+        const { uploadProgress } = await import('@/lib/uploadProgress');
+        uploadProgress.start('Enviando fotos da finalização', finishPhotoDrafts.length);
+        const existing: OCPhoto[] = Array.isArray((finishOrder as any).oc_photos) ? ((finishOrder as any).oc_photos as OCPhoto[]) : [];
+        const uploaded: OCPhoto[] = [];
+        for (let i = 0; i < finishPhotoDrafts.length; i++) {
+          const draft = finishPhotoDrafts[i];
+          uploadProgress.step({ index: i + 1, phase: 'compressing' });
+          const c = await compressImage(draft.file);
+          const uploadFile = c.file;
+          const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+          const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+          const path = `${companyId}/${finishOrder.id}/${uid}.${ext}`;
+          uploadProgress.step({ index: i + 1, phase: 'uploading' });
+          const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
+            contentType: uploadFile.type || 'image/jpeg',
+            upsert: false,
+          });
+          if (upErr) throw upErr;
+          uploadedPaths.push(path);
+          uploaded.push({
+            id: uid,
+            path,
+            description: draft.description.trim() || 'Foto da finalização',
+            author: authorLabel,
+            ts: new Date().toISOString(),
+          });
+        }
+        uploadProgress.step({ index: finishPhotoDrafts.length, phase: 'finalizing' });
+        const { error: updErr } = await (supabase.from as any)('maintenance_orders')
+          .update({ oc_photos: [...existing, ...uploaded] })
+          .eq('id', finishOrder.id);
+        if (updErr) throw updErr;
+        uploadProgress.done();
+        clearFinishPhotoDrafts();
+      } catch (photoErr) {
+        console.error('Falha ao anexar fotos da finalização da OE', photoErr);
+        if (uploadedPaths.length > 0) {
+          await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+        }
+        try { const { uploadProgress } = await import('@/lib/uploadProgress'); uploadProgress.fail('Falha ao enviar fotos'); } catch { /* */ }
+        toast.error('OE finalizada, mas houve erro ao anexar as fotos.');
+      }
+    }
     logAction(
       isElec ? 'oe_finish' : (isCorr ? 'oc_finish' : 'om_finish'),
       isElec
