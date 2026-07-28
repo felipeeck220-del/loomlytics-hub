@@ -91,10 +91,10 @@ function useLiveTimer(startedAt?: string | null) {
   return Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
 }
 
-function LiveTimer({ startedAt }: { startedAt?: string | null }) {
+const LiveTimer = forwardRef<HTMLSpanElement, { startedAt?: string | null }>(function LiveTimer({ startedAt }, ref) {
   const s = useLiveTimer(startedAt);
-  return <span className="font-mono tabular-nums">{fmtDuration(s)}</span>;
-}
+  return <span ref={ref} className="font-mono tabular-nums">{fmtDuration(s)}</span>;
+});
 
 interface Props {
   machines: Machine[];
