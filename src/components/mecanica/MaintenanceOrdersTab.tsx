@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -91,10 +91,10 @@ function useLiveTimer(startedAt?: string | null) {
   return Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
 }
 
-function LiveTimer({ startedAt }: { startedAt?: string | null }) {
+const LiveTimer = forwardRef<HTMLSpanElement, { startedAt?: string | null }>(function LiveTimer({ startedAt }, ref) {
   const s = useLiveTimer(startedAt);
-  return <span className="font-mono tabular-nums">{fmtDuration(s)}</span>;
-}
+  return <span ref={ref} className="font-mono tabular-nums">{fmtDuration(s)}</span>;
+});
 
 interface Props {
   machines: Machine[];
