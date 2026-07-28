@@ -1212,7 +1212,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             </div>
                           )}
 
-                          {/* Descrição do problema — destacada em OC */}
+                          {/* Descrição do problema — destacada em OC e OE */}
                           {o.description && (
                             o.type === 'manutencao_corretiva' ? (
                               <div className="rounded-md border-2 border-destructive/40 bg-destructive/5 p-3 flex items-start gap-2 mt-1">
@@ -1222,23 +1222,30 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                   <div className="mt-1 text-sm text-foreground font-medium whitespace-pre-wrap break-words">{o.description}</div>
                                 </div>
                               </div>
+                            ) : o.type === 'manutencao_eletrica' ? (
+                              <div className="rounded-md border-2 border-yellow-500/50 bg-yellow-500/10 p-3 flex items-start gap-2 mt-1">
+                                <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                                <div className="min-w-0">
+                                  <div className="font-bold uppercase text-[10px] tracking-wide text-yellow-700 dark:text-yellow-400">Descrição do problema</div>
+                                  <div className="mt-1 text-sm text-foreground font-medium whitespace-pre-wrap break-words">{o.description}</div>
+                                </div>
+                              </div>
                             ) : (
                               <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
                             )
                           )}
 
-                          {/* Indicador de fotos da OC (disponível em qualquer status) */}
-                          {o.type === 'manutencao_corretiva' && Array.isArray((o as any).oc_photos) && ((o as any).oc_photos as OCPhoto[]).length > 0 && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="gap-1 text-[10px] border-purple-500/50 text-purple-700 dark:text-purple-300 bg-purple-500/10">
+                          {/* Indicador de fotos (OC e OE, qualquer status) */}
+                          {(o.type === 'manutencao_corretiva' || o.type === 'manutencao_eletrica') && Array.isArray((o as any).oc_photos) && ((o as any).oc_photos as OCPhoto[]).length > 0 && (
+                            <div className="mt-1 flex flex-wrap items-center gap-2 rounded-md border-2 border-purple-500/40 bg-purple-500/10 p-2">
+                              <Badge variant="outline" className="gap-1 text-[10px] font-bold border-purple-500/50 text-purple-700 dark:text-purple-300 bg-background/60">
                                 <ImageIcon className="h-3 w-3" />
                                 {((o as any).oc_photos as OCPhoto[]).length} foto{((o as any).oc_photos as OCPhoto[]).length > 1 ? 's' : ''} anexada{((o as any).oc_photos as OCPhoto[]).length > 1 ? 's' : ''}
                               </Badge>
                               <Button
                                 size="sm"
-                                variant="outline"
                                 onClick={() => setViewOrder(o)}
-                                className="gap-1.5 h-7 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                                className="gap-1.5 h-7 bg-purple-600 text-white hover:bg-purple-700"
                               >
                                 <Eye className="h-3.5 w-3.5" /> Ver fotos
                               </Button>
