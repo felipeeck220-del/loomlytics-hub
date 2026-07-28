@@ -1759,10 +1759,71 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <p className="text-xs text-muted-foreground">Registre aqui um resumo final: itens trocados que não estão na lista acima, observações do serviço, causa raiz, recomendações etc. Este texto fica salvo na OM e aparece no relatório em PDF.</p>
                 <Textarea rows={8} value={finishNotes} onChange={e => setFinishNotes(e.target.value)} placeholder="Ex.: Realizada troca completa de agulhas. Verificada folga no cilindro — recomenda-se preventiva em 30 dias..." />
               </div>
+
+              {finishOrder.type === 'manutencao_eletrica' && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="font-semibold flex items-center gap-2">
+                      <Camera className="h-4 w-4" /> Fotos da finalização (opcional)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">{finishPhotoDrafts.length}/2</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">As imagens são comprimidas automaticamente antes do envio e ficam anexadas à OE.</p>
+                  {finishPhotoDrafts.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {finishPhotoDrafts.map(d => (
+                        <div key={d.id} className="border rounded overflow-hidden bg-muted/30 relative">
+                          <img src={d.preview} alt="preview" className="w-full h-28 object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeFinishPhotoDraft(d.id)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                            aria-label="Remover foto"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          <Textarea
+                            rows={2}
+                            value={d.description}
+                            onChange={e => updateFinishPhotoDesc(d.id, e.target.value)}
+                            placeholder="Descrição (opcional)"
+                            className="text-xs rounded-none border-0 border-t focus-visible:ring-0"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {finishPhotoDrafts.length < 2 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                        <Camera className="h-4 w-4" />
+                        <span>Tirar foto</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => { addFinishPhotoDraft(e.target.files?.[0] || null); e.currentTarget.value = ''; }}
+                        />
+                      </label>
+                      <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                        <ImageIcon className="h-4 w-4" />
+                        <span>Escolher da galeria</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { addFinishPhotoDraft(e.target.files?.[0] || null); e.currentTarget.value = ''; }}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <div className="border-t p-4 flex justify-end gap-2 shrink-0">
-            <Button variant="outline" onClick={() => setFinishOrder(null)}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setFinishOrder(null); clearFinishPhotoDrafts(); }}>Fechar</Button>
             <Button onClick={() => setConfirmFinishGate(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
               <Square className="h-4 w-4" /> Confirmar finalização
             </Button>
