@@ -1194,8 +1194,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           </div>
 
                           {/* Urgência de manutenção (Aberto) — puxada do Calendário por máquina.
-                              Não exibida para OC (corretiva não segue meta preventiva). */}
-                          {u && o.type !== 'manutencao_corretiva' && (
+                              Não exibida para OC nem OE (não seguem meta preventiva). */}
+                          {u && o.type !== 'manutencao_corretiva' && o.type !== 'manutencao_eletrica' && (
                             <div className="flex flex-wrap items-center gap-2 pt-0.5">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[10px] uppercase text-muted-foreground font-semibold">Dias p/ próxima</span>
