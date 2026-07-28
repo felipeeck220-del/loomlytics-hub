@@ -1667,7 +1667,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       </Dialog>
 
       {/* Finish Modal */}
-      <Dialog open={!!finishOrder} onOpenChange={v => !v && setFinishOrder(null)}>
+      <Dialog open={!!finishOrder} onOpenChange={v => { if (!v && !finishing) { setFinishOrder(null); clearFinishPhotoDrafts(); } }}>
         <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col sm:rounded-none [&>button.absolute]:hidden">
           <DialogHeader className="p-4 border-b flex flex-row items-center justify-between sm:justify-between space-y-0 shrink-0">
             <DialogTitle className="flex items-center gap-2">
