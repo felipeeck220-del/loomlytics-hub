@@ -1,0 +1,2 @@
+ALTER TABLE public.maintenance_orders DROP CONSTRAINT IF EXISTS maintenance_orders_type_check;
+ALTER TABLE public.maintenance_orders ADD CONSTRAINT maintenance_orders_type_check CHECK (type = ANY (ARRAY['manutencao_preventiva'::text, 'manutencao_corretiva'::text, 'manutencao_eletrica'::text, 'troca_artigo'::text, 'troca_agulhas'::text]));
