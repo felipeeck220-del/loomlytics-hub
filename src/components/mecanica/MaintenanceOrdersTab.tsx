@@ -540,10 +540,39 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ FINISH MODAL ============
   const [finishOrder, setFinishOrder] = useState<MaintenanceOrder | null>(null);
   const [finishItems, setFinishItems] = useState<Array<{ item_type: MaintenanceOrderItemType; ref_id: string; description: string; quantity: number }>>([]);
+  // Fotos opcionais anexadas na finalização de uma OE (até 2, com compressão)
+  const [finishPhotoDrafts, setFinishPhotoDrafts] = useState<CreatePhotoDraft[]>([]);
+  const clearFinishPhotoDrafts = () => {
+    setFinishPhotoDrafts(prev => {
+      prev.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } });
+      return [];
+    });
+  };
+  const addFinishPhotoDraft = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    setFinishPhotoDrafts(prev => {
+      if (prev.length >= 2) { toast.error('Máximo de 2 fotos'); return prev; }
+      const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+      return [...prev, { id, file, preview: URL.createObjectURL(file), description: '' }];
+    });
+  };
+  const removeFinishPhotoDraft = (id: string) => {
+    setFinishPhotoDrafts(prev => {
+      const found = prev.find(p => p.id === id);
+      if (found) { try { URL.revokeObjectURL(found.preview); } catch { /* */ } }
+      return prev.filter(p => p.id !== id);
+    });
+  };
+  const updateFinishPhotoDesc = (id: string, description: string) => {
+    setFinishPhotoDrafts(prev => prev.map(p => p.id === id ? { ...p, description } : p));
+  };
   const openFinish = (o: MaintenanceOrder) => {
     setFinishOrder(o);
     setFinishItems([]);
     setFinishNotes(o.finish_notes || '');
+    clearFinishPhotoDrafts();
   };
   const [finishNotes, setFinishNotes] = useState('');
   const addItem = () => setFinishItems(p => [...p, { item_type: 'agulha', ref_id: '', description: '', quantity: 1 }]);
@@ -602,6 +631,54 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
 
     toast.success(`${finLabel} finalizada`);
+    // Fotos da finalização (OE) — comprime e anexa ao array oc_photos existente
+    if (isElec && finishPhotoDrafts.length > 0) {
+      const uploadedPaths: string[] = [];
+      try {
+        const { compressImage } = await import('@/lib/imageCompression');
+        const { uploadProgress } = await import('@/lib/uploadProgress');
+        uploadProgress.start('Enviando fotos da finalização', finishPhotoDrafts.length);
+        const existing: OCPhoto[] = Array.isArray((finishOrder as any).oc_photos) ? ((finishOrder as any).oc_photos as OCPhoto[]) : [];
+        const uploaded: OCPhoto[] = [];
+        for (let i = 0; i < finishPhotoDrafts.length; i++) {
+          const draft = finishPhotoDrafts[i];
+          uploadProgress.step({ index: i + 1, phase: 'compressing' });
+          const c = await compressImage(draft.file);
+          const uploadFile = c.file;
+          const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+          const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+          const path = `${companyId}/${finishOrder.id}/${uid}.${ext}`;
+          uploadProgress.step({ index: i + 1, phase: 'uploading' });
+          const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
+            contentType: uploadFile.type || 'image/jpeg',
+            upsert: false,
+          });
+          if (upErr) throw upErr;
+          uploadedPaths.push(path);
+          uploaded.push({
+            id: uid,
+            path,
+            description: draft.description.trim() || 'Foto da finalização',
+            author: authorLabel,
+            ts: new Date().toISOString(),
+          });
+        }
+        uploadProgress.step({ index: finishPhotoDrafts.length, phase: 'finalizing' });
+        const { error: updErr } = await (supabase.from as any)('maintenance_orders')
+          .update({ oc_photos: [...existing, ...uploaded] })
+          .eq('id', finishOrder.id);
+        if (updErr) throw updErr;
+        uploadProgress.done();
+        clearFinishPhotoDrafts();
+      } catch (photoErr) {
+        console.error('Falha ao anexar fotos da finalização da OE', photoErr);
+        if (uploadedPaths.length > 0) {
+          await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+        }
+        try { const { uploadProgress } = await import('@/lib/uploadProgress'); uploadProgress.fail('Falha ao enviar fotos'); } catch { /* */ }
+        toast.error('OE finalizada, mas houve erro ao anexar as fotos.');
+      }
+    }
     logAction(
       isElec ? 'oe_finish' : (isCorr ? 'oc_finish' : 'om_finish'),
       isElec
@@ -1682,10 +1759,71 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <p className="text-xs text-muted-foreground">Registre aqui um resumo final: itens trocados que não estão na lista acima, observações do serviço, causa raiz, recomendações etc. Este texto fica salvo na OM e aparece no relatório em PDF.</p>
                 <Textarea rows={8} value={finishNotes} onChange={e => setFinishNotes(e.target.value)} placeholder="Ex.: Realizada troca completa de agulhas. Verificada folga no cilindro — recomenda-se preventiva em 30 dias..." />
               </div>
+
+              {finishOrder.type === 'manutencao_eletrica' && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="font-semibold flex items-center gap-2">
+                      <Camera className="h-4 w-4" /> Fotos da finalização (opcional)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">{finishPhotoDrafts.length}/2</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">As imagens são comprimidas automaticamente antes do envio e ficam anexadas à OE.</p>
+                  {finishPhotoDrafts.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {finishPhotoDrafts.map(d => (
+                        <div key={d.id} className="border rounded overflow-hidden bg-muted/30 relative">
+                          <img src={d.preview} alt="preview" className="w-full h-28 object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeFinishPhotoDraft(d.id)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                            aria-label="Remover foto"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          <Textarea
+                            rows={2}
+                            value={d.description}
+                            onChange={e => updateFinishPhotoDesc(d.id, e.target.value)}
+                            placeholder="Descrição (opcional)"
+                            className="text-xs rounded-none border-0 border-t focus-visible:ring-0"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {finishPhotoDrafts.length < 2 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                        <Camera className="h-4 w-4" />
+                        <span>Tirar foto</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => { addFinishPhotoDraft(e.target.files?.[0] || null); e.currentTarget.value = ''; }}
+                        />
+                      </label>
+                      <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                        <ImageIcon className="h-4 w-4" />
+                        <span>Escolher da galeria</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { addFinishPhotoDraft(e.target.files?.[0] || null); e.currentTarget.value = ''; }}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <div className="border-t p-4 flex justify-end gap-2 shrink-0">
-            <Button variant="outline" onClick={() => setFinishOrder(null)}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setFinishOrder(null); clearFinishPhotoDrafts(); }}>Fechar</Button>
             <Button onClick={() => setConfirmFinishGate(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
               <Square className="h-4 w-4" /> Confirmar finalização
             </Button>
