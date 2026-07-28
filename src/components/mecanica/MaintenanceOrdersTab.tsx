@@ -540,10 +540,39 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ FINISH MODAL ============
   const [finishOrder, setFinishOrder] = useState<MaintenanceOrder | null>(null);
   const [finishItems, setFinishItems] = useState<Array<{ item_type: MaintenanceOrderItemType; ref_id: string; description: string; quantity: number }>>([]);
+  // Fotos opcionais anexadas na finalização de uma OE (até 2, com compressão)
+  const [finishPhotoDrafts, setFinishPhotoDrafts] = useState<CreatePhotoDraft[]>([]);
+  const clearFinishPhotoDrafts = () => {
+    setFinishPhotoDrafts(prev => {
+      prev.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } });
+      return [];
+    });
+  };
+  const addFinishPhotoDraft = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    setFinishPhotoDrafts(prev => {
+      if (prev.length >= 2) { toast.error('Máximo de 2 fotos'); return prev; }
+      const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+      return [...prev, { id, file, preview: URL.createObjectURL(file), description: '' }];
+    });
+  };
+  const removeFinishPhotoDraft = (id: string) => {
+    setFinishPhotoDrafts(prev => {
+      const found = prev.find(p => p.id === id);
+      if (found) { try { URL.revokeObjectURL(found.preview); } catch { /* */ } }
+      return prev.filter(p => p.id !== id);
+    });
+  };
+  const updateFinishPhotoDesc = (id: string, description: string) => {
+    setFinishPhotoDrafts(prev => prev.map(p => p.id === id ? { ...p, description } : p));
+  };
   const openFinish = (o: MaintenanceOrder) => {
     setFinishOrder(o);
     setFinishItems([]);
     setFinishNotes(o.finish_notes || '');
+    clearFinishPhotoDrafts();
   };
   const [finishNotes, setFinishNotes] = useState('');
   const addItem = () => setFinishItems(p => [...p, { item_type: 'agulha', ref_id: '', description: '', quantity: 1 }]);
