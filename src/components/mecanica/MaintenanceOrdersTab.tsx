@@ -1461,13 +1461,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <Select
                   value={form.type}
                   onValueChange={v => setForm(p => ({ ...p, type: v as MaintenanceOrderType }))}
-                  disabled={correctiveMode}
+                  disabled={correctiveMode || form.type === 'manutencao_eletrica'}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {correctiveMode
                       ? <SelectItem value="manutencao_corretiva">Manutenção Corretiva</SelectItem>
-                      : Object.entries(OM_TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)
+                      : form.type === 'manutencao_eletrica'
+                        ? <SelectItem value="manutencao_eletrica">Manutenção Elétrica</SelectItem>
+                        : Object.entries(OM_TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)
                     }
                   </SelectContent>
                 </Select>
