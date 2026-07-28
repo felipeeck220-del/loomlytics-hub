@@ -372,7 +372,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const { error } = await (supabase.from as any)('maintenance_orders').update({
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
       }).eq('id', editing.id);
-      if (error) { toast.error(`Erro ao atualizar ${orderLabel}`); return; }
+      if (error) { toast.error(`Erro ao atualizar ${orderLabel}: ${error.message}`); return; }
       toast.success(`${orderLabel} #${displayNumber(editing)} atualizada`);
       logAction(isElectrical ? 'oe_update' : (isCorrective ? 'oc_update' : 'om_update'), { om: editing.om_number, oc: editing.oc_number, oe: (editing as any).oe_number });
     } else {
@@ -385,7 +385,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         created_by_id: user?.id,
         created_by_name: authorLabel,
       }).select().single();
-      if (error) { toast.error(`Erro ao criar ${orderLabel}`); return; }
+      if (error) { toast.error(`Erro ao criar ${orderLabel}: ${error.message}`); return; }
       const created = data as any;
       const createdNum = isElectrical ? (created.oe_number ?? created.om_number)
                        : isCorrective ? (created.oc_number ?? created.om_number)
