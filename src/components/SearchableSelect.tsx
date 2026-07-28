@@ -98,13 +98,13 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn('w-auto min-w-[--radix-popover-trigger-width] p-0', className)}
+        className={cn('flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden w-auto min-w-[--radix-popover-trigger-width] p-0', className)}
         align="start"
         side="bottom"
         sideOffset={4}
         avoidCollisions={false}
       >
-        <div className="flex items-center border-b px-2 py-1.5">
+        <div className="flex shrink-0 items-center border-b px-2 py-1.5">
           <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
           <Input
             ref={inputRef}
@@ -115,7 +115,7 @@ export function SearchableSelect({
           />
         </div>
         <div
-          className="max-h-[360px] overflow-y-auto scrollbar-hide"
+          className="max-h-[360px] min-h-0 flex-1 overflow-y-auto scrollbar-hide"
           style={{ overscrollBehavior: 'contain', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           onWheel={e => e.stopPropagation()}
         >
@@ -139,7 +139,7 @@ export function SearchableSelect({
                 {value === option.value && (
                   <Check className="absolute left-2 h-3.5 w-3.5" />
                 )}
-                <span className="whitespace-nowrap">{option.label}</span>
+                <span className="truncate text-left">{option.label}</span>
               </button>
             ))}
           </div>
