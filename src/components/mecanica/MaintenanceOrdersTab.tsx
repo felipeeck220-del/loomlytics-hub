@@ -1963,15 +1963,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             const its = itemsByOrder[o.id] || [];
             const notes: ProgressNote[] = Array.isArray(o.progress_notes) ? (o.progress_notes as ProgressNote[]) : [];
             const photos: OCPhoto[] = Array.isArray((o as any).oc_photos) ? ((o as any).oc_photos as OCPhoto[]) : [];
-            const isCorr = o.type === 'manutencao_corretiva';
-            const label = isCorr ? 'OC' : 'OM';
-            const num = isCorr ? ((o as any).oc_number ?? o.om_number) : o.om_number;
+            const label = labelOf(o);
+            const num = displayNumber(o);
             return (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 flex-wrap">
                     <FileText className="h-5 w-5" />
-                    Relatório {label} #{num != null ? String(num).padStart(3, '0') : '—'}
+                    Relatório {label} #{num}
                     <Badge className={cn('ml-1', TYPE_COLORS[o.type])} variant="outline">{TYPE_LABELS[o.type]}</Badge>
                     <Badge className={cn('ml-1', STATUS_STYLE[o.status].badgeClass)}>{STATUS_STYLE[o.status].label}</Badge>
                   </DialogTitle>
