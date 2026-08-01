@@ -579,6 +579,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           client_id: string
+          collect_photos: Json
           collected_at: string | null
           collected_by: string | null
           company_id: string
@@ -625,6 +626,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_id: string
+          collect_photos?: Json
           collected_at?: string | null
           collected_by?: string | null
           company_id: string
@@ -671,6 +673,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_id?: string
+          collect_photos?: Json
           collected_at?: string | null
           collected_by?: string | null
           company_id?: string
