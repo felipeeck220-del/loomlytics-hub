@@ -342,14 +342,15 @@ function MachinePalletModal({
   const [mode, setMode] = useState<'add' | 'move'>('add');
   const [pieces, setPieces] = useState('');
   const [weight, setWeight] = useState('');
-  const [addPieces, setAddPieces] = useState('');
-  const [addWeight, setAddWeight] = useState('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (target) {
-      setMode('add'); setPieces(''); setWeight(''); setAddPieces(''); setAddWeight(''); setReason('');
+      setMode('add');
+      setPieces(String(Math.round(Number(target.machineRolls || 0))));
+      setWeight(Number(target.machineKg || 0) ? String(Number(target.machineKg).toFixed(2)) : '');
+      setReason('');
     }
   }, [target]);
 
@@ -359,14 +360,12 @@ function MachinePalletModal({
     if (!user?.company_id) return;
     const pc = parseInt(pieces || '0', 10) || 0;
     const kg = parseFloat(weight || '0') || 0;
-    const addPc = mode === 'move' ? (parseInt(addPieces || '0', 10) || 0) : 0;
-    const addKg = mode === 'move' ? (parseFloat(addWeight || '0') || 0) : 0;
-    if (pc <= 0 && kg <= 0 && addPc <= 0 && addKg <= 0) return toast.error('Informe peças ou peso');
-    if (mode === 'move' && (pc > target.machineRolls + addPc)) {
-      return toast.error('Peças acima do saldo em máquina');
-    }
-    if (mode === 'move' && (kg > target.machineKg + addKg + 0.0001)) {
-      return toast.error('Peso acima do saldo em máquina');
+    if (pc < 0 || kg < 0) return toast.error('Valores inválidos');
+    if (mode === 'move' && pc <= 0 && kg <= 0) return toast.error('Informe peças ou peso para transferir');
+    if (mode === 'add'
+      && pc === Math.round(Number(target.machineRolls || 0))
+      && Math.abs(kg - Number(target.machineKg || 0)) < 0.005) {
+      return toast.error('Nenhuma alteração no palete');
     }
 
     setSaving(true);
@@ -376,10 +375,9 @@ function MachinePalletModal({
         client_id: target.clientId,
         article_id: target.articleId,
         machine_id: target.machineId,
-        add_pieces: mode === 'add' ? pc : addPc,
-        add_weight_kg: mode === 'add' ? kg : addKg,
-        move_pieces: mode === 'move' ? pc : 0,
-        move_weight_kg: mode === 'move' ? kg : 0,
+        set_pieces: pc,
+        set_weight_kg: kg,
+        move_all: mode === 'move',
         reason: reason.trim(),
       };
       const { error } = await (supabase.rpc as any)('save_manual_stock_machine_adjust', { p_payload: payload });
@@ -419,39 +417,30 @@ function MachinePalletModal({
           <DialogDescription className="text-xs">
             {target.clientName} · {target.articleName} — em máquina hoje:{' '}
             <strong>{formatNumber(target.machineRolls)} pç</strong> ({formatWeight(target.machineKg)})
+            <br />
+            A quantidade informada <strong>substitui</strong> o palete atual (recontagem).
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2 flex-1 min-h-0 overflow-y-auto">
           <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <RadioGroupItem value="add" /> Adicionar peças e manter na máquina
+              <RadioGroupItem value="add" /> Recontar palete e manter na máquina
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <RadioGroupItem value="move" /> Lançar peças para o estoque da expedição
+              <RadioGroupItem value="move" /> Recontar e lançar o palete para a expedição
             </label>
           </RadioGroup>
 
-          {mode === 'move' && (
-            <div className="grid grid-cols-2 gap-3 rounded-md border p-2 bg-muted/30">
-              <div className="space-y-1 col-span-2">
-                <Label className="text-[11px] text-muted-foreground">Antes de transferir, adicionar peças ao palete (opcional)</Label>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Peças a somar</Label>
-                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={addPieces} className="h-8 text-base md:text-xs" placeholder="0"
-                  onChange={(e) => setAddPieces(e.target.value.replace(/[^\d]/g, ''))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Peso a somar (kg)</Label>
-                <BrazilianWeightInput value={addWeight} onChange={setAddWeight} placeholder="0,00" />
-              </div>
-            </div>
-          )}
+          <p className="text-[11px] text-muted-foreground rounded-md border p-2 bg-muted/30">
+            {mode === 'add'
+              ? 'Informe a quantidade TOTAL contada no palete. O valor salvo substitui o saldo atual em máquina.'
+              : 'Informe a quantidade TOTAL final do palete. Ela será lançada integralmente na expedição e o saldo em máquina fica zerado.'}
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">{mode === 'add' ? 'Peças' : 'Peças p/ expedição'}</Label>
+              <Label className="text-xs">{mode === 'add' ? 'Peças (total)' : 'Peças (total) p/ expedição'}</Label>
               <Input type="text" inputMode="numeric" pattern="[0-9]*" value={pieces} className="h-8 text-base md:text-xs" placeholder="0"
                 onChange={(e) => setPieces(e.target.value.replace(/[^\d]/g, ''))} />
             </div>
