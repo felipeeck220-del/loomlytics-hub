@@ -708,24 +708,24 @@ export default function StockMalhaManual() {
                 <Collapsible key={g.clientId}>
                   <Card>
                     <CollapsibleTrigger className="w-full group">
-                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2">
+                      <CardHeader className="p-3 md:p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0 w-full md:w-auto">
                           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
-                          <CardTitle className="text-sm font-semibold">{g.clientName}</CardTitle>
+                          <CardTitle className="text-sm font-semibold truncate min-w-0 flex-1 text-left">{g.clientName}</CardTitle>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-6 w-6 shrink-0"
                             title="Exportar PDF do cliente (todos os artigos)"
                             onClick={(e) => { e.stopPropagation(); e.preventDefault(); setClientExportGroup(g); }}
                           >
                             <Download className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Entradas: <span className="font-semibold text-foreground">{formatWeight(g.totalEntradaKg)}</span></span>
-                          <span>Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatWeight(g.totalReservedKg)}</span></span>
-                          <span>Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} peças</span></span>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:text-xs text-muted-foreground min-w-0 w-full md:w-auto text-left">
+                          <span className="whitespace-nowrap">Entradas: <span className="font-semibold text-foreground">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.entradaRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.reservedRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} pç</span></span>
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
