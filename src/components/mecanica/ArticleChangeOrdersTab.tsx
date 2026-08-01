@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight, Pencil, Camera, ImageIcon, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,7 +82,16 @@ interface OT {
   final_report: string | null;
   created_at: string;
   yarns?: Yarn[];
+  ot_photos?: OTPhoto[] | null;
 }
+
+type OTPhoto = {
+  id: string;
+  path: string;
+  description: string;
+  author: string | null;
+  ts: string;
+};
 
 const STATUS_LABEL: Record<OTStatus, string> = {
   aberto: 'Aberta',
