@@ -1077,10 +1077,10 @@ export default function StockMalhaManual() {
                                       </TableCell>
                                       <TableCell />
                                     </TableRow>
-                                    {isOpen && (a.byMachine || []).filter(m => m.machineId).map((m, i) => (
+                                    {isOpen && (a.byMachine || []).map((m, i) => (
                                       <TableRow key={`${a.articleId}-${m.machineId || i}`} className="bg-muted/30">
                                         <TableCell className="text-[11px] pl-8 text-muted-foreground">
-                                          ↳ <span className="font-medium text-indigo-700 dark:text-indigo-300">{m.machineName}</span>
+                                          ↳ <span className="font-medium text-indigo-700 dark:text-indigo-300">{m.machineId ? m.machineName : 'Sem máquina'}</span>
                                         </TableCell>
                                         <TableCell className="text-[11px] text-right">{formatWeight(m.entradaKg)}</TableCell>
                                         <TableCell className="text-[11px] text-right">{formatNumber(m.entradaRolls)}</TableCell>
@@ -1364,7 +1364,7 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
           {(article.byMachine || []).map((m, i) => (
             <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-lg p-2.5 text-xs bg-background shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <div className="font-semibold text-sm break-words">{m.machineName}</div>
+                <div className="font-semibold text-sm break-words">{m.machineId ? m.machineName : 'Sem máquina'}</div>
                 <div className="shrink-0 rounded-md bg-primary/10 border border-primary/30 px-2 py-1 text-right">
                   <div className="text-[9px] uppercase tracking-wide text-primary/80 leading-none">Disponível</div>
                   <div className="text-base font-bold text-primary leading-tight">
