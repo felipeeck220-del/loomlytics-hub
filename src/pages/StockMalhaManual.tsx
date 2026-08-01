@@ -941,6 +941,13 @@ export default function StockMalhaManual() {
                           {(g.articles || []).map((a) => (
                             <ArticleRowMobile key={a.articleId} article={a}
                               expanded={expandedArticle === `${g.clientId}::${a.articleId}`}
+                              canEdit={canEdit}
+                              onPallet={(m) => setPalletTarget({
+                                clientId: g.clientId, clientName: g.clientName,
+                                articleId: a.articleId, articleName: a.articleName,
+                                machineId: m.machineId as string, machineName: m.machineName,
+                                machineRolls: Number(m.machineRolls || 0), machineKg: Number(m.machineKg || 0),
+                              })}
                               onToggle={() => setExpandedArticle(expandedArticle === `${g.clientId}::${a.articleId}` ? null : `${g.clientId}::${a.articleId}`)} />
                           ))}
                         </div>
@@ -1181,6 +1188,15 @@ export default function StockMalhaManual() {
           refreshData?.();
         }}
       />
+      <MachinePalletModal
+        target={palletTarget}
+        onOpenChange={(o) => { if (!o) setPalletTarget(null); }}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['manual-stock-estoque', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['manual-stock-mv', companyId] });
+          refreshData?.();
+        }}
+      />
       <Dialog open={!!clientExportGroup} onOpenChange={(o) => { if (!o) setClientExportGroup(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1249,7 +1265,10 @@ function KpiCard({ title, value, highlight }: { title: string; value: string; hi
   );
 }
 
-function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNode; expanded: boolean; onToggle: () => void }) {
+function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
+  article: ArticleNode; expanded: boolean; onToggle: () => void;
+  canEdit?: boolean; onPallet?: (m: MachineNode) => void;
+}) {
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
       <CollapsibleTrigger asChild>
@@ -1259,6 +1278,7 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
             <div className="flex flex-wrap gap-1.5 mt-1">
               <Badge variant="outline" className="text-[10px]">Est {formatNumber(Number(article.stockRolls || 0))} pç</Badge>
               <Badge variant="outline" className="text-[10px]">Rsv {formatNumber(Number(article.reservedRolls || 0))} pç</Badge>
+              <Badge variant="outline" className="text-[10px] border-indigo-400 text-indigo-600 dark:text-indigo-300">Em maq. {formatNumber(Number(article.machineRolls || 0))} pç</Badge>
               <Badge className="text-[10px]">Disp {formatNumber(Number(article.availableRolls || 0))} pç</Badge>
             </div>
           </div>
@@ -1273,7 +1293,13 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
               <div className="flex justify-between gap-2 text-[11px] mt-1"><span>Entradas</span><span className="text-right">{formatNumber(Number(m.entradaRolls || 0))} pç</span></div>
               <div className="flex justify-between gap-2 text-[11px]"><span>Saídas OF</span><span className="text-right">{formatNumber(Number(m.deliveredRolls || 0))} pç</span></div>
               <div className="flex justify-between gap-2 text-[11px]"><span>Reservado</span><span className="text-right text-amber-600 dark:text-amber-400">{formatNumber(Number(m.reservedRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px]"><span>Em maq.</span><span className="text-right text-indigo-600 dark:text-indigo-300">{formatNumber(Number(m.machineRolls || 0))} pç</span></div>
               <div className="flex justify-between gap-2 text-[11px] font-semibold"><span>Disponível</span><span className="text-right">{formatNumber(Number(m.availableRolls || 0))} pç</span></div>
+              {canEdit && m.machineId && (
+                <Button variant="outline" size="sm" className="h-7 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
+                  Ajustar palete da máquina
+                </Button>
+              )}
             </div>
           ))}
         </div>
