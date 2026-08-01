@@ -24,6 +24,8 @@ import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { OfCollectPhotosModal, type OfPhoto } from '@/components/billing/OfCollectPhotosModal';
+import { OfPhotosViewerModal } from '@/components/billing/OfPhotosViewerModal';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -81,6 +83,7 @@ const BillingOrders = () => {
   const [confirmFinalizePallets, setConfirmFinalizePallets] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
+  const [showPhotosOrder, setShowPhotosOrder] = useState<any>(null);
   const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
@@ -1293,6 +1296,21 @@ const BillingOrders = () => {
                         </div>
                       )}
 
+                      {order.status === 'collected' && Array.isArray((order as any).collect_photos) && (order as any).collect_photos.length > 0 && (
+                        <div className="mt-2 rounded-md border border-violet-300 bg-violet-50 dark:bg-violet-950/40 p-2 flex flex-wrap items-center gap-2">
+                          <Badge className="bg-violet-600 hover:bg-violet-600 text-white">
+                            {(order as any).collect_photos.length} foto{(order as any).collect_photos.length > 1 ? 's' : ''} anexada{(order as any).collect_photos.length > 1 ? 's' : ''}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-7"
+                            onClick={() => setShowPhotosOrder(order)}
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Ver fotos
+                          </Button>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
@@ -1740,42 +1758,35 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Confirmar Coleta */}
-      <Dialog open={!!showCollectConfirm} onOpenChange={() => setShowCollectConfirm(null)}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-blue-600">
-              <Truck className="h-5 w-5" /> Confirmar Coleta
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              Você tem certeza que deseja marcar a <strong>OF #{showCollectConfirm?.of_number}</strong> como coletada?
-              Esta ação moverá a ordem para a aba de Coletadas.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCollectConfirm(null)}>Cancelar</Button>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white" 
-              onClick={async () => {
-                const target = showCollectConfirm;
-                try {
-                  await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
-                  setShowCollectConfirm(null);
-                } catch (err: any) {
-                  if (err?.code === 'CONFLICT') {
-                    setShowCollectConfirm(null);
-                    setConflictInfo({ action: 'marcar coleta', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
-                  }
-                }
-              }}
-              disabled={updateStatus.isPending}
-            >
-              Confirmar Coleta
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <OfCollectPhotosModal
+        open={!!showCollectConfirm}
+        order={showCollectConfirm}
+        companyId={user?.company_id}
+        authorLabel={`${(profile as any)?.name || 'Usuário'} #${(profile as any)?.code ?? ''}`.trim()}
+        pending={updateStatus.isPending}
+        onOpenChange={(v) => { if (!v) setShowCollectConfirm(null); }}
+        onConfirm={async (photos: OfPhoto[]) => {
+          const target = showCollectConfirm;
+          try {
+            await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
+            if (photos.length > 0) {
+              await (supabase.from as any)('billing_orders')
+                .update({ collect_photos: photos })
+                .eq('id', target.id);
+            }
+            setShowCollectConfirm(null);
+          } catch (err: any) {
+            if (err?.code === 'CONFLICT') {
+              setShowCollectConfirm(null);
+              setConflictInfo({ action: 'marcar coleta', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+            }
+            throw err;
+          }
+        }}
+      />
+
+      {/* Modal de visualização das fotos da coleta */}
+      <OfPhotosViewerModal order={showPhotosOrder} onOpenChange={(v) => { if (!v) setShowPhotosOrder(null); }} />
 
       {/* Modal Confirmar Iniciar Separação */}
       <Dialog open={!!showStartSepConfirm} onOpenChange={() => setShowStartSepConfirm(null)}>
