@@ -1106,8 +1106,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const listToRender = tab === 'finalizada' ? pagedFinalized : displayed;
 
+  // Só renderiza os cards quando TODOS os dados chegaram (ordens + dados da empresa/máquinas),
+  // evitando card parcial (descrição sem máquina) em conexões lentas.
+  const dataLoading = loading || companyLoading;
+
   if (loading) {
-    return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…</div>;
+    return (
+      <div className="space-y-4 p-2">
+        <div className="flex items-center justify-center py-4 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…
+        </div>
+        <OrderCardSkeleton count={3} label={labelShort} />
+      </div>
+    );
   }
 
   return (
@@ -1210,7 +1221,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               />
             </div>
           )}
-          {listToRender.length === 0 ? (
+          {dataLoading ? (
+            <OrderCardSkeleton count={3} label={labelShort} />
+          ) : listToRender.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
             <div className="space-y-3">
