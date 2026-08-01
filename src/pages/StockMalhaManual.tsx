@@ -1344,14 +1344,14 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
             <div className="flex-1 min-w-0 font-semibold text-sm break-words">{article.articleName}</div>
             <ChevronDown className={`h-4 w-4 shrink-0 mt-0.5 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
           </div>
-          <div className="mt-2 flex items-stretch gap-2">
-            <div className="flex-1 rounded-lg bg-primary/10 border border-primary/30 px-3 py-2">
-              <div className="text-[9px] uppercase tracking-wide text-primary/80">Disponível</div>
-              <div className="text-xl font-bold text-primary leading-tight">
-                {formatNumber(Number(article.availableRolls || 0))} <span className="text-xs font-semibold">pç</span>
+          <div className="mt-2 flex items-stretch gap-1.5">
+            <div className="shrink-0 rounded-lg bg-primary/10 border border-primary/30 px-2 py-1.5">
+              <div className="text-[9px] uppercase tracking-wide text-primary/80 leading-none">Disponível</div>
+              <div className="text-base font-bold text-primary leading-tight whitespace-nowrap">
+                {formatNumber(Number(article.availableRolls || 0))} <span className="text-[10px] font-semibold">pç</span>
               </div>
             </div>
-            <div className="flex-1 grid grid-cols-3 gap-1">
+            <div className="flex-1 min-w-0 grid grid-cols-3 gap-1">
               <MiniStat label="Est" value={Number(article.stockRolls || 0)} />
               <MiniStat label="Rsv" value={Number(article.reservedRolls || 0)} tone="amber" />
               <MiniStat label="Em maq." value={Number(article.machineRolls || 0)} tone="indigo" />
@@ -1372,11 +1372,9 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-1 mt-2">
-                <MiniStat label="Entradas" value={Number(m.entradaRolls || 0)} />
-                <MiniStat label="Saídas OF" value={Number(m.deliveredRolls || 0)} />
-                <MiniStat label="Reservado" value={Number(m.reservedRolls || 0)} tone="amber" />
+              <div className="grid grid-cols-2 gap-1 mt-2">
                 <MiniStat label="Em maq." value={Number(m.machineRolls || 0)} tone="indigo" />
+                <MiniStat label="Reservado" value={Number(m.reservedRolls || 0)} tone="amber" />
               </div>
               {canEdit && m.machineId && (
                 <Button variant="outline" size="sm" className="h-8 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
