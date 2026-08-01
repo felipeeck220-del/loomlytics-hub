@@ -1248,7 +1248,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             <Badge className={cn(style.badgeClass, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
                               {style.label}
                             </Badge>
-                            <span className={cn('font-bold text-lg', o.type === 'manutencao_corretiva' ? 'text-destructive' : 'text-foreground')}>{labelOf(o)} #{displayNumber(o)}</span>
+                            <span className={cn('font-semibold text-xs sm:text-sm tabular-nums', o.type === 'manutencao_corretiva' ? 'text-destructive' : 'text-muted-foreground')}>{labelOf(o)} #{displayNumber(o)}</span>
                             <Badge variant="outline" className={cn('font-semibold uppercase text-[10px]', TYPE_COLORS[o.type])}>
                               {TYPE_LABELS[o.type]}
                             </Badge>
@@ -1280,7 +1280,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           </div>
 
                           {/* Linha 2: Máquina em destaque */}
-                          <div className="text-base font-semibold text-foreground">
+                          <div className="text-xl font-bold text-foreground leading-tight break-words">
                             {m?.name || '—'}
                           </div>
 
