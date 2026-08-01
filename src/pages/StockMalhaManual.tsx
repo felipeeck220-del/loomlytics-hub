@@ -421,6 +421,7 @@ export default function StockMalhaManual() {
 
   const [tab, setTab] = useState<'estoque' | 'movimentos'>('estoque');
   const [openManual, setOpenManual] = useState(false);
+  const [palletTarget, setPalletTarget] = useState<PalletTarget | null>(null);
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
   // Estoque filters
@@ -537,13 +538,14 @@ export default function StockMalhaManual() {
   const kpis = estoque?.kpis;
   const groups = estoque?.groups || [];
   const totalRolls = useMemo(() => {
-    const acc = { entrada: 0, delivered: 0, reserved: 0, available: 0 };
+    const acc = { entrada: 0, delivered: 0, reserved: 0, available: 0, machine: 0 };
     for (const g of groups) {
       for (const a of g.articles || []) {
         acc.entrada += Number(a.entradaRolls || 0);
         acc.delivered += Number(a.deliveredRolls || 0);
         acc.reserved += Number(a.reservedRolls || 0);
         acc.available += Number(a.availableRolls || 0);
+        acc.machine += Number(a.machineRolls || 0);
       }
     }
     return acc;
