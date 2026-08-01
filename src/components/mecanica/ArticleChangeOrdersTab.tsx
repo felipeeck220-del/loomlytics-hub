@@ -154,6 +154,7 @@ export default function ArticleChangeOrdersTab() {
   const [editTarget, setEditTarget] = useState<OT | null>(null);
   const [finalizeTarget, setFinalizeTarget] = useState<OT | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
+  const [photosTarget, setPhotosTarget] = useState<OT | null>(null);
   const [concluidasSearch, setConcluidasSearch] = useState('');
   const [concluidasPage, setConcluidasPage] = useState(0);
   const CONCLUIDAS_PAGE_SIZE = 15;
@@ -426,6 +427,7 @@ export default function ArticleChangeOrdersTab() {
                   onDelete={() => setDeleteTarget(o)}
                   onDownload={() => downloadReport(o)}
                   onEdit={() => setEditTarget(o)}
+                  onViewPhotos={() => setPhotosTarget(o)}
                 />
                   ))}
                 </div>
