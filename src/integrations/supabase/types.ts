@@ -119,6 +119,7 @@ export type Database = {
           next_article_id: string | null
           observations: string | null
           ot_number: number | null
+          ot_photos: Json
           piece_defects_flaws: number | null
           piece_defects_holes: number | null
           status: Database["public"]["Enums"]["article_change_status"]
@@ -157,6 +158,7 @@ export type Database = {
           next_article_id?: string | null
           observations?: string | null
           ot_number?: number | null
+          ot_photos?: Json
           piece_defects_flaws?: number | null
           piece_defects_holes?: number | null
           status?: Database["public"]["Enums"]["article_change_status"]
@@ -195,6 +197,7 @@ export type Database = {
           next_article_id?: string | null
           observations?: string | null
           ot_number?: number | null
+          ot_photos?: Json
           piece_defects_flaws?: number | null
           piece_defects_holes?: number | null
           status?: Database["public"]["Enums"]["article_change_status"]

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight, Pencil, Camera, ImageIcon, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,7 +82,16 @@ interface OT {
   final_report: string | null;
   created_at: string;
   yarns?: Yarn[];
+  ot_photos?: OTPhoto[] | null;
 }
+
+type OTPhoto = {
+  id: string;
+  path: string;
+  description: string;
+  author: string | null;
+  ts: string;
+};
 
 const STATUS_LABEL: Record<OTStatus, string> = {
   aberto: 'Aberta',
@@ -145,6 +154,7 @@ export default function ArticleChangeOrdersTab() {
   const [editTarget, setEditTarget] = useState<OT | null>(null);
   const [finalizeTarget, setFinalizeTarget] = useState<OT | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
+  const [photosTarget, setPhotosTarget] = useState<OT | null>(null);
   const [concluidasSearch, setConcluidasSearch] = useState('');
   const [concluidasPage, setConcluidasPage] = useState(0);
   const CONCLUIDAS_PAGE_SIZE = 15;
@@ -417,6 +427,7 @@ export default function ArticleChangeOrdersTab() {
                   onDelete={() => setDeleteTarget(o)}
                   onDownload={() => downloadReport(o)}
                   onEdit={() => setEditTarget(o)}
+                  onViewPhotos={() => setPhotosTarget(o)}
                 />
                   ))}
                 </div>
@@ -497,7 +508,75 @@ export default function ArticleChangeOrdersTab() {
         description="Esta ação é permanente e removerá todos os dados vinculados à OT."
         onConfirm={() => { if (deleteTarget) { deleteOrder(deleteTarget); setDeleteTarget(null); } }}
       />
+
+      {photosTarget && (
+        <OTPhotosModal o={photosTarget} onClose={() => setPhotosTarget(null)} />
+      )}
     </div>
+  );
+}
+
+// -------------- Visualizador de fotos da OT ----------------
+function OTPhotosModal({ o, onClose }: { o: OT; onClose: () => void }) {
+  const photos = useMemo<OTPhoto[]>(() => Array.isArray(o.ot_photos) ? (o.ot_photos as OTPhoto[]) : [], [o.ot_photos]);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [loadingUrls, setLoadingUrls] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingUrls(true);
+      const entries: Array<[string, string]> = [];
+      for (const p of photos) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries.push([p.path, data.signedUrl]);
+      }
+      if (!cancelled) { setUrls(Object.fromEntries(entries)); setLoadingUrls(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [photos]);
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-purple-600" /> Fotos — OT #{String(o.ot_number).padStart(3, '0')}
+          </DialogTitle>
+          <DialogDescription>Imagens anexadas na conclusão da ordem de troca de artigo.</DialogDescription>
+        </DialogHeader>
+        {loadingUrls ? (
+          <div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando fotos…
+          </div>
+        ) : photos.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhuma foto anexada.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {photos.map(p => (
+              <div key={p.id} className="rounded-md border overflow-hidden bg-muted/30">
+                {urls[p.path] ? (
+                  <a href={urls[p.path]} target="_blank" rel="noreferrer">
+                    <img src={urls[p.path]} alt={p.description || 'Foto da conclusão da OT'} className="w-full h-56 object-cover" loading="lazy" />
+                  </a>
+                ) : (
+                  <div className="h-56 flex items-center justify-center text-xs text-muted-foreground">Imagem indisponível</div>
+                )}
+                <div className="p-2 space-y-0.5">
+                  <div className="text-xs font-medium break-words">{p.description || '—'}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {p.author || '—'} · {p.ts ? format(new Date(p.ts), 'dd/MM/yyyy HH:mm') : '—'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -521,6 +600,7 @@ function OTCard(props: {
   onDelete: () => void;
   onDownload: () => void;
   onEdit: () => void;
+  onViewPhotos: () => void;
 }) {
   const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico, isLiderMecanica } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
@@ -659,6 +739,18 @@ function OTCard(props: {
               <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2">
                 <div className="font-semibold text-[10px] uppercase text-emerald-700 dark:text-emerald-400 tracking-wide mb-1">Relatório final</div>
                 <div className="text-xs text-foreground whitespace-pre-wrap">{o.final_report}</div>
+              </div>
+            )}
+
+            {/* Fotos anexadas na conclusão — destaque na aba Concluídas */}
+            {Array.isArray(o.ot_photos) && o.ot_photos.length > 0 && (
+              <div className="rounded-md border border-purple-500/40 bg-purple-500/10 p-2 flex flex-wrap items-center gap-2">
+                <Badge className="bg-purple-600 text-white border-purple-700 gap-1 text-[10px] font-bold">
+                  <ImageIcon className="h-3 w-3" /> {o.ot_photos.length} foto{o.ot_photos.length > 1 ? 's' : ''} anexada{o.ot_photos.length > 1 ? 's' : ''}
+                </Badge>
+                <Button size="sm" onClick={props.onViewPhotos} className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5 h-7">
+                  <Eye className="h-3.5 w-3.5" /> Ver fotos
+                </Button>
               </div>
             )}
           </div>
@@ -1114,6 +1206,98 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
   const [flaws, setFlaws] = useState('0');
   const [report, setReport] = useState('');
   const [saving, setSaving] = useState(false);
+  const MAX_PHOTOS = 3;
+  const [photoDrafts, setPhotoDrafts] = useState<Array<{ id: string; file: File; url: string; description: string }>>([]);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+
+  const clearPhotoDrafts = () => {
+    setPhotoDrafts(prev => { prev.forEach(p => URL.revokeObjectURL(p.url)); return []; });
+  };
+
+  const addPhotoFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming = Array.from(files);
+    setPhotoDrafts(prev => {
+      const room = MAX_PHOTOS - prev.length;
+      if (room <= 0) { toast.error(`Máximo de ${MAX_PHOTOS} fotos`); return prev; }
+      const accepted = incoming.slice(0, room).filter(f => {
+        if (f.size > 8 * 1024 * 1024) { toast.error(`${f.name}: máximo 8 MB por foto`); return false; }
+        return true;
+      });
+      if (incoming.length > room) toast.error(`Máximo de ${MAX_PHOTOS} fotos`);
+      return [
+        ...prev,
+        ...accepted.map(f => ({
+          id: (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`,
+          file: f,
+          url: URL.createObjectURL(f),
+          description: '',
+        })),
+      ];
+    });
+  };
+
+  const removePhotoDraft = (id: string) => {
+    setPhotoDrafts(prev => {
+      const target = prev.find(p => p.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter(p => p.id !== id);
+    });
+  };
+
+  // Comprime e envia as fotos da conclusão; retorna false se falhar
+  const uploadPhotos = async (): Promise<boolean> => {
+    if (photoDrafts.length === 0) return true;
+    const uploadedPaths: string[] = [];
+    try {
+      const { compressImage } = await import('@/lib/imageCompression');
+      const { uploadProgress } = await import('@/lib/uploadProgress');
+      uploadProgress.start('Enviando fotos da conclusão', photoDrafts.length);
+      const authorLabel = userCode ? `${userName} #${userCode}` : userName;
+      const existing: OTPhoto[] = Array.isArray(o.ot_photos) ? (o.ot_photos as OTPhoto[]) : [];
+      const uploaded: OTPhoto[] = [];
+      for (let i = 0; i < photoDrafts.length; i++) {
+        const draft = photoDrafts[i];
+        uploadProgress.step({ index: i + 1, phase: 'compressing' });
+        const c = await compressImage(draft.file);
+        const uploadFile = c.file;
+        const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+        const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+        const path = `${o.company_id}/${o.id}/${uid}.${ext}`;
+        uploadProgress.step({ index: i + 1, phase: 'uploading' });
+        const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
+          contentType: uploadFile.type || 'image/jpeg',
+          upsert: false,
+        });
+        if (upErr) throw upErr;
+        uploadedPaths.push(path);
+        uploaded.push({
+          id: uid,
+          path,
+          description: draft.description.trim() || 'Foto da conclusão',
+          author: authorLabel,
+          ts: new Date().toISOString(),
+        });
+      }
+      uploadProgress.step({ index: photoDrafts.length, phase: 'finalizing' });
+      const { error: updErr } = await (supabase.from as any)('article_change_orders')
+        .update({ ot_photos: [...existing, ...uploaded] })
+        .eq('id', o.id);
+      if (updErr) throw updErr;
+      uploadProgress.done();
+      clearPhotoDrafts();
+      return true;
+    } catch (photoErr) {
+      console.error('Falha ao anexar fotos da conclusão da OT', photoErr);
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+      }
+      try { const { uploadProgress } = await import('@/lib/uploadProgress'); uploadProgress.fail('Falha ao enviar fotos'); } catch { /* */ }
+      return false;
+    }
+  };
+
   // Guarda anti double-click: sem isso, dois cliques rápidos entram em `submit`
   // antes do próximo render, criando linhas duplicadas na tabela `notifications`
   // (OT concluída aparecendo 2x/3x na central).
@@ -1151,6 +1335,11 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
     }
     logAction('ot_conclude', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} concluída`);
+    // Fotos da conclusão (até 3) — comprimidas antes do upload
+    if (photoDrafts.length > 0) {
+      const ok = await uploadPhotos();
+      if (!ok) toast.error('OT concluída, mas houve erro ao anexar as fotos.');
+    }
     // Push de finalização — notifica admins (e líderes/mecânicos)
     try {
       const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
@@ -1190,8 +1379,8 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
   };
 
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+    <Dialog open onOpenChange={(v) => { if (!v) { if (saving) return; clearPhotoDrafts(); onClose(); } }}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Revisão da peça — OT #{String(o.ot_number).padStart(3, '0')}</DialogTitle>
           <DialogDescription>Registre voltas acompanhadas, defeitos encontrados na peça e o relatório final para concluir a OT.</DialogDescription>
@@ -1215,9 +1404,51 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
             <Label>Relatório final *</Label>
             <Textarea rows={5} value={report} onChange={e => setReport(e.target.value)} placeholder="Descreva o que foi observado, ajustes finais, conformidade da peça…" />
           </div>
+
+          {/* Fotos da conclusão (até 3) */}
+          <div className="rounded-md border border-purple-500/30 bg-purple-500/5 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                <Camera className="h-4 w-4" /> Fotos da conclusão (opcional)
+              </Label>
+              <span className="text-[10px] text-muted-foreground">{photoDrafts.length}/{MAX_PHOTOS}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Até {MAX_PHOTOS} imagens (8 MB cada). São comprimidas automaticamente antes do envio.</p>
+            <input ref={photoInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { addPhotoFiles(e.target.files); e.currentTarget.value = ''; }} />
+            <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { addPhotoFiles(e.target.files); e.currentTarget.value = ''; }} />
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" disabled={saving || photoDrafts.length >= MAX_PHOTOS} onClick={() => photoInputRef.current?.click()} className="gap-1.5">
+                <Camera className="h-3.5 w-3.5" /> Câmera
+              </Button>
+              <Button type="button" size="sm" variant="outline" disabled={saving || photoDrafts.length >= MAX_PHOTOS} onClick={() => galleryInputRef.current?.click()} className="gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5" /> Galeria
+              </Button>
+            </div>
+            {photoDrafts.length > 0 && (
+              <div className="space-y-2">
+                {photoDrafts.map(p => (
+                  <div key={p.id} className="flex items-start gap-2 rounded-md border bg-background p-2">
+                    <img src={p.url} alt="Pré-visualização da foto da conclusão da OT" className="h-16 w-16 rounded object-cover shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <Input
+                        value={p.description}
+                        onChange={e => { const v = e.target.value; setPhotoDrafts(prev => prev.map(d => d.id === p.id ? { ...d, description: v } : d)); }}
+                        placeholder="Descrição (opcional)"
+                        className="h-8 text-xs"
+                      />
+                      <p className="mt-1 text-[10px] text-muted-foreground truncate">{p.file.name}</p>
+                    </div>
+                    <Button type="button" size="icon" variant="ghost" className="shrink-0" disabled={saving} onClick={() => removePhotoDraft(p.id)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" disabled={saving} onClick={() => { clearPhotoDrafts(); onClose(); }}>Cancelar</Button>
           <Button onClick={submit} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
             Finalizar OT

@@ -1,0 +1,1 @@
+ALTER TABLE public.article_change_orders ADD COLUMN IF NOT EXISTS ot_photos jsonb NOT NULL DEFAULT '[]'::jsonb;
