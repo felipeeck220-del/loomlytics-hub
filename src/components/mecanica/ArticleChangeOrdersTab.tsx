@@ -1123,6 +1123,98 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
   const [flaws, setFlaws] = useState('0');
   const [report, setReport] = useState('');
   const [saving, setSaving] = useState(false);
+  const MAX_PHOTOS = 3;
+  const [photoDrafts, setPhotoDrafts] = useState<Array<{ id: string; file: File; url: string; description: string }>>([]);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+
+  const clearPhotoDrafts = () => {
+    setPhotoDrafts(prev => { prev.forEach(p => URL.revokeObjectURL(p.url)); return []; });
+  };
+
+  const addPhotoFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming = Array.from(files);
+    setPhotoDrafts(prev => {
+      const room = MAX_PHOTOS - prev.length;
+      if (room <= 0) { toast.error(`Máximo de ${MAX_PHOTOS} fotos`); return prev; }
+      const accepted = incoming.slice(0, room).filter(f => {
+        if (f.size > 8 * 1024 * 1024) { toast.error(`${f.name}: máximo 8 MB por foto`); return false; }
+        return true;
+      });
+      if (incoming.length > room) toast.error(`Máximo de ${MAX_PHOTOS} fotos`);
+      return [
+        ...prev,
+        ...accepted.map(f => ({
+          id: (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`,
+          file: f,
+          url: URL.createObjectURL(f),
+          description: '',
+        })),
+      ];
+    });
+  };
+
+  const removePhotoDraft = (id: string) => {
+    setPhotoDrafts(prev => {
+      const target = prev.find(p => p.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter(p => p.id !== id);
+    });
+  };
+
+  // Comprime e envia as fotos da conclusão; retorna false se falhar
+  const uploadPhotos = async (): Promise<boolean> => {
+    if (photoDrafts.length === 0) return true;
+    const uploadedPaths: string[] = [];
+    try {
+      const { compressImage } = await import('@/lib/imageCompression');
+      const { uploadProgress } = await import('@/lib/uploadProgress');
+      uploadProgress.start('Enviando fotos da conclusão', photoDrafts.length);
+      const authorLabel = userCode ? `${userName} #${userCode}` : userName;
+      const existing: OTPhoto[] = Array.isArray(o.ot_photos) ? (o.ot_photos as OTPhoto[]) : [];
+      const uploaded: OTPhoto[] = [];
+      for (let i = 0; i < photoDrafts.length; i++) {
+        const draft = photoDrafts[i];
+        uploadProgress.step({ index: i + 1, phase: 'compressing' });
+        const c = await compressImage(draft.file);
+        const uploadFile = c.file;
+        const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+        const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+        const path = `${o.company_id}/${o.id}/${uid}.${ext}`;
+        uploadProgress.step({ index: i + 1, phase: 'uploading' });
+        const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
+          contentType: uploadFile.type || 'image/jpeg',
+          upsert: false,
+        });
+        if (upErr) throw upErr;
+        uploadedPaths.push(path);
+        uploaded.push({
+          id: uid,
+          path,
+          description: draft.description.trim() || 'Foto da conclusão',
+          author: authorLabel,
+          ts: new Date().toISOString(),
+        });
+      }
+      uploadProgress.step({ index: photoDrafts.length, phase: 'finalizing' });
+      const { error: updErr } = await (supabase.from as any)('article_change_orders')
+        .update({ ot_photos: [...existing, ...uploaded] })
+        .eq('id', o.id);
+      if (updErr) throw updErr;
+      uploadProgress.done();
+      clearPhotoDrafts();
+      return true;
+    } catch (photoErr) {
+      console.error('Falha ao anexar fotos da conclusão da OT', photoErr);
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+      }
+      try { const { uploadProgress } = await import('@/lib/uploadProgress'); uploadProgress.fail('Falha ao enviar fotos'); } catch { /* */ }
+      return false;
+    }
+  };
+
   // Guarda anti double-click: sem isso, dois cliques rápidos entram em `submit`
   // antes do próximo render, criando linhas duplicadas na tabela `notifications`
   // (OT concluída aparecendo 2x/3x na central).
