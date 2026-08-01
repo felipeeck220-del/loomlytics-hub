@@ -508,7 +508,75 @@ export default function ArticleChangeOrdersTab() {
         description="Esta ação é permanente e removerá todos os dados vinculados à OT."
         onConfirm={() => { if (deleteTarget) { deleteOrder(deleteTarget); setDeleteTarget(null); } }}
       />
+
+      {photosTarget && (
+        <OTPhotosModal o={photosTarget} onClose={() => setPhotosTarget(null)} />
+      )}
     </div>
+  );
+}
+
+// -------------- Visualizador de fotos da OT ----------------
+function OTPhotosModal({ o, onClose }: { o: OT; onClose: () => void }) {
+  const photos = useMemo<OTPhoto[]>(() => Array.isArray(o.ot_photos) ? (o.ot_photos as OTPhoto[]) : [], [o.ot_photos]);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [loadingUrls, setLoadingUrls] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingUrls(true);
+      const entries: Array<[string, string]> = [];
+      for (const p of photos) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries.push([p.path, data.signedUrl]);
+      }
+      if (!cancelled) { setUrls(Object.fromEntries(entries)); setLoadingUrls(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [photos]);
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-purple-600" /> Fotos — OT #{String(o.ot_number).padStart(3, '0')}
+          </DialogTitle>
+          <DialogDescription>Imagens anexadas na conclusão da ordem de troca de artigo.</DialogDescription>
+        </DialogHeader>
+        {loadingUrls ? (
+          <div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando fotos…
+          </div>
+        ) : photos.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhuma foto anexada.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {photos.map(p => (
+              <div key={p.id} className="rounded-md border overflow-hidden bg-muted/30">
+                {urls[p.path] ? (
+                  <a href={urls[p.path]} target="_blank" rel="noreferrer">
+                    <img src={urls[p.path]} alt={p.description || 'Foto da conclusão da OT'} className="w-full h-56 object-cover" loading="lazy" />
+                  </a>
+                ) : (
+                  <div className="h-56 flex items-center justify-center text-xs text-muted-foreground">Imagem indisponível</div>
+                )}
+                <div className="p-2 space-y-0.5">
+                  <div className="text-xs font-medium break-words">{p.description || '—'}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {p.author || '—'} · {p.ts ? format(new Date(p.ts), 'dd/MM/yyyy HH:mm') : '—'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
