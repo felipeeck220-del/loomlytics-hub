@@ -118,7 +118,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
-  const { getMachineLogs, getProductions } = useSharedCompanyData();
+  const { getMachineLogs, getProductions, loading: companyLoading } = useSharedCompanyData();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
   const companyId = user?.company_id || '';
