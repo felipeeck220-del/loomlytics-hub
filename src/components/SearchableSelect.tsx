@@ -25,6 +25,8 @@ interface SearchableSelectProps {
   disabled?: boolean;
   /** When false, the search input inside the popover is not auto-focused on open. Defaults to true. */
   autoFocusSearch?: boolean;
+  /** Virtual keyboard hint for the search input (e.g. "numeric" for machine codes). */
+  searchInputMode?: 'text' | 'numeric' | 'decimal' | 'search';
 }
 
 export function SearchableSelect({
@@ -39,6 +41,7 @@ export function SearchableSelect({
   icon,
   disabled = false,
   autoFocusSearch = true,
+  searchInputMode = 'text',
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -109,9 +112,10 @@ export function SearchableSelect({
           <Input
             ref={inputRef}
             placeholder={searchPlaceholder}
+            inputMode={searchInputMode}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0"
+            className="h-7 border-0 p-0 text-base md:text-xs shadow-none focus-visible:ring-0"
           />
         </div>
         <div

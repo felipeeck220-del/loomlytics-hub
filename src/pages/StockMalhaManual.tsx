@@ -18,6 +18,7 @@ import { DialogDescription } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
 import { formatWeight, formatNumber } from '@/lib/formatters';
 import { logAudit } from '@/lib/auditLog';
@@ -78,6 +79,7 @@ function ManualEntryModal({
   open: boolean; onOpenChange: (v: boolean) => void;
   clients: any[]; articles: any[]; machines: any[]; onSaved: () => void;
 }) {
+  const isMobile = useIsMobile();
   const { user, profile } = useAuth();
   const modalQueryClient = useQueryClient();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
@@ -191,14 +193,14 @@ function ManualEntryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-screen max-w-[100vw] h-[100dvh] max-h-[100dvh] rounded-none p-4 flex flex-col gap-3 sm:w-full sm:max-w-md sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Warehouse className="h-4 w-4 text-primary" />
-            Lançamento Manual — Estoque Malha (Manual)
+            <span className="text-base sm:text-lg leading-tight">Lançamento Manual — Estoque Malha (Manual)</span>
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 flex-1 min-h-0 overflow-y-auto">
           <div className="space-y-2">
             <Label className="text-xs">Tipo</Label>
             <RadioGroup value={type} onValueChange={(v) => setType(v as any)} className="flex gap-4">
@@ -232,6 +234,7 @@ function ManualEntryModal({
               options={clients.map((c: any) => ({ value: c.id, label: c.name }))}
               placeholder="Selecione o cliente"
               searchPlaceholder="Buscar cliente..."
+              autoFocusSearch={!isMobile}
             />
           </div>
           <div className="space-y-2">
@@ -243,6 +246,7 @@ function ManualEntryModal({
               placeholder={clientId ? 'Selecione o artigo' : 'Escolha um cliente primeiro'}
               searchPlaceholder="Buscar artigo..."
               disabled={!clientId}
+              autoFocusSearch={!isMobile}
             />
           </div>
           <div className="space-y-2">
@@ -253,6 +257,8 @@ function ManualEntryModal({
               options={machines.map((m: any) => ({ value: m.id, label: m.name }))}
               placeholder="Selecione a máquina"
               searchPlaceholder="Buscar máquina..."
+              autoFocusSearch={!isMobile}
+              searchInputMode="numeric"
             />
           </div>
           {clientId && articleId && machineId && (
@@ -293,10 +299,10 @@ function ManualEntryModal({
             <div className="space-y-2">
               <Label className="text-xs">Peças</Label>
               <Input
-                type="number" min={0}
+                type="text" inputMode="numeric" pattern="[0-9]*"
                 value={pieces}
                 onChange={(e) => setPieces(e.target.value.replace(/[^\d]/g, ''))}
-                placeholder="0" className="h-8 text-xs"
+                placeholder="0" className="h-8 text-base md:text-xs"
               />
             </div>
             <div className="space-y-2">
@@ -308,10 +314,10 @@ function ManualEntryModal({
             <Label className="text-xs">Motivo (opcional)</Label>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
               placeholder='Ex.: "Saldo inicial", "Ajuste de contagem"'
-              className="text-xs min-h-[70px]" maxLength={500} />
+              className="text-base md:text-xs min-h-[70px]" maxLength={500} />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
         </DialogFooter>

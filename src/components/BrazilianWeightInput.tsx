@@ -115,7 +115,7 @@ export function BrazilianWeightInput({ value, onChange, className, placeholder =
   return (
     <Input
       ref={inputRef}
-      className={cn('h-8 text-xs', className)}
+      className={cn('h-8 text-base md:text-xs', className)}
       inputMode="decimal"
       type="text"
       value={displayValue}
