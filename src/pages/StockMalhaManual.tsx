@@ -958,7 +958,9 @@ export default function StockMalhaManual() {
                                 <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Rolos reservados</TableHead>
                                 <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Reservado kg</TableHead>
                                 <TableHead className="text-xs text-right font-bold">Disponível kg</TableHead>
+                                <TableHead className="text-xs text-right font-bold text-indigo-700 dark:text-indigo-300">Em maq.</TableHead>
                                 <TableHead className="text-xs text-right font-bold">Disp. Rolos</TableHead>
+                                <TableHead className="text-xs text-right w-[70px]"></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1000,9 +1002,13 @@ export default function StockMalhaManual() {
                                       <TableCell className={cn('text-xs text-right font-bold', a.availableKg < 0 ? 'text-destructive' : a.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>
                                         {formatWeight(a.availableKg)}
                                       </TableCell>
+                                      <TableCell className="text-xs text-right font-bold text-indigo-700 dark:text-indigo-300">
+                                        {formatNumber(Number(a.machineRolls || 0))} pç
+                                      </TableCell>
                                       <TableCell className={cn('text-xs text-right font-bold', a.availableRolls < 0 ? 'text-destructive' : a.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
                                         {formatNumber(a.availableRolls)}
                                       </TableCell>
+                                      <TableCell />
                                     </TableRow>
                                     {isOpen && (a.byMachine || []).filter(m => m.machineId).map((m, i) => (
                                       <TableRow key={`${a.articleId}-${m.machineId || i}`} className="bg-muted/30">
@@ -1017,7 +1023,26 @@ export default function StockMalhaManual() {
                                         <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatNumber(m.reservedRolls)}</TableCell>
                                         <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatWeight(m.reservedKg)}</TableCell>
                                         <TableCell className={cn('text-[11px] text-right font-semibold', m.availableKg < 0 ? 'text-destructive' : m.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(m.availableKg)}</TableCell>
+                                        <TableCell className="text-[11px] text-right font-semibold text-indigo-700 dark:text-indigo-300">{formatNumber(Number(m.machineRolls || 0))} pç</TableCell>
                                         <TableCell className={cn('text-[11px] text-right font-semibold', m.availableRolls < 0 ? 'text-destructive' : m.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(m.availableRolls)}</TableCell>
+                                        <TableCell className="text-right">
+                                          {canEdit && m.machineId && (
+                                            <Button
+                                              variant="outline" size="sm" className="h-6 text-[10px] px-2"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPalletTarget({
+                                                  clientId: g.clientId, clientName: g.clientName,
+                                                  articleId: a.articleId, articleName: a.articleName,
+                                                  machineId: m.machineId as string, machineName: m.machineName,
+                                                  machineRolls: Number(m.machineRolls || 0), machineKg: Number(m.machineKg || 0),
+                                                });
+                                              }}
+                                            >
+                                              Palete
+                                            </Button>
+                                          )}
+                                        </TableCell>
                                       </TableRow>
                                     ))}
                                   </React.Fragment>
