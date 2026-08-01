@@ -343,6 +343,18 @@ export default function StockMalhaManual() {
 
   const kpis = estoque?.kpis;
   const groups = estoque?.groups || [];
+  const totalRolls = useMemo(() => {
+    const acc = { entrada: 0, delivered: 0, reserved: 0, available: 0 };
+    for (const g of groups) {
+      for (const a of g.articles || []) {
+        acc.entrada += Number(a.entradaRolls || 0);
+        acc.delivered += Number(a.deliveredRolls || 0);
+        acc.reserved += Number(a.reservedRolls || 0);
+        acc.available += Number(a.availableRolls || 0);
+      }
+    }
+    return acc;
+  }, [groups]);
   const companyInfo = bootstrap?.company as { name?: string; logo_url?: string | null } | undefined;
 
   // ============== EXPORT PDF ==============
