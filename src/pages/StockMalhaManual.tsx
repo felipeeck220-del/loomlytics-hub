@@ -1339,31 +1339,47 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
       <CollapsibleTrigger asChild>
-        <button className="w-full text-left p-3 flex items-start justify-between gap-2 hover:bg-muted/40 overflow-hidden">
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm break-words">{article.articleName}</div>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              <Badge variant="outline" className="text-[10px]">Est {formatNumber(Number(article.stockRolls || 0))} pç</Badge>
-              <Badge variant="outline" className="text-[10px]">Rsv {formatNumber(Number(article.reservedRolls || 0))} pç</Badge>
-              <Badge variant="outline" className="text-[10px] border-indigo-400 text-indigo-600 dark:text-indigo-300">Em maq. {formatNumber(Number(article.machineRolls || 0))} pç</Badge>
-              <Badge className="text-[10px]">Disp {formatNumber(Number(article.availableRolls || 0))} pç</Badge>
+        <button className="w-full text-left p-3 hover:bg-muted/40 overflow-hidden">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0 font-semibold text-sm break-words">{article.articleName}</div>
+            <ChevronDown className={`h-4 w-4 shrink-0 mt-0.5 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
+          </div>
+          <div className="mt-2 flex items-stretch gap-2">
+            <div className="flex-1 rounded-lg bg-primary/10 border border-primary/30 px-3 py-2">
+              <div className="text-[9px] uppercase tracking-wide text-primary/80">Disponível</div>
+              <div className="text-xl font-bold text-primary leading-tight">
+                {formatNumber(Number(article.availableRolls || 0))} <span className="text-xs font-semibold">pç</span>
+              </div>
+            </div>
+            <div className="flex-1 grid grid-cols-3 gap-1">
+              <MiniStat label="Est" value={Number(article.stockRolls || 0)} />
+              <MiniStat label="Rsv" value={Number(article.reservedRolls || 0)} tone="amber" />
+              <MiniStat label="Em maq." value={Number(article.machineRolls || 0)} tone="indigo" />
             </div>
           </div>
-          <ChevronDown className={`h-4 w-4 shrink-0 mt-1 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="p-3 bg-muted/30 space-y-2">
           {(article.byMachine || []).map((m, i) => (
-            <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-md p-2 text-xs bg-background">
-              <div className="font-medium break-words">{m.machineName}</div>
-              <div className="flex justify-between gap-2 text-[11px] mt-1"><span>Entradas</span><span className="text-right">{formatNumber(Number(m.entradaRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px]"><span>Saídas OF</span><span className="text-right">{formatNumber(Number(m.deliveredRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px]"><span>Reservado</span><span className="text-right text-amber-600 dark:text-amber-400">{formatNumber(Number(m.reservedRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px]"><span>Em maq.</span><span className="text-right text-indigo-600 dark:text-indigo-300">{formatNumber(Number(m.machineRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px] font-semibold"><span>Disponível</span><span className="text-right">{formatNumber(Number(m.availableRolls || 0))} pç</span></div>
+            <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-lg p-2.5 text-xs bg-background shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold text-sm break-words">{m.machineName}</div>
+                <div className="shrink-0 rounded-md bg-primary/10 border border-primary/30 px-2 py-1 text-right">
+                  <div className="text-[9px] uppercase tracking-wide text-primary/80 leading-none">Disponível</div>
+                  <div className="text-base font-bold text-primary leading-tight">
+                    {formatNumber(Number(m.availableRolls || 0))} <span className="text-[10px] font-semibold">pç</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-1 mt-2">
+                <MiniStat label="Entradas" value={Number(m.entradaRolls || 0)} />
+                <MiniStat label="Saídas OF" value={Number(m.deliveredRolls || 0)} />
+                <MiniStat label="Reservado" value={Number(m.reservedRolls || 0)} tone="amber" />
+                <MiniStat label="Em maq." value={Number(m.machineRolls || 0)} tone="indigo" />
+              </div>
               {canEdit && m.machineId && (
-                <Button variant="outline" size="sm" className="h-7 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
+                <Button variant="outline" size="sm" className="h-8 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
                   Ajustar palete da máquina
                 </Button>
               )}
@@ -1372,6 +1388,20 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: number; tone?: 'amber' | 'indigo' }) {
+  const toneCls = tone === 'amber'
+    ? 'text-amber-600 dark:text-amber-400'
+    : tone === 'indigo'
+      ? 'text-indigo-600 dark:text-indigo-300'
+      : 'text-foreground';
+  return (
+    <div className="rounded-md border bg-muted/40 px-1.5 py-1 text-center">
+      <div className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none truncate">{label}</div>
+      <div className={`text-xs font-semibold leading-tight ${toneCls}`}>{formatNumber(value)}</div>
+    </div>
   );
 }
 
