@@ -1296,8 +1296,8 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
   };
 
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+    <Dialog open onOpenChange={(v) => { if (!v) { if (saving) return; clearPhotoDrafts(); onClose(); } }}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Revisão da peça — OT #{String(o.ot_number).padStart(3, '0')}</DialogTitle>
           <DialogDescription>Registre voltas acompanhadas, defeitos encontrados na peça e o relatório final para concluir a OT.</DialogDescription>
@@ -1321,9 +1321,51 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
             <Label>Relatório final *</Label>
             <Textarea rows={5} value={report} onChange={e => setReport(e.target.value)} placeholder="Descreva o que foi observado, ajustes finais, conformidade da peça…" />
           </div>
+
+          {/* Fotos da conclusão (até 3) */}
+          <div className="rounded-md border border-purple-500/30 bg-purple-500/5 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="flex items-center gap-1.5 text-purple-700 dark:text-purple-300">
+                <Camera className="h-4 w-4" /> Fotos da conclusão (opcional)
+              </Label>
+              <span className="text-[10px] text-muted-foreground">{photoDrafts.length}/{MAX_PHOTOS}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Até {MAX_PHOTOS} imagens (8 MB cada). São comprimidas automaticamente antes do envio.</p>
+            <input ref={photoInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { addPhotoFiles(e.target.files); e.currentTarget.value = ''; }} />
+            <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { addPhotoFiles(e.target.files); e.currentTarget.value = ''; }} />
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" disabled={saving || photoDrafts.length >= MAX_PHOTOS} onClick={() => photoInputRef.current?.click()} className="gap-1.5">
+                <Camera className="h-3.5 w-3.5" /> Câmera
+              </Button>
+              <Button type="button" size="sm" variant="outline" disabled={saving || photoDrafts.length >= MAX_PHOTOS} onClick={() => galleryInputRef.current?.click()} className="gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5" /> Galeria
+              </Button>
+            </div>
+            {photoDrafts.length > 0 && (
+              <div className="space-y-2">
+                {photoDrafts.map(p => (
+                  <div key={p.id} className="flex items-start gap-2 rounded-md border bg-background p-2">
+                    <img src={p.url} alt="Pré-visualização da foto da conclusão da OT" className="h-16 w-16 rounded object-cover shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <Input
+                        value={p.description}
+                        onChange={e => { const v = e.target.value; setPhotoDrafts(prev => prev.map(d => d.id === p.id ? { ...d, description: v } : d)); }}
+                        placeholder="Descrição (opcional)"
+                        className="h-8 text-xs"
+                      />
+                      <p className="mt-1 text-[10px] text-muted-foreground truncate">{p.file.name}</p>
+                    </div>
+                    <Button type="button" size="icon" variant="ghost" className="shrink-0" disabled={saving} onClick={() => removePhotoDraft(p.id)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" disabled={saving} onClick={() => { clearPhotoDrafts(); onClose(); }}>Cancelar</Button>
           <Button onClick={submit} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
             Finalizar OT
