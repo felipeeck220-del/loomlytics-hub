@@ -313,17 +313,36 @@ export default function StockMalhaManual() {
   // Realtime: refetch on any change (per OFR-realtime memory pattern)
   useEffect(() => {
     if (!companyId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['manual-stock-estoque', companyId] });
+        queryClient.invalidateQueries({ queryKey: ['manual-stock-mv', companyId] });
+        queryClient.invalidateQueries({ queryKey: ['manual-stock-bootstrap', companyId] });
+      }, 250);
+    };
     const ch = (supabase as any)
-      .channel(`manual-stock-${companyId}`)
+      .channel(`manual-stock-${companyId}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'manual_stock_movements', filter: `company_id=eq.${companyId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['manual-stock-estoque', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['manual-stock-mv', companyId] });
-          queryClient.invalidateQueries({ queryKey: ['manual-stock-bootstrap', companyId] });
-        })
+        refresh)
+      // Reservas/baixas vêm das Ordens de Faturamento (status e paletes)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'billing_orders', filter: `company_id=eq.${companyId}` },
+        refresh)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'billing_order_pallets', filter: `company_id=eq.${companyId}` },
+        refresh)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Reconecta ao voltar para a aba (mobile/PWA suspende o socket)
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      supabase.removeChannel(ch);
+    };
   }, [companyId, queryClient]);
 
   const clientOpts = useMemo(
