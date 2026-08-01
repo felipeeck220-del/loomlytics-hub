@@ -78,6 +78,7 @@ function ManualEntryModal({
   open: boolean; onOpenChange: (v: boolean) => void;
   clients: any[]; articles: any[]; machines: any[]; onSaved: () => void;
 }) {
+  const isMobile = useIsMobile();
   const { user, profile } = useAuth();
   const modalQueryClient = useQueryClient();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
