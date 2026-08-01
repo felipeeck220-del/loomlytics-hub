@@ -2970,6 +2970,7 @@ export type Database = {
           created_by: string | null
           id: string
           machine_id: string | null
+          on_machine: boolean
           pieces: number
           reason: string | null
           source_movement_id: string | null
@@ -2985,6 +2986,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           machine_id?: string | null
+          on_machine?: boolean
           pieces?: number
           reason?: string | null
           source_movement_id?: string | null
@@ -3000,6 +3002,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           machine_id?: string | null
+          on_machine?: boolean
           pieces?: number
           reason?: string | null
           source_movement_id?: string | null
@@ -6024,6 +6027,10 @@ export type Database = {
           p_items: Json
           p_payload: Json
         }
+        Returns: Json
+      }
+      save_manual_stock_machine_adjust: {
+        Args: { p_payload: Json }
         Returns: Json
       }
       save_manual_stock_manual_entry: {
