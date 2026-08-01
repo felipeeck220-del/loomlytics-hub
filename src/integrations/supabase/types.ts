@@ -5973,6 +5973,14 @@ export type Database = {
         }
         Returns: Json
       }
+      next_machine_status: {
+        Args: {
+          p_exclude_ac?: string
+          p_exclude_mo?: string
+          p_machine_id: string
+        }
+        Returns: Database["public"]["Enums"]["machine_status"]
+      }
       recompute_machine_article_from_latest_ot: {
         Args: { p_company_id: string; p_machine_id: string }
         Returns: undefined
