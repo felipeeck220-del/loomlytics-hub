@@ -343,6 +343,18 @@ export default function StockMalhaManual() {
 
   const kpis = estoque?.kpis;
   const groups = estoque?.groups || [];
+  const totalRolls = useMemo(() => {
+    const acc = { entrada: 0, delivered: 0, reserved: 0, available: 0 };
+    for (const g of groups) {
+      for (const a of g.articles || []) {
+        acc.entrada += Number(a.entradaRolls || 0);
+        acc.delivered += Number(a.deliveredRolls || 0);
+        acc.reserved += Number(a.reservedRolls || 0);
+        acc.available += Number(a.availableRolls || 0);
+      }
+    }
+    return acc;
+  }, [groups]);
   const companyInfo = bootstrap?.company as { name?: string; logo_url?: string | null } | undefined;
 
   // ============== EXPORT PDF ==============
@@ -630,29 +642,25 @@ export default function StockMalhaManual() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas manuais</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(kpis?.entradaKg || 0)}</p>
+              <p className="text-xl font-bold text-foreground">{formatNumber(totalRolls.entrada)} pç</p>
+              <p className="text-[11px] text-muted-foreground">{formatWeight(kpis?.entradaKg || 0)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue (OF coletadas)</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(kpis?.deliveredKg || 0)}</p>
+              <p className="text-xl font-bold text-foreground">{formatNumber(totalRolls.delivered)} pç</p>
+              <p className="text-[11px] text-muted-foreground">{formatWeight(kpis?.deliveredKg || 0)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Lock className="h-3.5 w-3.5" />Reservado (OFs Pronto)</div>
-              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(kpis?.reservedKg || 0)}</p>
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatNumber(totalRolls.reserved)} pç</p>
+              <p className="text-[11px] text-muted-foreground">{formatWeight(kpis?.reservedKg || 0)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Rolos disp.</div>
-              {(() => {
-                const totalRolls = (estoque?.groups || []).reduce(
-                  (s: number, g: any) => s + (g.articles || []).reduce((sa: number, a: any) => sa + Number(a.availableRolls || 0), 0),
-                  0,
-                );
-                return (
-                  <p className={cn('text-xl font-bold', totalRolls < 0 ? 'text-destructive' : 'text-success')}>
-                    {formatNumber(totalRolls)}
-                  </p>
-                );
-              })()}
+              <p className={cn('text-xl font-bold', totalRolls.available < 0 ? 'text-destructive' : 'text-success')}>
+                {formatNumber(totalRolls.available)} pç
+              </p>
+              <p className="text-[11px] text-muted-foreground">{formatWeight(kpis?.availableKg || 0)}</p>
             </CardContent></Card>
           </div>
 
