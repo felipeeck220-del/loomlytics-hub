@@ -356,7 +356,6 @@ function MachinePalletModal({
     const addPc = mode === 'move' ? (parseInt(addPieces || '0', 10) || 0) : 0;
     const addKg = mode === 'move' ? (parseFloat(addWeight || '0') || 0) : 0;
     if (pc <= 0 && kg <= 0 && addPc <= 0 && addKg <= 0) return toast.error('Informe peças ou peso');
-    if (reason.trim().length < 5) return toast.error('Motivo mínimo 5 caracteres');
     if (mode === 'move' && (pc > target.machineRolls + addPc)) {
       return toast.error('Peças acima do saldo em máquina');
     }
@@ -457,7 +456,7 @@ function MachinePalletModal({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Motivo *</Label>
+            <Label className="text-xs">Motivo (opcional)</Label>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
               placeholder={mode === 'add' ? 'Ex.: "Conferência do palete na máquina"' : 'Ex.: "Palete fechado puxado para expedição"'}
               className="text-xs min-h-[64px]" maxLength={500} />
