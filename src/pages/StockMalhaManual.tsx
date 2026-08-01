@@ -257,6 +257,156 @@ function ManualEntryModal({
   );
 }
 
+type PalletTarget = {
+  clientId: string; clientName: string;
+  articleId: string; articleName: string;
+  machineId: string; machineName: string;
+  machineRolls: number; machineKg: number;
+};
+
+function MachinePalletModal({
+  target, onOpenChange, onSaved,
+}: {
+  target: PalletTarget | null; onOpenChange: (v: boolean) => void; onSaved: () => void;
+}) {
+  const { user } = useAuth();
+  const [mode, setMode] = useState<'add' | 'move'>('add');
+  const [pieces, setPieces] = useState('');
+  const [weight, setWeight] = useState('');
+  const [addPieces, setAddPieces] = useState('');
+  const [addWeight, setAddWeight] = useState('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (target) {
+      setMode('add'); setPieces(''); setWeight(''); setAddPieces(''); setAddWeight(''); setReason('');
+    }
+  }, [target]);
+
+  if (!target) return null;
+
+  const handleSave = async () => {
+    if (!user?.company_id) return;
+    const pc = parseInt(pieces || '0', 10) || 0;
+    const kg = parseFloat(weight || '0') || 0;
+    const addPc = mode === 'move' ? (parseInt(addPieces || '0', 10) || 0) : 0;
+    const addKg = mode === 'move' ? (parseFloat(addWeight || '0') || 0) : 0;
+    if (pc <= 0 && kg <= 0 && addPc <= 0 && addKg <= 0) return toast.error('Informe peças ou peso');
+    if (reason.trim().length < 5) return toast.error('Motivo mínimo 5 caracteres');
+    if (mode === 'move' && (pc > target.machineRolls + addPc)) {
+      return toast.error('Peças acima do saldo em máquina');
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        company_id: user.company_id,
+        client_id: target.clientId,
+        article_id: target.articleId,
+        machine_id: target.machineId,
+        add_pieces: mode === 'add' ? pc : addPc,
+        add_weight_kg: mode === 'add' ? kg : addKg,
+        move_pieces: mode === 'move' ? pc : 0,
+        move_weight_kg: mode === 'move' ? kg : 0,
+        reason: reason.trim(),
+      };
+      const { error } = await (supabase.rpc as any)('save_manual_stock_machine_adjust', { p_payload: payload });
+      if (error) throw error;
+
+      await logAudit({
+        action: 'STOCK_MANUAL_MACHINE_PALLET',
+        companyId: user.company_id,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        userCode: (user as any).code,
+        details: { scope: 'manual_stock_movements', mode, ...payload },
+      });
+
+      toast.success(mode === 'add' ? 'Palete da máquina atualizado' : 'Peças transferidas para a expedição');
+      onSaved();
+      onOpenChange(false);
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      toast.error(msg.includes('insufficient_machine_stock')
+        ? 'Quantidade maior que o saldo em máquina'
+        : getFriendlyErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!target} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Palete na máquina — {target.machineName}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {target.clientName} · {target.articleName} — em máquina hoje:{' '}
+            <strong>{formatNumber(target.machineRolls)} pç</strong> ({formatWeight(target.machineKg)})
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <RadioGroupItem value="add" /> Adicionar peças e manter na máquina
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <RadioGroupItem value="move" /> Lançar peças para o estoque da expedição
+            </label>
+          </RadioGroup>
+
+          {mode === 'move' && (
+            <div className="grid grid-cols-2 gap-3 rounded-md border p-2 bg-muted/30">
+              <div className="space-y-1 col-span-2">
+                <Label className="text-[11px] text-muted-foreground">Antes de transferir, adicionar peças ao palete (opcional)</Label>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Peças a somar</Label>
+                <Input type="number" min={0} value={addPieces} className="h-8 text-xs" placeholder="0"
+                  onChange={(e) => setAddPieces(e.target.value.replace(/[^\d]/g, ''))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Peso a somar (kg)</Label>
+                <BrazilianWeightInput value={addWeight} onChange={setAddWeight} placeholder="0,00" />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">{mode === 'add' ? 'Peças' : 'Peças p/ expedição'}</Label>
+              <Input type="number" min={0} value={pieces} className="h-8 text-xs" placeholder="0"
+                onChange={(e) => setPieces(e.target.value.replace(/[^\d]/g, ''))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Peso (kg)</Label>
+              <BrazilianWeightInput value={weight} onChange={setWeight} placeholder="0,00" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Motivo *</Label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
+              placeholder={mode === 'add' ? 'Ex.: "Conferência do palete na máquina"' : 'Ex.: "Palete fechado puxado para expedição"'}
+              className="text-xs min-h-[64px]" maxLength={500} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function StockMalhaManual() {
   const { user } = useAuth();
   const { role } = usePermissions();
