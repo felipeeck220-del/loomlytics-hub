@@ -1296,6 +1296,21 @@ const BillingOrders = () => {
                         </div>
                       )}
 
+                      {order.status === 'collected' && Array.isArray((order as any).collect_photos) && (order as any).collect_photos.length > 0 && (
+                        <div className="mt-2 rounded-md border border-violet-300 bg-violet-50 dark:bg-violet-950/40 p-2 flex flex-wrap items-center gap-2">
+                          <Badge className="bg-violet-600 hover:bg-violet-600 text-white">
+                            {(order as any).collect_photos.length} foto{(order as any).collect_photos.length > 1 ? 's' : ''} anexada{(order as any).collect_photos.length > 1 ? 's' : ''}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-7"
+                            onClick={() => setShowPhotosOrder(order)}
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Ver fotos
+                          </Button>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
