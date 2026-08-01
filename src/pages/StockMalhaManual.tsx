@@ -708,24 +708,24 @@ export default function StockMalhaManual() {
                 <Collapsible key={g.clientId}>
                   <Card>
                     <CollapsibleTrigger className="w-full group">
-                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2">
+                      <CardHeader className="p-3 md:p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0 w-full md:w-auto">
                           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
-                          <CardTitle className="text-sm font-semibold">{g.clientName}</CardTitle>
+                          <CardTitle className="text-sm font-semibold truncate min-w-0 flex-1 text-left">{g.clientName}</CardTitle>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-6 w-6 shrink-0"
                             title="Exportar PDF do cliente (todos os artigos)"
                             onClick={(e) => { e.stopPropagation(); e.preventDefault(); setClientExportGroup(g); }}
                           >
                             <Download className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Entradas: <span className="font-semibold text-foreground">{formatWeight(g.totalEntradaKg)}</span></span>
-                          <span>Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatWeight(g.totalReservedKg)}</span></span>
-                          <span>Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} peças</span></span>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:text-xs text-muted-foreground min-w-0 w-full md:w-auto text-left">
+                          <span className="whitespace-nowrap">Entradas: <span className="font-semibold text-foreground">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.entradaRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.reservedRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} pç</span></span>
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
@@ -1023,13 +1023,13 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
       <CollapsibleTrigger asChild>
-        <button className="w-full text-left p-3 flex items-start justify-between gap-2 hover:bg-muted/40">
+        <button className="w-full text-left p-3 flex items-start justify-between gap-2 hover:bg-muted/40 overflow-hidden">
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm truncate">{article.articleName}</div>
+            <div className="font-medium text-sm break-words">{article.articleName}</div>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              <Badge variant="outline" className="text-[10px]">Est {formatWeight(article.stockKg)}</Badge>
-              <Badge variant="outline" className="text-[10px]">Rsv {formatWeight(article.reservedKg)}</Badge>
-              <Badge className="text-[10px]">Disp {formatWeight(article.availableKg)}</Badge>
+              <Badge variant="outline" className="text-[10px]">Est {formatNumber(Number(article.stockRolls || 0))} pç</Badge>
+              <Badge variant="outline" className="text-[10px]">Rsv {formatNumber(Number(article.reservedRolls || 0))} pç</Badge>
+              <Badge className="text-[10px]">Disp {formatNumber(Number(article.availableRolls || 0))} pç</Badge>
             </div>
           </div>
           <ChevronDown className={`h-4 w-4 shrink-0 mt-1 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
@@ -1039,11 +1039,11 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
         <div className="p-3 bg-muted/30 space-y-2">
           {(article.byMachine || []).map((m, i) => (
             <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-md p-2 text-xs bg-background">
-              <div className="font-medium">{m.machineName}</div>
-              <div className="flex justify-between text-[11px] mt-1"><span>Entradas</span><span>{formatWeight(m.entradaKg)}</span></div>
-              <div className="flex justify-between text-[11px]"><span>Saídas OF</span><span>{formatWeight(m.deliveredKg)}</span></div>
-              <div className="flex justify-between text-[11px]"><span>Reservado</span><span>{formatWeight(m.reservedKg)}</span></div>
-              <div className="flex justify-between text-[11px] font-semibold"><span>Disponível</span><span>{formatWeight(m.availableKg)}</span></div>
+              <div className="font-medium break-words">{m.machineName}</div>
+              <div className="flex justify-between gap-2 text-[11px] mt-1"><span>Entradas</span><span className="text-right">{formatNumber(Number(m.entradaRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px]"><span>Saídas OF</span><span className="text-right">{formatNumber(Number(m.deliveredRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px]"><span>Reservado</span><span className="text-right text-amber-600 dark:text-amber-400">{formatNumber(Number(m.reservedRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px] font-semibold"><span>Disponível</span><span className="text-right">{formatNumber(Number(m.availableRolls || 0))} pç</span></div>
             </div>
           ))}
         </div>
