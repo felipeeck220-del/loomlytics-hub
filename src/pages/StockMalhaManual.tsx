@@ -32,6 +32,7 @@ type EstoqueKPIs = {
   entradaKg: number; deliveredKg: number;
   stockKg: number; stockRolls: number;
   reservedKg: number; availableKg: number;
+  machineKg?: number; machineRolls?: number;
 };
 type MachineNode = {
   machineId: string | null; machineName: string;
@@ -40,6 +41,7 @@ type MachineNode = {
   reservedKg: number; reservedRolls: number;
   stockKg: number; stockRolls: number;
   availableKg: number; availableRolls: number;
+  machineKg?: number; machineRolls?: number;
 };
 type ArticleNode = MachineNode & {
   articleId: string; articleName: string; byMachine: MachineNode[];
@@ -49,6 +51,7 @@ type ClientGroup = {
   totalEntradaKg: number; totalDeliveredKg: number;
   totalStockKg: number; totalStockRolls: number;
   totalReservedKg: number; totalAvailableKg: number;
+  totalMachineKg?: number; totalMachineRolls?: number;
 };
 type EstoqueResp = { groups: ClientGroup[]; kpis: EstoqueKPIs };
 
@@ -77,6 +80,7 @@ function ManualEntryModal({
 }) {
   const { user, profile } = useAuth();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
+  const [dest, setDest] = useState<'expedicao' | 'maquina'>('expedicao');
   const [clientId, setClientId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [machineId, setMachineId] = useState('');
@@ -87,7 +91,7 @@ function ManualEntryModal({
 
   useEffect(() => {
     if (open) {
-      setType('adjust_in'); setClientId(''); setArticleId(''); setMachineId('');
+      setType('adjust_in'); setDest('expedicao'); setClientId(''); setArticleId(''); setMachineId('');
       setPieces(''); setWeight(''); setReason('');
     }
   }, [open]);
@@ -119,6 +123,7 @@ function ManualEntryModal({
           pieces: piecesNum,
           weight_kg: weightNum,
           reason: reason.trim(),
+          on_machine: dest === 'maquina',
         },
       });
       if (error) throw error;
@@ -135,10 +140,15 @@ function ManualEntryModal({
           movement_id: data,
           type, client_id: clientId, article_id: articleId, machine_id: machineId,
           pieces: piecesNum, weight_kg: weightNum, reason: reason.trim(),
+          on_machine: dest === 'maquina',
         },
       });
 
-      toast.success(type === 'adjust_in' ? 'Entrada manual registrada' : 'Saída manual registrada');
+      toast.success(
+        dest === 'maquina'
+          ? (type === 'adjust_in' ? 'Palete lançado na máquina' : 'Baixa no palete da máquina registrada')
+          : (type === 'adjust_in' ? 'Entrada manual registrada' : 'Saída manual registrada')
+      );
       onSaved();
       // Limpa só peças/peso para novo lançamento em sequência; mantém cliente/artigo/máquina/motivo
       setPieces('');
@@ -170,6 +180,20 @@ function ManualEntryModal({
                 <RadioGroupItem value="adjust_out" /> Saída
               </label>
             </RadioGroup>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Destino</Label>
+            <RadioGroup value={dest} onValueChange={(v) => setDest(v as any)} className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="expedicao" /> Estoque da expedição
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="maquina" /> Palete na máquina
+              </label>
+            </RadioGroup>
+            <p className="text-[10px] text-muted-foreground">
+              "Palete na máquina" contabiliza em <strong>Em maq.</strong> e já soma em Disp. Rolos — ao puxar o palete para a expedição use "Ajustar palete" na máquina, sem duplicar peças.
+            </p>
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Cliente *</Label>
@@ -233,6 +257,156 @@ function ManualEntryModal({
   );
 }
 
+type PalletTarget = {
+  clientId: string; clientName: string;
+  articleId: string; articleName: string;
+  machineId: string; machineName: string;
+  machineRolls: number; machineKg: number;
+};
+
+function MachinePalletModal({
+  target, onOpenChange, onSaved,
+}: {
+  target: PalletTarget | null; onOpenChange: (v: boolean) => void; onSaved: () => void;
+}) {
+  const { user } = useAuth();
+  const [mode, setMode] = useState<'add' | 'move'>('add');
+  const [pieces, setPieces] = useState('');
+  const [weight, setWeight] = useState('');
+  const [addPieces, setAddPieces] = useState('');
+  const [addWeight, setAddWeight] = useState('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (target) {
+      setMode('add'); setPieces(''); setWeight(''); setAddPieces(''); setAddWeight(''); setReason('');
+    }
+  }, [target]);
+
+  if (!target) return null;
+
+  const handleSave = async () => {
+    if (!user?.company_id) return;
+    const pc = parseInt(pieces || '0', 10) || 0;
+    const kg = parseFloat(weight || '0') || 0;
+    const addPc = mode === 'move' ? (parseInt(addPieces || '0', 10) || 0) : 0;
+    const addKg = mode === 'move' ? (parseFloat(addWeight || '0') || 0) : 0;
+    if (pc <= 0 && kg <= 0 && addPc <= 0 && addKg <= 0) return toast.error('Informe peças ou peso');
+    if (reason.trim().length < 5) return toast.error('Motivo mínimo 5 caracteres');
+    if (mode === 'move' && (pc > target.machineRolls + addPc)) {
+      return toast.error('Peças acima do saldo em máquina');
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        company_id: user.company_id,
+        client_id: target.clientId,
+        article_id: target.articleId,
+        machine_id: target.machineId,
+        add_pieces: mode === 'add' ? pc : addPc,
+        add_weight_kg: mode === 'add' ? kg : addKg,
+        move_pieces: mode === 'move' ? pc : 0,
+        move_weight_kg: mode === 'move' ? kg : 0,
+        reason: reason.trim(),
+      };
+      const { error } = await (supabase.rpc as any)('save_manual_stock_machine_adjust', { p_payload: payload });
+      if (error) throw error;
+
+      await logAudit({
+        action: 'STOCK_MANUAL_MACHINE_PALLET',
+        companyId: user.company_id,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        userCode: (user as any).code,
+        details: { scope: 'manual_stock_movements', mode, ...payload },
+      });
+
+      toast.success(mode === 'add' ? 'Palete da máquina atualizado' : 'Peças transferidas para a expedição');
+      onSaved();
+      onOpenChange(false);
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      toast.error(msg.includes('insufficient_machine_stock')
+        ? 'Quantidade maior que o saldo em máquina'
+        : getFriendlyErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!target} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Palete na máquina — {target.machineName}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {target.clientName} · {target.articleName} — em máquina hoje:{' '}
+            <strong>{formatNumber(target.machineRolls)} pç</strong> ({formatWeight(target.machineKg)})
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <RadioGroupItem value="add" /> Adicionar peças e manter na máquina
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <RadioGroupItem value="move" /> Lançar peças para o estoque da expedição
+            </label>
+          </RadioGroup>
+
+          {mode === 'move' && (
+            <div className="grid grid-cols-2 gap-3 rounded-md border p-2 bg-muted/30">
+              <div className="space-y-1 col-span-2">
+                <Label className="text-[11px] text-muted-foreground">Antes de transferir, adicionar peças ao palete (opcional)</Label>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Peças a somar</Label>
+                <Input type="number" min={0} value={addPieces} className="h-8 text-xs" placeholder="0"
+                  onChange={(e) => setAddPieces(e.target.value.replace(/[^\d]/g, ''))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Peso a somar (kg)</Label>
+                <BrazilianWeightInput value={addWeight} onChange={setAddWeight} placeholder="0,00" />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">{mode === 'add' ? 'Peças' : 'Peças p/ expedição'}</Label>
+              <Input type="number" min={0} value={pieces} className="h-8 text-xs" placeholder="0"
+                onChange={(e) => setPieces(e.target.value.replace(/[^\d]/g, ''))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Peso (kg)</Label>
+              <BrazilianWeightInput value={weight} onChange={setWeight} placeholder="0,00" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Motivo *</Label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
+              placeholder={mode === 'add' ? 'Ex.: "Conferência do palete na máquina"' : 'Ex.: "Palete fechado puxado para expedição"'}
+              className="text-xs min-h-[64px]" maxLength={500} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function StockMalhaManual() {
   const { user } = useAuth();
   const { role } = usePermissions();
@@ -247,6 +421,7 @@ export default function StockMalhaManual() {
 
   const [tab, setTab] = useState<'estoque' | 'movimentos'>('estoque');
   const [openManual, setOpenManual] = useState(false);
+  const [palletTarget, setPalletTarget] = useState<PalletTarget | null>(null);
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
   // Estoque filters
@@ -363,13 +538,14 @@ export default function StockMalhaManual() {
   const kpis = estoque?.kpis;
   const groups = estoque?.groups || [];
   const totalRolls = useMemo(() => {
-    const acc = { entrada: 0, delivered: 0, reserved: 0, available: 0 };
+    const acc = { entrada: 0, delivered: 0, reserved: 0, available: 0, machine: 0 };
     for (const g of groups) {
       for (const a of g.articles || []) {
         acc.entrada += Number(a.entradaRolls || 0);
         acc.delivered += Number(a.deliveredRolls || 0);
         acc.reserved += Number(a.reservedRolls || 0);
         acc.available += Number(a.availableRolls || 0);
+        acc.machine += Number(a.machineRolls || 0);
       }
     }
     return acc;
@@ -680,6 +856,7 @@ export default function StockMalhaManual() {
                 {formatNumber(totalRolls.available)} pç
               </p>
               <p className="text-[11px] text-muted-foreground">{formatWeight(kpis?.availableKg || 0)}</p>
+              <p className="text-[11px] text-indigo-600 dark:text-indigo-300">Em maq.: {formatNumber(totalRolls.machine)} pç</p>
             </CardContent></Card>
           </div>
 
@@ -752,6 +929,7 @@ export default function StockMalhaManual() {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:text-xs text-muted-foreground min-w-0 w-full md:w-auto text-left">
                           <span className="whitespace-nowrap">Entradas: <span className="font-semibold text-foreground">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.entradaRolls || 0), 0))} pç</span></span>
                           <span className="whitespace-nowrap">Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.reservedRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Em maq.: <span className="font-semibold text-indigo-600 dark:text-indigo-300">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.machineRolls || 0), 0))} pç</span></span>
                           <span className="whitespace-nowrap">Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} pç</span></span>
                         </div>
                       </CardHeader>
@@ -763,6 +941,13 @@ export default function StockMalhaManual() {
                           {(g.articles || []).map((a) => (
                             <ArticleRowMobile key={a.articleId} article={a}
                               expanded={expandedArticle === `${g.clientId}::${a.articleId}`}
+                              canEdit={canEdit}
+                              onPallet={(m) => setPalletTarget({
+                                clientId: g.clientId, clientName: g.clientName,
+                                articleId: a.articleId, articleName: a.articleName,
+                                machineId: m.machineId as string, machineName: m.machineName,
+                                machineRolls: Number(m.machineRolls || 0), machineKg: Number(m.machineKg || 0),
+                              })}
                               onToggle={() => setExpandedArticle(expandedArticle === `${g.clientId}::${a.articleId}` ? null : `${g.clientId}::${a.articleId}`)} />
                           ))}
                         </div>
@@ -780,7 +965,9 @@ export default function StockMalhaManual() {
                                 <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Rolos reservados</TableHead>
                                 <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Reservado kg</TableHead>
                                 <TableHead className="text-xs text-right font-bold">Disponível kg</TableHead>
+                                <TableHead className="text-xs text-right font-bold text-indigo-700 dark:text-indigo-300">Em maq.</TableHead>
                                 <TableHead className="text-xs text-right font-bold">Disp. Rolos</TableHead>
+                                <TableHead className="text-xs text-right w-[70px]"></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -822,9 +1009,13 @@ export default function StockMalhaManual() {
                                       <TableCell className={cn('text-xs text-right font-bold', a.availableKg < 0 ? 'text-destructive' : a.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>
                                         {formatWeight(a.availableKg)}
                                       </TableCell>
+                                      <TableCell className="text-xs text-right font-bold text-indigo-700 dark:text-indigo-300">
+                                        {formatNumber(Number(a.machineRolls || 0))} pç
+                                      </TableCell>
                                       <TableCell className={cn('text-xs text-right font-bold', a.availableRolls < 0 ? 'text-destructive' : a.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
                                         {formatNumber(a.availableRolls)}
                                       </TableCell>
+                                      <TableCell />
                                     </TableRow>
                                     {isOpen && (a.byMachine || []).filter(m => m.machineId).map((m, i) => (
                                       <TableRow key={`${a.articleId}-${m.machineId || i}`} className="bg-muted/30">
@@ -839,7 +1030,26 @@ export default function StockMalhaManual() {
                                         <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatNumber(m.reservedRolls)}</TableCell>
                                         <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatWeight(m.reservedKg)}</TableCell>
                                         <TableCell className={cn('text-[11px] text-right font-semibold', m.availableKg < 0 ? 'text-destructive' : m.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(m.availableKg)}</TableCell>
+                                        <TableCell className="text-[11px] text-right font-semibold text-indigo-700 dark:text-indigo-300">{formatNumber(Number(m.machineRolls || 0))} pç</TableCell>
                                         <TableCell className={cn('text-[11px] text-right font-semibold', m.availableRolls < 0 ? 'text-destructive' : m.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(m.availableRolls)}</TableCell>
+                                        <TableCell className="text-right">
+                                          {canEdit && m.machineId && (
+                                            <Button
+                                              variant="outline" size="sm" className="h-6 text-[10px] px-2"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPalletTarget({
+                                                  clientId: g.clientId, clientName: g.clientName,
+                                                  articleId: a.articleId, articleName: a.articleName,
+                                                  machineId: m.machineId as string, machineName: m.machineName,
+                                                  machineRolls: Number(m.machineRolls || 0), machineKg: Number(m.machineKg || 0),
+                                                });
+                                              }}
+                                            >
+                                              Palete
+                                            </Button>
+                                          )}
+                                        </TableCell>
                                       </TableRow>
                                     ))}
                                   </React.Fragment>
@@ -978,6 +1188,15 @@ export default function StockMalhaManual() {
           refreshData?.();
         }}
       />
+      <MachinePalletModal
+        target={palletTarget}
+        onOpenChange={(o) => { if (!o) setPalletTarget(null); }}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['manual-stock-estoque', companyId] });
+          queryClient.invalidateQueries({ queryKey: ['manual-stock-mv', companyId] });
+          refreshData?.();
+        }}
+      />
       <Dialog open={!!clientExportGroup} onOpenChange={(o) => { if (!o) setClientExportGroup(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1046,7 +1265,10 @@ function KpiCard({ title, value, highlight }: { title: string; value: string; hi
   );
 }
 
-function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNode; expanded: boolean; onToggle: () => void }) {
+function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
+  article: ArticleNode; expanded: boolean; onToggle: () => void;
+  canEdit?: boolean; onPallet?: (m: MachineNode) => void;
+}) {
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
       <CollapsibleTrigger asChild>
@@ -1056,6 +1278,7 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
             <div className="flex flex-wrap gap-1.5 mt-1">
               <Badge variant="outline" className="text-[10px]">Est {formatNumber(Number(article.stockRolls || 0))} pç</Badge>
               <Badge variant="outline" className="text-[10px]">Rsv {formatNumber(Number(article.reservedRolls || 0))} pç</Badge>
+              <Badge variant="outline" className="text-[10px] border-indigo-400 text-indigo-600 dark:text-indigo-300">Em maq. {formatNumber(Number(article.machineRolls || 0))} pç</Badge>
               <Badge className="text-[10px]">Disp {formatNumber(Number(article.availableRolls || 0))} pç</Badge>
             </div>
           </div>
@@ -1070,7 +1293,13 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
               <div className="flex justify-between gap-2 text-[11px] mt-1"><span>Entradas</span><span className="text-right">{formatNumber(Number(m.entradaRolls || 0))} pç</span></div>
               <div className="flex justify-between gap-2 text-[11px]"><span>Saídas OF</span><span className="text-right">{formatNumber(Number(m.deliveredRolls || 0))} pç</span></div>
               <div className="flex justify-between gap-2 text-[11px]"><span>Reservado</span><span className="text-right text-amber-600 dark:text-amber-400">{formatNumber(Number(m.reservedRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px]"><span>Em maq.</span><span className="text-right text-indigo-600 dark:text-indigo-300">{formatNumber(Number(m.machineRolls || 0))} pç</span></div>
               <div className="flex justify-between gap-2 text-[11px] font-semibold"><span>Disponível</span><span className="text-right">{formatNumber(Number(m.availableRolls || 0))} pç</span></div>
+              {canEdit && m.machineId && (
+                <Button variant="outline" size="sm" className="h-7 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
+                  Ajustar palete da máquina
+                </Button>
+              )}
             </div>
           ))}
         </div>
