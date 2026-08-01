@@ -18,6 +18,7 @@ import { DialogDescription } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
 import { formatWeight, formatNumber } from '@/lib/formatters';
 import { logAudit } from '@/lib/auditLog';
