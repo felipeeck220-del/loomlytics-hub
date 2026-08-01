@@ -283,7 +283,7 @@ function ManualEntryModal({
                 {dest === 'maquina' && (
                   <Button
                     type="button" size="sm" variant="outline" className="h-7 text-[11px] w-full"
-                    onClick={() => { setPieces(String(machinePallet!.rolls || '')); setWeight(machinePallet!.kg ? String(machinePallet!.kg).replace('.', ',') : ''); }}
+                    onClick={() => { setPieces(String(machinePallet!.rolls || '')); setWeight(machinePallet!.kg ? String(machinePallet!.kg) : ''); }}
                   >
                     Usar quantidade atual do palete ({formatNumber(machinePallet!.rolls)} pç)
                   </Button>
