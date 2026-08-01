@@ -530,6 +530,7 @@ function OTCard(props: {
   onDelete: () => void;
   onDownload: () => void;
   onEdit: () => void;
+  onViewPhotos: () => void;
 }) {
   const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico, isLiderMecanica } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
@@ -668,6 +669,18 @@ function OTCard(props: {
               <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2">
                 <div className="font-semibold text-[10px] uppercase text-emerald-700 dark:text-emerald-400 tracking-wide mb-1">Relatório final</div>
                 <div className="text-xs text-foreground whitespace-pre-wrap">{o.final_report}</div>
+              </div>
+            )}
+
+            {/* Fotos anexadas na conclusão — destaque na aba Concluídas */}
+            {Array.isArray(o.ot_photos) && o.ot_photos.length > 0 && (
+              <div className="rounded-md border border-purple-500/40 bg-purple-500/10 p-2 flex flex-wrap items-center gap-2">
+                <Badge className="bg-purple-600 text-white border-purple-700 gap-1 text-[10px] font-bold">
+                  <ImageIcon className="h-3 w-3" /> {o.ot_photos.length} foto{o.ot_photos.length > 1 ? 's' : ''} anexada{o.ot_photos.length > 1 ? 's' : ''}
+                </Badge>
+                <Button size="sm" onClick={props.onViewPhotos} className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5 h-7">
+                  <Eye className="h-3.5 w-3.5" /> Ver fotos
+                </Button>
               </div>
             )}
           </div>
