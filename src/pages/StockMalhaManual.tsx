@@ -856,6 +856,7 @@ export default function StockMalhaManual() {
                 {formatNumber(totalRolls.available)} pç
               </p>
               <p className="text-[11px] text-muted-foreground">{formatWeight(kpis?.availableKg || 0)}</p>
+              <p className="text-[11px] text-indigo-600 dark:text-indigo-300">Em maq.: {formatNumber(totalRolls.machine)} pç</p>
             </CardContent></Card>
           </div>
 
@@ -928,6 +929,7 @@ export default function StockMalhaManual() {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:text-xs text-muted-foreground min-w-0 w-full md:w-auto text-left">
                           <span className="whitespace-nowrap">Entradas: <span className="font-semibold text-foreground">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.entradaRolls || 0), 0))} pç</span></span>
                           <span className="whitespace-nowrap">Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.reservedRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Em maq.: <span className="font-semibold text-indigo-600 dark:text-indigo-300">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.machineRolls || 0), 0))} pç</span></span>
                           <span className="whitespace-nowrap">Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} pç</span></span>
                         </div>
                       </CardHeader>
