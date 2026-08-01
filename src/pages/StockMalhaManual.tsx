@@ -79,6 +79,7 @@ function ManualEntryModal({
   clients: any[]; articles: any[]; machines: any[]; onSaved: () => void;
 }) {
   const { user, profile } = useAuth();
+  const modalQueryClient = useQueryClient();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
   const [dest, setDest] = useState<'expedicao' | 'maquina'>('expedicao');
   const [clientId, setClientId] = useState('');
@@ -101,6 +102,31 @@ function ManualEntryModal({
     [articles, clientId]
   );
 
+  // Palete já registrado "em máquina" para o cliente/artigo/máquina selecionados
+  const { data: machinePallet, isFetching: loadingPallet } = useQuery({
+    queryKey: ['manual-stock-machine-pallet', user?.company_id, clientId, articleId, machineId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_manual_stock_estoque', {
+        p_company_id: user!.company_id,
+        p_client_id: clientId,
+        p_article_id: articleId,
+        p_month: 'all',
+      });
+      if (error) throw error;
+      const resp = data as EstoqueResp;
+      const g = (resp?.groups || []).find((x) => x.clientId === clientId);
+      const a = (g?.articles || []).find((x) => x.articleId === articleId);
+      const m = (a?.byMachine || []).find((x) => x.machineId === machineId);
+      return {
+        rolls: Number(m?.machineRolls || 0),
+        kg: Number(m?.machineKg || 0),
+        stockRolls: Number(m?.stockRolls || 0),
+      };
+    },
+    enabled: open && !!user?.company_id && !!clientId && !!articleId && !!machineId,
+    staleTime: 0,
+  });
+
   const handleSave = async () => {
     const piecesNum = parseInt(pieces || '0', 10);
     const weightNum = parseFloat(weight || '0');
@@ -108,7 +134,6 @@ function ManualEntryModal({
     if (!articleId) return toast.error('Artigo obrigatório');
     if (!machineId) return toast.error('Máquina obrigatória');
     if (!(weightNum > 0) && !(piecesNum > 0)) return toast.error('Informe peças ou peso');
-    if (reason.trim().length < 5) return toast.error('Motivo mínimo 5 caracteres');
     if (!user?.company_id) return;
 
     setSaving(true);
@@ -150,6 +175,7 @@ function ManualEntryModal({
           : (type === 'adjust_in' ? 'Entrada manual registrada' : 'Saída manual registrada')
       );
       onSaved();
+      modalQueryClient.invalidateQueries({ queryKey: ['manual-stock-machine-pallet', user.company_id] });
       // Limpa só peças/peso para novo lançamento em sequência; mantém cliente/artigo/máquina/motivo
       setPieces('');
       setWeight('');
@@ -165,7 +191,7 @@ function ManualEntryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Warehouse className="h-4 w-4 text-primary" />
@@ -229,6 +255,40 @@ function ManualEntryModal({
               searchPlaceholder="Buscar máquina..."
             />
           </div>
+          {clientId && articleId && machineId && (
+            loadingPallet ? (
+              <div className="rounded-md border p-2 text-[11px] text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verificando palete na máquina…
+              </div>
+            ) : (machinePallet?.rolls || 0) > 0 || (machinePallet?.kg || 0) > 0 ? (
+              <div className="rounded-md border border-indigo-400/60 bg-indigo-500/10 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <Package className="h-4 w-4 mt-0.5 text-indigo-600 dark:text-indigo-300 shrink-0" />
+                  <div className="text-[11px] leading-relaxed">
+                    <div className="font-semibold text-indigo-700 dark:text-indigo-300">
+                      Esta máquina já tem palete em máquina: {formatNumber(machinePallet!.rolls)} pç ({formatWeight(machinePallet!.kg)})
+                    </div>
+                    <div className="text-muted-foreground">
+                      Lançar em <strong>Estoque da expedição</strong> mantém esse palete intacto (não soma nem baixa "Em maq.").
+                      Para mexer no palete da máquina use o destino "Palete na máquina" ou o botão "Palete" na listagem.
+                    </div>
+                  </div>
+                </div>
+                {dest === 'maquina' && (
+                  <Button
+                    type="button" size="sm" variant="outline" className="h-7 text-[11px] w-full"
+                    onClick={() => { setPieces(String(machinePallet!.rolls || '')); setWeight(machinePallet!.kg ? String(machinePallet!.kg).replace('.', ',') : ''); }}
+                  >
+                    Usar quantidade atual do palete ({formatNumber(machinePallet!.rolls)} pç)
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-md border p-2 text-[11px] text-muted-foreground">
+                Nenhum palete em máquina registrado para esta combinação.
+              </div>
+            )
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-xs">Peças</Label>
@@ -245,7 +305,7 @@ function ManualEntryModal({
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs">Motivo *</Label>
+            <Label className="text-xs">Motivo (opcional)</Label>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
               placeholder='Ex.: "Saldo inicial", "Ajuste de contagem"'
               className="text-xs min-h-[70px]" maxLength={500} />

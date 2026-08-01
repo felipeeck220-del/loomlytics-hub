@@ -115,9 +115,10 @@ export function SearchableSelect({
           />
         </div>
         <div
-          className="max-h-[360px] min-h-0 flex-1 overflow-y-auto scrollbar-hide"
-          style={{ overscrollBehavior: 'contain', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="max-h-[min(360px,45vh)] min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+          style={{ overscrollBehavior: 'contain', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
           onWheel={e => e.stopPropagation()}
+          onTouchMove={e => e.stopPropagation()}
         >
           <div className="p-1">
             {filtered.length === 0 && (
