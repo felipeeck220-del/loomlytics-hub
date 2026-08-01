@@ -32,6 +32,7 @@ type EstoqueKPIs = {
   entradaKg: number; deliveredKg: number;
   stockKg: number; stockRolls: number;
   reservedKg: number; availableKg: number;
+  machineKg?: number; machineRolls?: number;
 };
 type MachineNode = {
   machineId: string | null; machineName: string;
@@ -40,6 +41,7 @@ type MachineNode = {
   reservedKg: number; reservedRolls: number;
   stockKg: number; stockRolls: number;
   availableKg: number; availableRolls: number;
+  machineKg?: number; machineRolls?: number;
 };
 type ArticleNode = MachineNode & {
   articleId: string; articleName: string; byMachine: MachineNode[];
@@ -49,6 +51,7 @@ type ClientGroup = {
   totalEntradaKg: number; totalDeliveredKg: number;
   totalStockKg: number; totalStockRolls: number;
   totalReservedKg: number; totalAvailableKg: number;
+  totalMachineKg?: number; totalMachineRolls?: number;
 };
 type EstoqueResp = { groups: ClientGroup[]; kpis: EstoqueKPIs };
 
