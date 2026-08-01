@@ -24,6 +24,8 @@ import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { OfCollectPhotosModal, type OfPhoto } from '@/components/billing/OfCollectPhotosModal';
+import { OfPhotosViewerModal } from '@/components/billing/OfPhotosViewerModal';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -81,6 +83,7 @@ const BillingOrders = () => {
   const [confirmFinalizePallets, setConfirmFinalizePallets] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
+  const [showPhotosOrder, setShowPhotosOrder] = useState<any>(null);
   const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
