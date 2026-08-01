@@ -26,6 +26,7 @@ import { generateOmReportPdf } from '@/lib/omReportPdf';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import OCReportsTab from './OCReportsTab';
+import OrderCardSkeleton from './OrderCardSkeleton';
 
 const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
@@ -117,7 +118,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
-  const { getMachineLogs, getProductions } = useSharedCompanyData();
+  const { getMachineLogs, getProductions, loading: companyLoading } = useSharedCompanyData();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
   const companyId = user?.company_id || '';
@@ -1105,8 +1106,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const listToRender = tab === 'finalizada' ? pagedFinalized : displayed;
 
+  // Só renderiza os cards quando TODOS os dados chegaram (ordens + dados da empresa/máquinas),
+  // evitando card parcial (descrição sem máquina) em conexões lentas.
+  const dataLoading = loading || companyLoading;
+
   if (loading) {
-    return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…</div>;
+    return (
+      <div className="space-y-4 p-2">
+        <div className="flex items-center justify-center py-4 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…
+        </div>
+        <OrderCardSkeleton count={3} label={labelShort} />
+      </div>
+    );
   }
 
   return (
@@ -1209,7 +1221,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               />
             </div>
           )}
-          {listToRender.length === 0 ? (
+          {dataLoading ? (
+            <OrderCardSkeleton count={3} label={labelShort} />
+          ) : listToRender.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
             <div className="space-y-3">
@@ -1234,7 +1248,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             <Badge className={cn(style.badgeClass, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
                               {style.label}
                             </Badge>
-                            <span className={cn('font-bold text-lg', o.type === 'manutencao_corretiva' ? 'text-destructive' : 'text-foreground')}>{labelOf(o)} #{displayNumber(o)}</span>
+                            <span className={cn('font-semibold text-xs sm:text-sm tabular-nums', o.type === 'manutencao_corretiva' ? 'text-destructive' : 'text-muted-foreground')}>{labelOf(o)} #{displayNumber(o)}</span>
                             <Badge variant="outline" className={cn('font-semibold uppercase text-[10px]', TYPE_COLORS[o.type])}>
                               {TYPE_LABELS[o.type]}
                             </Badge>
@@ -1266,7 +1280,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           </div>
 
                           {/* Linha 2: Máquina em destaque */}
-                          <div className="text-base font-semibold text-foreground">
+                          <div className="text-xl font-bold text-foreground leading-tight break-words">
                             {m?.name || '—'}
                           </div>
 

@@ -22,6 +22,7 @@ import { getFriendlyErrorMessage } from '@/lib/utils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { generateOtReportPdf } from '@/lib/otReportPdf';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
+import OrderCardSkeleton from './OrderCardSkeleton';
 
 type OTStatus =
   | 'aberto'
@@ -125,7 +126,7 @@ export default function ArticleChangeOrdersTab() {
   const { user } = useAuth();
   const { role } = usePermissions();
   const { logAction, userName, userCode } = useAuditLog();
-  const { getMachines, getArticles, getYarnTypes } = useSharedCompanyData();
+  const { getMachines, getArticles, getYarnTypes, loading: companyLoading } = useSharedCompanyData();
   const machines = getMachines();
   const articles = getArticles();
   const yarnTypes = getYarnTypes();
@@ -373,8 +374,11 @@ export default function ArticleChangeOrdersTab() {
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
-          {loading ? (
-            <div className="flex items-center gap-2 text-muted-foreground py-6"><Loader2 className="h-4 w-4 animate-spin" /> Carregando OTs…</div>
+          {loading || companyLoading ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-muted-foreground py-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando OTs…</div>
+              <OrderCardSkeleton count={3} label="OT" />
+            </div>
           ) : (
             <>
               {tab === 'concluidas' && (
@@ -551,7 +555,7 @@ function OTCard(props: {
               <Badge className={cn(style.badge, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
                 {style.label}
               </Badge>
-              <span className="font-bold text-lg text-amber-600 dark:text-amber-400">
+              <span className="font-semibold text-xs sm:text-sm tabular-nums text-amber-600 dark:text-amber-400">
                 OT #{String(o.ot_number).padStart(3, '0')}
               </span>
               <Badge variant="outline" className="font-semibold uppercase text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400">
@@ -585,7 +589,7 @@ function OTCard(props: {
             </div>
 
             {/* Linha 2: Máquina em destaque */}
-            <div className="text-base font-semibold text-foreground">{machineName}</div>
+            <div className="text-xl font-bold text-foreground leading-tight break-words">{machineName}</div>
 
             {/* Linha 3: Artigo atual → próximo */}
             <div className="flex items-center gap-2 text-sm p-2 rounded-md bg-muted/40 flex-wrap">
