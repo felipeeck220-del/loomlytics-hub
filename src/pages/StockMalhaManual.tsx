@@ -154,7 +154,10 @@ function ManualEntryModal({
       setPieces('');
       setWeight('');
     } catch (err: any) {
-      toast.error(getFriendlyErrorMessage(err));
+      const msg = String(err?.message || '');
+      toast.error(msg.includes('insufficient_machine_stock')
+        ? 'Quantidade maior que o saldo do palete nessa máquina'
+        : getFriendlyErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -296,6 +299,9 @@ function MachinePalletModal({
     if (reason.trim().length < 5) return toast.error('Motivo mínimo 5 caracteres');
     if (mode === 'move' && (pc > target.machineRolls + addPc)) {
       return toast.error('Peças acima do saldo em máquina');
+    }
+    if (mode === 'move' && (kg > target.machineKg + addKg + 0.0001)) {
+      return toast.error('Peso acima do saldo em máquina');
     }
 
     setSaving(true);
@@ -1142,7 +1148,14 @@ export default function StockMalhaManual() {
                             <TableCell className="text-xs whitespace-nowrap">
                               {new Date(r.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                             </TableCell>
-                            <TableCell><span className={`text-[10px] px-1.5 py-0.5 rounded ${TYPE_COLOR[r.type] || ''}`}>{TYPE_LABEL[r.type] || r.type}</span></TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${TYPE_COLOR[r.type] || ''}`}>{TYPE_LABEL[r.type] || r.type}</span>
+                                {(r as any).on_machine && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-indigo-400 text-indigo-600 dark:text-indigo-300">Em máq.</span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-xs">
                               <div className="font-medium">{r.client?.name || '—'}</div>
                               <div className="text-muted-foreground">{r.article?.name || '—'}</div>
@@ -1312,7 +1325,12 @@ function MvCardMobile({ row }: { row: any }) {
   return (
     <div className="p-3 space-y-1">
       <div className="flex items-center justify-between">
-        <span className={`text-[10px] px-1.5 py-0.5 rounded ${TYPE_COLOR[row.type] || ''}`}>{TYPE_LABEL[row.type] || row.type}</span>
+        <div className="flex items-center gap-1">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${TYPE_COLOR[row.type] || ''}`}>{TYPE_LABEL[row.type] || row.type}</span>
+          {row.on_machine && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded border border-indigo-400 text-indigo-600 dark:text-indigo-300">Em máq.</span>
+          )}
+        </div>
         <span className="text-[10px] text-muted-foreground">
           {new Date(row.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
         </span>
