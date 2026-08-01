@@ -5509,15 +5509,25 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
-      get_manual_stock_estoque: {
-        Args: {
-          p_article_id?: string
-          p_client_id?: string
-          p_company_id: string
-          p_month?: string
-        }
-        Returns: Json
-      }
+      get_manual_stock_estoque:
+        | {
+            Args: {
+              p_article_id?: string
+              p_client_id?: string
+              p_company_id: string
+              p_month?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_article_id?: string
+              p_client_id?: string
+              p_company_id: string
+              p_month?: string
+            }
+            Returns: Json
+          }
       get_manual_stock_movements: {
         Args: {
           p_article_id?: string
