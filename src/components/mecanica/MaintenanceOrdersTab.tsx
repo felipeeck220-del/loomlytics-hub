@@ -26,6 +26,7 @@ import { generateOmReportPdf } from '@/lib/omReportPdf';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import OCReportsTab from './OCReportsTab';
+import OrderCardSkeleton from './OrderCardSkeleton';
 
 const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
