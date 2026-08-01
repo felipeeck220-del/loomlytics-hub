@@ -1023,13 +1023,13 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
       <CollapsibleTrigger asChild>
-        <button className="w-full text-left p-3 flex items-start justify-between gap-2 hover:bg-muted/40">
+        <button className="w-full text-left p-3 flex items-start justify-between gap-2 hover:bg-muted/40 overflow-hidden">
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm truncate">{article.articleName}</div>
+            <div className="font-medium text-sm break-words">{article.articleName}</div>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              <Badge variant="outline" className="text-[10px]">Est {formatWeight(article.stockKg)}</Badge>
-              <Badge variant="outline" className="text-[10px]">Rsv {formatWeight(article.reservedKg)}</Badge>
-              <Badge className="text-[10px]">Disp {formatWeight(article.availableKg)}</Badge>
+              <Badge variant="outline" className="text-[10px]">Est {formatNumber(Number(article.stockRolls || 0))} pç</Badge>
+              <Badge variant="outline" className="text-[10px]">Rsv {formatNumber(Number(article.reservedRolls || 0))} pç</Badge>
+              <Badge className="text-[10px]">Disp {formatNumber(Number(article.availableRolls || 0))} pç</Badge>
             </div>
           </div>
           <ChevronDown className={`h-4 w-4 shrink-0 mt-1 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
@@ -1039,11 +1039,11 @@ function ArticleRowMobile({ article, expanded, onToggle }: { article: ArticleNod
         <div className="p-3 bg-muted/30 space-y-2">
           {(article.byMachine || []).map((m, i) => (
             <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-md p-2 text-xs bg-background">
-              <div className="font-medium">{m.machineName}</div>
-              <div className="flex justify-between text-[11px] mt-1"><span>Entradas</span><span>{formatWeight(m.entradaKg)}</span></div>
-              <div className="flex justify-between text-[11px]"><span>Saídas OF</span><span>{formatWeight(m.deliveredKg)}</span></div>
-              <div className="flex justify-between text-[11px]"><span>Reservado</span><span>{formatWeight(m.reservedKg)}</span></div>
-              <div className="flex justify-between text-[11px] font-semibold"><span>Disponível</span><span>{formatWeight(m.availableKg)}</span></div>
+              <div className="font-medium break-words">{m.machineName}</div>
+              <div className="flex justify-between gap-2 text-[11px] mt-1"><span>Entradas</span><span className="text-right">{formatNumber(Number(m.entradaRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px]"><span>Saídas OF</span><span className="text-right">{formatNumber(Number(m.deliveredRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px]"><span>Reservado</span><span className="text-right text-amber-600 dark:text-amber-400">{formatNumber(Number(m.reservedRolls || 0))} pç</span></div>
+              <div className="flex justify-between gap-2 text-[11px] font-semibold"><span>Disponível</span><span className="text-right">{formatNumber(Number(m.availableRolls || 0))} pç</span></div>
             </div>
           ))}
         </div>
