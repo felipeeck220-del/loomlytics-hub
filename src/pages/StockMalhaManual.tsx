@@ -80,6 +80,7 @@ function ManualEntryModal({
 }) {
   const { user, profile } = useAuth();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
+  const [dest, setDest] = useState<'expedicao' | 'maquina'>('expedicao');
   const [clientId, setClientId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [machineId, setMachineId] = useState('');
@@ -90,7 +91,7 @@ function ManualEntryModal({
 
   useEffect(() => {
     if (open) {
-      setType('adjust_in'); setClientId(''); setArticleId(''); setMachineId('');
+      setType('adjust_in'); setDest('expedicao'); setClientId(''); setArticleId(''); setMachineId('');
       setPieces(''); setWeight(''); setReason('');
     }
   }, [open]);
@@ -122,6 +123,7 @@ function ManualEntryModal({
           pieces: piecesNum,
           weight_kg: weightNum,
           reason: reason.trim(),
+          on_machine: dest === 'maquina',
         },
       });
       if (error) throw error;
@@ -138,10 +140,15 @@ function ManualEntryModal({
           movement_id: data,
           type, client_id: clientId, article_id: articleId, machine_id: machineId,
           pieces: piecesNum, weight_kg: weightNum, reason: reason.trim(),
+          on_machine: dest === 'maquina',
         },
       });
 
-      toast.success(type === 'adjust_in' ? 'Entrada manual registrada' : 'Saída manual registrada');
+      toast.success(
+        dest === 'maquina'
+          ? (type === 'adjust_in' ? 'Palete lançado na máquina' : 'Baixa no palete da máquina registrada')
+          : (type === 'adjust_in' ? 'Entrada manual registrada' : 'Saída manual registrada')
+      );
       onSaved();
       // Limpa só peças/peso para novo lançamento em sequência; mantém cliente/artigo/máquina/motivo
       setPieces('');
@@ -173,6 +180,20 @@ function ManualEntryModal({
                 <RadioGroupItem value="adjust_out" /> Saída
               </label>
             </RadioGroup>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Destino</Label>
+            <RadioGroup value={dest} onValueChange={(v) => setDest(v as any)} className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="expedicao" /> Estoque da expedição
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="maquina" /> Palete na máquina
+              </label>
+            </RadioGroup>
+            <p className="text-[10px] text-muted-foreground">
+              "Palete na máquina" contabiliza em <strong>Em maq.</strong> e já soma em Disp. Rolos — ao puxar o palete para a expedição use "Ajustar palete" na máquina, sem duplicar peças.
+            </p>
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Cliente *</Label>
