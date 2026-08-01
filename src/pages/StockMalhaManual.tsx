@@ -342,14 +342,15 @@ function MachinePalletModal({
   const [mode, setMode] = useState<'add' | 'move'>('add');
   const [pieces, setPieces] = useState('');
   const [weight, setWeight] = useState('');
-  const [addPieces, setAddPieces] = useState('');
-  const [addWeight, setAddWeight] = useState('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (target) {
-      setMode('add'); setPieces(''); setWeight(''); setAddPieces(''); setAddWeight(''); setReason('');
+      setMode('add');
+      setPieces(String(Math.round(Number(target.machineRolls || 0))));
+      setWeight(Number(target.machineKg || 0) ? String(Number(target.machineKg).toFixed(2)) : '');
+      setReason('');
     }
   }, [target]);
 
@@ -359,14 +360,12 @@ function MachinePalletModal({
     if (!user?.company_id) return;
     const pc = parseInt(pieces || '0', 10) || 0;
     const kg = parseFloat(weight || '0') || 0;
-    const addPc = mode === 'move' ? (parseInt(addPieces || '0', 10) || 0) : 0;
-    const addKg = mode === 'move' ? (parseFloat(addWeight || '0') || 0) : 0;
-    if (pc <= 0 && kg <= 0 && addPc <= 0 && addKg <= 0) return toast.error('Informe peças ou peso');
-    if (mode === 'move' && (pc > target.machineRolls + addPc)) {
-      return toast.error('Peças acima do saldo em máquina');
-    }
-    if (mode === 'move' && (kg > target.machineKg + addKg + 0.0001)) {
-      return toast.error('Peso acima do saldo em máquina');
+    if (pc < 0 || kg < 0) return toast.error('Valores inválidos');
+    if (mode === 'move' && pc <= 0 && kg <= 0) return toast.error('Informe peças ou peso para transferir');
+    if (mode === 'add'
+      && pc === Math.round(Number(target.machineRolls || 0))
+      && Math.abs(kg - Number(target.machineKg || 0)) < 0.005) {
+      return toast.error('Nenhuma alteração no palete');
     }
 
     setSaving(true);
@@ -376,10 +375,9 @@ function MachinePalletModal({
         client_id: target.clientId,
         article_id: target.articleId,
         machine_id: target.machineId,
-        add_pieces: mode === 'add' ? pc : addPc,
-        add_weight_kg: mode === 'add' ? kg : addKg,
-        move_pieces: mode === 'move' ? pc : 0,
-        move_weight_kg: mode === 'move' ? kg : 0,
+        set_pieces: pc,
+        set_weight_kg: kg,
+        move_all: mode === 'move',
         reason: reason.trim(),
       };
       const { error } = await (supabase.rpc as any)('save_manual_stock_machine_adjust', { p_payload: payload });
@@ -419,39 +417,30 @@ function MachinePalletModal({
           <DialogDescription className="text-xs">
             {target.clientName} · {target.articleName} — em máquina hoje:{' '}
             <strong>{formatNumber(target.machineRolls)} pç</strong> ({formatWeight(target.machineKg)})
+            <br />
+            A quantidade informada <strong>substitui</strong> o palete atual (recontagem).
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2 flex-1 min-h-0 overflow-y-auto">
           <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <RadioGroupItem value="add" /> Adicionar peças e manter na máquina
+              <RadioGroupItem value="add" /> Recontar palete e manter na máquina
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <RadioGroupItem value="move" /> Lançar peças para o estoque da expedição
+              <RadioGroupItem value="move" /> Recontar e lançar o palete para a expedição
             </label>
           </RadioGroup>
 
-          {mode === 'move' && (
-            <div className="grid grid-cols-2 gap-3 rounded-md border p-2 bg-muted/30">
-              <div className="space-y-1 col-span-2">
-                <Label className="text-[11px] text-muted-foreground">Antes de transferir, adicionar peças ao palete (opcional)</Label>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Peças a somar</Label>
-                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={addPieces} className="h-8 text-base md:text-xs" placeholder="0"
-                  onChange={(e) => setAddPieces(e.target.value.replace(/[^\d]/g, ''))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Peso a somar (kg)</Label>
-                <BrazilianWeightInput value={addWeight} onChange={setAddWeight} placeholder="0,00" />
-              </div>
-            </div>
-          )}
+          <p className="text-[11px] text-muted-foreground rounded-md border p-2 bg-muted/30">
+            {mode === 'add'
+              ? 'Informe a quantidade TOTAL contada no palete. O valor salvo substitui o saldo atual em máquina.'
+              : 'Informe a quantidade TOTAL final do palete. Ela será lançada integralmente na expedição e o saldo em máquina fica zerado.'}
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">{mode === 'add' ? 'Peças' : 'Peças p/ expedição'}</Label>
+              <Label className="text-xs">{mode === 'add' ? 'Peças (total)' : 'Peças (total) p/ expedição'}</Label>
               <Input type="text" inputMode="numeric" pattern="[0-9]*" value={pieces} className="h-8 text-base md:text-xs" placeholder="0"
                 onChange={(e) => setPieces(e.target.value.replace(/[^\d]/g, ''))} />
             </div>
@@ -1350,31 +1339,47 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
       <CollapsibleTrigger asChild>
-        <button className="w-full text-left p-3 flex items-start justify-between gap-2 hover:bg-muted/40 overflow-hidden">
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm break-words">{article.articleName}</div>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              <Badge variant="outline" className="text-[10px]">Est {formatNumber(Number(article.stockRolls || 0))} pç</Badge>
-              <Badge variant="outline" className="text-[10px]">Rsv {formatNumber(Number(article.reservedRolls || 0))} pç</Badge>
-              <Badge variant="outline" className="text-[10px] border-indigo-400 text-indigo-600 dark:text-indigo-300">Em maq. {formatNumber(Number(article.machineRolls || 0))} pç</Badge>
-              <Badge className="text-[10px]">Disp {formatNumber(Number(article.availableRolls || 0))} pç</Badge>
+        <button className="w-full text-left p-3 hover:bg-muted/40 overflow-hidden">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0 font-semibold text-sm break-words">{article.articleName}</div>
+            <ChevronDown className={`h-4 w-4 shrink-0 mt-0.5 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
+          </div>
+          <div className="mt-2 flex items-stretch gap-2">
+            <div className="flex-1 rounded-lg bg-primary/10 border border-primary/30 px-3 py-2">
+              <div className="text-[9px] uppercase tracking-wide text-primary/80">Disponível</div>
+              <div className="text-xl font-bold text-primary leading-tight">
+                {formatNumber(Number(article.availableRolls || 0))} <span className="text-xs font-semibold">pç</span>
+              </div>
+            </div>
+            <div className="flex-1 grid grid-cols-3 gap-1">
+              <MiniStat label="Est" value={Number(article.stockRolls || 0)} />
+              <MiniStat label="Rsv" value={Number(article.reservedRolls || 0)} tone="amber" />
+              <MiniStat label="Em maq." value={Number(article.machineRolls || 0)} tone="indigo" />
             </div>
           </div>
-          <ChevronDown className={`h-4 w-4 shrink-0 mt-1 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="p-3 bg-muted/30 space-y-2">
           {(article.byMachine || []).map((m, i) => (
-            <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-md p-2 text-xs bg-background">
-              <div className="font-medium break-words">{m.machineName}</div>
-              <div className="flex justify-between gap-2 text-[11px] mt-1"><span>Entradas</span><span className="text-right">{formatNumber(Number(m.entradaRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px]"><span>Saídas OF</span><span className="text-right">{formatNumber(Number(m.deliveredRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px]"><span>Reservado</span><span className="text-right text-amber-600 dark:text-amber-400">{formatNumber(Number(m.reservedRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px]"><span>Em maq.</span><span className="text-right text-indigo-600 dark:text-indigo-300">{formatNumber(Number(m.machineRolls || 0))} pç</span></div>
-              <div className="flex justify-between gap-2 text-[11px] font-semibold"><span>Disponível</span><span className="text-right">{formatNumber(Number(m.availableRolls || 0))} pç</span></div>
+            <div key={`${m.machineId || 'na'}-${i}`} className="border rounded-lg p-2.5 text-xs bg-background shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold text-sm break-words">{m.machineName}</div>
+                <div className="shrink-0 rounded-md bg-primary/10 border border-primary/30 px-2 py-1 text-right">
+                  <div className="text-[9px] uppercase tracking-wide text-primary/80 leading-none">Disponível</div>
+                  <div className="text-base font-bold text-primary leading-tight">
+                    {formatNumber(Number(m.availableRolls || 0))} <span className="text-[10px] font-semibold">pç</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-1 mt-2">
+                <MiniStat label="Entradas" value={Number(m.entradaRolls || 0)} />
+                <MiniStat label="Saídas OF" value={Number(m.deliveredRolls || 0)} />
+                <MiniStat label="Reservado" value={Number(m.reservedRolls || 0)} tone="amber" />
+                <MiniStat label="Em maq." value={Number(m.machineRolls || 0)} tone="indigo" />
+              </div>
               {canEdit && m.machineId && (
-                <Button variant="outline" size="sm" className="h-7 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
+                <Button variant="outline" size="sm" className="h-8 w-full mt-2 text-[11px]" onClick={() => onPallet?.(m)}>
                   Ajustar palete da máquina
                 </Button>
               )}
@@ -1383,6 +1388,20 @@ function ArticleRowMobile({ article, expanded, onToggle, canEdit, onPallet }: {
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: number; tone?: 'amber' | 'indigo' }) {
+  const toneCls = tone === 'amber'
+    ? 'text-amber-600 dark:text-amber-400'
+    : tone === 'indigo'
+      ? 'text-indigo-600 dark:text-indigo-300'
+      : 'text-foreground';
+  return (
+    <div className="rounded-md border bg-muted/40 px-1.5 py-1 text-center">
+      <div className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none truncate">{label}</div>
+      <div className={`text-xs font-semibold leading-tight ${toneCls}`}>{formatNumber(value)}</div>
+    </div>
   );
 }
 
