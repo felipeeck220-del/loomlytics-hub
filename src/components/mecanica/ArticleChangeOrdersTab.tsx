@@ -1252,6 +1252,11 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
     }
     logAction('ot_conclude', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} concluída`);
+    // Fotos da conclusão (até 3) — comprimidas antes do upload
+    if (photoDrafts.length > 0) {
+      const ok = await uploadPhotos();
+      if (!ok) toast.error('OT concluída, mas houve erro ao anexar as fotos.');
+    }
     // Push de finalização — notifica admins (e líderes/mecânicos)
     try {
       const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
