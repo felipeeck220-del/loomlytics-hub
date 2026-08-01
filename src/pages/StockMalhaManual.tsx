@@ -101,6 +101,31 @@ function ManualEntryModal({
     [articles, clientId]
   );
 
+  // Palete já registrado "em máquina" para o cliente/artigo/máquina selecionados
+  const { data: machinePallet, isFetching: loadingPallet } = useQuery({
+    queryKey: ['manual-stock-machine-pallet', user?.company_id, clientId, articleId, machineId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_manual_stock_estoque', {
+        p_company_id: user!.company_id,
+        p_client_id: clientId,
+        p_article_id: articleId,
+        p_month: 'all',
+      });
+      if (error) throw error;
+      const resp = data as EstoqueResp;
+      const g = (resp?.groups || []).find((x) => x.clientId === clientId);
+      const a = (g?.articles || []).find((x) => x.articleId === articleId);
+      const m = (a?.byMachine || []).find((x) => x.machineId === machineId);
+      return {
+        rolls: Number(m?.machineRolls || 0),
+        kg: Number(m?.machineKg || 0),
+        stockRolls: Number(m?.stockRolls || 0),
+      };
+    },
+    enabled: open && !!user?.company_id && !!clientId && !!articleId && !!machineId,
+    staleTime: 0,
+  });
+
   const handleSave = async () => {
     const piecesNum = parseInt(pieces || '0', 10);
     const weightNum = parseFloat(weight || '0');
@@ -108,7 +133,6 @@ function ManualEntryModal({
     if (!articleId) return toast.error('Artigo obrigatório');
     if (!machineId) return toast.error('Máquina obrigatória');
     if (!(weightNum > 0) && !(piecesNum > 0)) return toast.error('Informe peças ou peso');
-    if (reason.trim().length < 5) return toast.error('Motivo mínimo 5 caracteres');
     if (!user?.company_id) return;
 
     setSaving(true);
