@@ -283,7 +283,7 @@ function ManualEntryModal({
                 {dest === 'maquina' && (
                   <Button
                     type="button" size="sm" variant="outline" className="h-7 text-[11px] w-full"
-                    onClick={() => { setPieces(String(machinePallet!.rolls || '')); setWeight(machinePallet!.kg ? String(machinePallet!.kg).replace('.', ',') : ''); }}
+                    onClick={() => { setPieces(String(machinePallet!.rolls || '')); setWeight(machinePallet!.kg ? String(machinePallet!.kg) : ''); }}
                   >
                     Usar quantidade atual do palete ({formatNumber(machinePallet!.rolls)} pç)
                   </Button>
@@ -410,8 +410,8 @@ function MachinePalletModal({
 
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="w-screen max-w-[100vw] h-[100dvh] max-h-[100dvh] rounded-none p-4 flex flex-col gap-3 sm:w-full sm:max-w-md sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-4 w-4 text-primary" />
             Palete na máquina — {target.machineName}
@@ -422,7 +422,7 @@ function MachinePalletModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 flex-1 min-h-0 overflow-y-auto">
           <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <RadioGroupItem value="add" /> Adicionar peças e manter na máquina
@@ -439,7 +439,7 @@ function MachinePalletModal({
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Peças a somar</Label>
-                <Input type="number" min={0} value={addPieces} className="h-8 text-xs" placeholder="0"
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={addPieces} className="h-8 text-base md:text-xs" placeholder="0"
                   onChange={(e) => setAddPieces(e.target.value.replace(/[^\d]/g, ''))} />
               </div>
               <div className="space-y-1">
@@ -452,7 +452,7 @@ function MachinePalletModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">{mode === 'add' ? 'Peças' : 'Peças p/ expedição'}</Label>
-              <Input type="number" min={0} value={pieces} className="h-8 text-xs" placeholder="0"
+              <Input type="text" inputMode="numeric" pattern="[0-9]*" value={pieces} className="h-8 text-base md:text-xs" placeholder="0"
                 onChange={(e) => setPieces(e.target.value.replace(/[^\d]/g, ''))} />
             </div>
             <div className="space-y-1">
@@ -465,11 +465,11 @@ function MachinePalletModal({
             <Label className="text-xs">Motivo (opcional)</Label>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
               placeholder={mode === 'add' ? 'Ex.: "Conferência do palete na máquina"' : 'Ex.: "Palete fechado puxado para expedição"'}
-              className="text-xs min-h-[64px]" maxLength={500} />
+              className="text-base md:text-xs min-h-[64px]" maxLength={500} />
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
         </DialogFooter>
