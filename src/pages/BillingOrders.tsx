@@ -948,10 +948,76 @@ const BillingOrders = () => {
         drawSection('AUDITORIA', [
           ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
           ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-          ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
+          ['Separação iniciada por', (order.separation_starter || order.separator) ? `${(order.separation_starter || order.separator).name} #${(order.separation_starter || order.separator).code}` : '—'],
+          ['Separação iniciada em', order.separation_started_at ? format(new Date(order.separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
+          ['Separação finalizada por', order.separation_finisher ? `${order.separation_finisher.name} #${order.separation_finisher.code}` : '—'],
+          ['Separação finalizada em', order.separation_finished_at ? format(new Date(order.separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
           ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
+          ['Coletado em', order.collected_at ? format(new Date(order.collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
           ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
         ]);
+
+        // Auditoria detalhada dos paletes
+        const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
+          .select('pallet_number, pieces, weight_kg, created_at, machine:machines(name), creator:profiles!billing_order_pallets_created_by_fkey(name, code)')
+          .eq('billing_order_id', order.id)
+          .order('pallet_number', { ascending: true });
+
+        if (Array.isArray(palletRows) && palletRows.length > 0) {
+          const ensureSpace = (needed: number) => {
+            if (y + needed > pdf.internal.pageSize.getHeight() - 20) {
+              pdf.addPage();
+              y = margin;
+            }
+          };
+          ensureSpace(20);
+          pdf.setFillColor(...colors.primary);
+          pdf.rect(margin, y, pw - 2 * margin, 7, 'F');
+          pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+          pdf.text(sanitizePdfText(`PALETES (${palletRows.length}) - AUDITORIA`), margin + 3, y + 5);
+          y += 7;
+
+          const cols = [margin + 3, margin + 22, margin + 42, margin + 62, margin + 88, margin + 120];
+          pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
+          pdf.setFillColor(...colors.grayBg);
+          pdf.rect(margin, y, pw - 2 * margin, 6, 'F');
+          ['Palete', 'Peças', 'Peso (kg)', 'Média', 'Máquina', 'Registrado por / em'].forEach((h, i) => {
+            pdf.text(sanitizePdfText(h), cols[i], y + 4);
+          });
+          y += 6;
+
+          let tp = 0; let tw2 = 0;
+          pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textDark);
+          palletRows.forEach((p: any, idx: number) => {
+            ensureSpace(10);
+            const pieces = Number(p.pieces || 0);
+            const weight = Number(p.weight_kg || 0);
+            tp += pieces; tw2 += weight;
+            if (idx % 2 === 0) {
+              pdf.setFillColor(...colors.grayBg);
+              pdf.rect(margin, y, pw - 2 * margin, 9, 'F');
+            }
+            pdf.setFontSize(8);
+            pdf.text(String(p.pallet_number), cols[0], y + 4);
+            pdf.text(String(pieces), cols[1], y + 4);
+            pdf.text(weight.toFixed(2), cols[2], y + 4);
+            pdf.text(pieces > 0 ? `${(weight / pieces).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+            pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[4], y + 4);
+            pdf.text(sanitizePdfText(p.creator ? `${p.creator.name} #${p.creator.code}` : '-'), cols[5], y + 4);
+            pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
+            pdf.text(p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR }) : '-', cols[5], y + 7.5);
+            pdf.setTextColor(...colors.textDark);
+            y += 9;
+          });
+
+          ensureSpace(10);
+          pdf.setFontSize(8); pdf.setFont('helvetica', 'bold');
+          pdf.text('TOTAL', cols[0], y + 4);
+          pdf.text(String(tp), cols[1], y + 4);
+          pdf.text(tw2.toFixed(2), cols[2], y + 4);
+          pdf.text(tp > 0 ? `${(tw2 / tp).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+          y += 10;
+        }
       }
 
       // Rodapé
