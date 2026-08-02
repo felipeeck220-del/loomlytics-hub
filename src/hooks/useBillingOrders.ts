@@ -24,6 +24,10 @@ export interface BillingOrder {
   weight_avg?: number;
   created_by: string;
   separated_by?: string;
+  separation_started_by?: string | null;
+  separation_started_at?: string | null;
+  separation_finished_by?: string | null;
+  separation_finished_at?: string | null;
   collected_by?: string;
   collected_at?: string | null;
   created_at: string;
@@ -48,6 +52,8 @@ export interface BillingOrder {
   machine?: { name: string };
   creator?: { name: string; code: string };
   separator?: { name: string; code: string };
+  separation_starter?: { name: string; code: string };
+  separation_finisher?: { name: string; code: string };
   collector?: { name: string; code: string };
   prioritizer?: { name: string; code: string };
   canceller?: { name: string; code: string };
@@ -92,6 +98,8 @@ export function useBillingOrders() {
           machine:machines(name),
           creator:profiles!billing_orders_created_by_fkey(name, code),
           separator:profiles!billing_orders_separated_by_fkey(name, code),
+          separation_starter:profiles!billing_orders_separation_started_by_fkey(name, code),
+          separation_finisher:profiles!billing_orders_separation_finished_by_fkey(name, code),
           collector:profiles!billing_orders_collected_by_fkey(name, code),
           prioritizer:profiles!billing_orders_priority_by_fkey(name, code),
           canceller:profiles!billing_orders_cancelled_by_fkey(name, code),
