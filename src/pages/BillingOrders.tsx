@@ -141,7 +141,7 @@ const BillingOrders = () => {
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
   // Modal de Detalhes (olho)
   const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
-  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
+  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null; created_at?: string | null; created_by_name?: string | null; created_by_code?: string | null }>>([]);
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
@@ -208,7 +208,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, machine_id, alt_client_id, alt_article_id')
+        .select('id, pallet_number, pieces, weight_kg, machine_id, alt_client_id, alt_article_id, created_at, creator:profiles!billing_order_pallets_created_by_fkey(name, code)')
         .eq('billing_order_id', showDetailsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled || error || !data) return;
@@ -220,6 +220,9 @@ const BillingOrders = () => {
         machine_id: r.machine_id ?? null,
         alt_client_id: r.alt_client_id ?? null,
         alt_article_id: r.alt_article_id ?? null,
+        created_at: r.created_at ?? null,
+        created_by_name: r.creator?.name ?? null,
+        created_by_code: r.creator?.code != null ? String(r.creator.code) : null,
       })));
     })();
     return () => { cancelled = true; };
