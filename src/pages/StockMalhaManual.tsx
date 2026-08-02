@@ -32,7 +32,8 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 type EstoqueKPIs = {
   entradaKg: number; deliveredKg: number;
   stockKg: number; stockRolls: number;
-  reservedKg: number; availableKg: number;
+  reservedKg: number; reservedRolls?: number;
+  availableKg: number; availableRolls?: number;
   machineKg?: number; machineRolls?: number;
 };
 type MachineNode = {
