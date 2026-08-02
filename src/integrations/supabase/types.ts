@@ -616,6 +616,10 @@ export type Database = {
           reversed_by: string | null
           reverted_from: string | null
           separated_by: string | null
+          separation_finished_at: string | null
+          separation_finished_by: string | null
+          separation_started_at: string | null
+          separation_started_by: string | null
           status: Database["public"]["Enums"]["billing_order_status"]
           updated_at: string
           weight_avg: number | null
@@ -663,6 +667,10 @@ export type Database = {
           reversed_by?: string | null
           reverted_from?: string | null
           separated_by?: string | null
+          separation_finished_at?: string | null
+          separation_finished_by?: string | null
+          separation_started_at?: string | null
+          separation_started_by?: string | null
           status?: Database["public"]["Enums"]["billing_order_status"]
           updated_at?: string
           weight_avg?: number | null
@@ -710,6 +718,10 @@ export type Database = {
           reversed_by?: string | null
           reverted_from?: string | null
           separated_by?: string | null
+          separation_finished_at?: string | null
+          separation_finished_by?: string | null
+          separation_started_at?: string | null
+          separation_started_by?: string | null
           status?: Database["public"]["Enums"]["billing_order_status"]
           updated_at?: string
           weight_avg?: number | null
@@ -797,6 +809,20 @@ export type Database = {
           {
             foreignKeyName: "billing_orders_separated_by_fkey"
             columns: ["separated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_separation_finished_by_fkey"
+            columns: ["separation_finished_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_separation_started_by_fkey"
+            columns: ["separation_started_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

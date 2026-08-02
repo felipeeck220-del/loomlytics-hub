@@ -141,7 +141,7 @@ const BillingOrders = () => {
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
   // Modal de Detalhes (olho)
   const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
-  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
+  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null; created_at?: string | null; created_by_name?: string | null; created_by_code?: string | null }>>([]);
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
@@ -208,7 +208,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, machine_id, alt_client_id, alt_article_id')
+        .select('id, pallet_number, pieces, weight_kg, machine_id, alt_client_id, alt_article_id, created_at, creator:profiles!billing_order_pallets_created_by_fkey(name, code)')
         .eq('billing_order_id', showDetailsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled || error || !data) return;
@@ -220,6 +220,9 @@ const BillingOrders = () => {
         machine_id: r.machine_id ?? null,
         alt_client_id: r.alt_client_id ?? null,
         alt_article_id: r.alt_article_id ?? null,
+        created_at: r.created_at ?? null,
+        created_by_name: r.creator?.name ?? null,
+        created_by_code: r.creator?.code != null ? String(r.creator.code) : null,
       })));
     })();
     return () => { cancelled = true; };
@@ -945,10 +948,76 @@ const BillingOrders = () => {
         drawSection('AUDITORIA', [
           ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
           ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-          ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
+          ['Separação iniciada por', (order.separation_starter || order.separator) ? `${(order.separation_starter || order.separator).name} #${(order.separation_starter || order.separator).code}` : '—'],
+          ['Separação iniciada em', order.separation_started_at ? format(new Date(order.separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
+          ['Separação finalizada por', order.separation_finisher ? `${order.separation_finisher.name} #${order.separation_finisher.code}` : '—'],
+          ['Separação finalizada em', order.separation_finished_at ? format(new Date(order.separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
           ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
+          ['Coletado em', order.collected_at ? format(new Date(order.collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
           ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
         ]);
+
+        // Auditoria detalhada dos paletes
+        const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
+          .select('pallet_number, pieces, weight_kg, created_at, machine:machines(name), creator:profiles!billing_order_pallets_created_by_fkey(name, code)')
+          .eq('billing_order_id', order.id)
+          .order('pallet_number', { ascending: true });
+
+        if (Array.isArray(palletRows) && palletRows.length > 0) {
+          const ensureSpace = (needed: number) => {
+            if (y + needed > pdf.internal.pageSize.getHeight() - 20) {
+              pdf.addPage();
+              y = margin;
+            }
+          };
+          ensureSpace(20);
+          pdf.setFillColor(...colors.primary);
+          pdf.rect(margin, y, pw - 2 * margin, 7, 'F');
+          pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+          pdf.text(sanitizePdfText(`PALETES (${palletRows.length}) - AUDITORIA`), margin + 3, y + 5);
+          y += 7;
+
+          const cols = [margin + 3, margin + 22, margin + 42, margin + 62, margin + 88, margin + 120];
+          pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
+          pdf.setFillColor(...colors.grayBg);
+          pdf.rect(margin, y, pw - 2 * margin, 6, 'F');
+          ['Palete', 'Peças', 'Peso (kg)', 'Média', 'Máquina', 'Registrado por / em'].forEach((h, i) => {
+            pdf.text(sanitizePdfText(h), cols[i], y + 4);
+          });
+          y += 6;
+
+          let tp = 0; let tw2 = 0;
+          pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textDark);
+          palletRows.forEach((p: any, idx: number) => {
+            ensureSpace(10);
+            const pieces = Number(p.pieces || 0);
+            const weight = Number(p.weight_kg || 0);
+            tp += pieces; tw2 += weight;
+            if (idx % 2 === 0) {
+              pdf.setFillColor(...colors.grayBg);
+              pdf.rect(margin, y, pw - 2 * margin, 9, 'F');
+            }
+            pdf.setFontSize(8);
+            pdf.text(String(p.pallet_number), cols[0], y + 4);
+            pdf.text(String(pieces), cols[1], y + 4);
+            pdf.text(weight.toFixed(2), cols[2], y + 4);
+            pdf.text(pieces > 0 ? `${(weight / pieces).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+            pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[4], y + 4);
+            pdf.text(sanitizePdfText(p.creator ? `${p.creator.name} #${p.creator.code}` : '-'), cols[5], y + 4);
+            pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
+            pdf.text(p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR }) : '-', cols[5], y + 7.5);
+            pdf.setTextColor(...colors.textDark);
+            y += 9;
+          });
+
+          ensureSpace(10);
+          pdf.setFontSize(8); pdf.setFont('helvetica', 'bold');
+          pdf.text('TOTAL', cols[0], y + 4);
+          pdf.text(String(tp), cols[1], y + 4);
+          pdf.text(tw2.toFixed(2), cols[2], y + 4);
+          pdf.text(tp > 0 ? `${(tw2 / tp).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+          y += 10;
+        }
       }
 
       // Rodapé
@@ -1318,8 +1387,24 @@ const BillingOrders = () => {
                       <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
                         <div><span className="font-semibold">Criado:</span> {order.creator?.name} #{order.creator?.code}</div>
                         <div>{format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
-                        {order.separated_by && (
+                        {(order as any).separation_started_by && (
+                          <div className="mt-0.5">
+                            <span className="font-semibold">Sepa. inic.:</span> {(order as any).separation_starter?.name || order.separator?.name} #{(order as any).separation_starter?.code ?? order.separator?.code}
+                            {(order as any).separation_started_at && (
+                              <span> · {format(new Date((order as any).separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            )}
+                          </div>
+                        )}
+                        {!(order as any).separation_started_by && order.separated_by && (
                           <div className="mt-0.5"><span className="font-semibold">Separado:</span> {order.separator?.name} #{order.separator?.code}</div>
+                        )}
+                        {(order as any).separation_finished_by && (
+                          <div className="mt-0.5">
+                            <span className="font-semibold">Sepa. fina.:</span> {(order as any).separation_finisher?.name} #{(order as any).separation_finisher?.code}
+                            {(order as any).separation_finished_at && (
+                              <span> · {format(new Date((order as any).separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            )}
+                          </div>
                         )}
                         {order.collected_by && (
                           <div className="mt-0.5"><span className="font-semibold">Coletado:</span> {order.collector?.name} #{order.collector?.code}
@@ -3142,9 +3227,24 @@ const BillingOrders = () => {
                     )}
                   </div>
                   <div className="pt-1 mt-1 border-t text-[10px] text-muted-foreground">
-                    Criado por {order.creator?.name} #{order.creator?.code} em {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    {order.separated_by && <> · Separado por {order.separator?.name} #{order.separator?.code}</>}
-                    {order.collected_by && <> · Coletado por {order.collector?.name} #{order.collector?.code}</>}
+                    <div>Criado: {order.creator?.name} #{order.creator?.code} · {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
+                    {(order as any).separation_started_by ? (
+                      <div>Sepa. inic.: {(order as any).separation_starter?.name || order.separator?.name} #{(order as any).separation_starter?.code ?? order.separator?.code}
+                        {(order as any).separation_started_at && <> · {format(new Date((order as any).separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
+                      </div>
+                    ) : order.separated_by ? (
+                      <div>Separado: {order.separator?.name} #{order.separator?.code}</div>
+                    ) : null}
+                    {(order as any).separation_finished_by && (
+                      <div>Sepa. fina.: {(order as any).separation_finisher?.name} #{(order as any).separation_finisher?.code}
+                        {(order as any).separation_finished_at && <> · {format(new Date((order as any).separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
+                      </div>
+                    )}
+                    {order.collected_by && (
+                      <div>Coletado: {order.collector?.name} #{order.collector?.code}
+                        {(order as any).collected_at && <> · {format(new Date((order as any).collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -3169,6 +3269,8 @@ const BillingOrders = () => {
                                 <th className="text-left px-2 py-1">#</th>
                                 <th className="text-right px-2 py-1">Peças</th>
                                 <th className="text-right px-2 py-1">Peso (kg)</th>
+                                <th className="text-right px-2 py-1">Média</th>
+                                <th className="hidden sm:table-cell text-right px-2 py-1">Auditoria</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -3177,6 +3279,13 @@ const BillingOrders = () => {
                                   <td className="px-2 py-1">Palete {p.pallet_number}</td>
                                   <td className="px-2 py-1 text-right">{p.pieces}</td>
                                   <td className="px-2 py-1 text-right">{p.weight.toFixed(2)}</td>
+                                  <td className="px-2 py-1 text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                                    {p.pieces > 0 ? `${(p.weight / p.pieces).toFixed(2)} kg/pç` : '—'}
+                                  </td>
+                                  <td className="hidden sm:table-cell px-2 py-1 text-right text-[10px] text-muted-foreground leading-tight">
+                                    {p.created_by_name ? `${p.created_by_name} #${p.created_by_code ?? ''}` : '—'}
+                                    {p.created_at && <div>{format(new Date(p.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -3188,7 +3297,7 @@ const BillingOrders = () => {
                         single ? 'text-indigo-900 dark:text-indigo-100' : 'text-indigo-900 dark:text-indigo-100'
                       )}>
                         <span>{single ? 'Total (única máquina)' : 'Total geral'}</span>
-                        <span>{totalP} pç · {totalW.toFixed(2)} kg</span>
+                        <span>{totalP} pç · {totalW.toFixed(2)} kg{totalP > 0 ? ` · ${(totalW / totalP).toFixed(2)} kg/pç` : ''}</span>
                       </div>
                     </div>
                   )}
