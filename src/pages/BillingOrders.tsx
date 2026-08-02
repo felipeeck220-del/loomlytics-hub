@@ -1321,8 +1321,24 @@ const BillingOrders = () => {
                       <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
                         <div><span className="font-semibold">Criado:</span> {order.creator?.name} #{order.creator?.code}</div>
                         <div>{format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
-                        {order.separated_by && (
+                        {(order as any).separation_started_by && (
+                          <div className="mt-0.5">
+                            <span className="font-semibold">Sepa. inic.:</span> {(order as any).separation_starter?.name || order.separator?.name} #{(order as any).separation_starter?.code ?? order.separator?.code}
+                            {(order as any).separation_started_at && (
+                              <span> · {format(new Date((order as any).separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            )}
+                          </div>
+                        )}
+                        {!(order as any).separation_started_by && order.separated_by && (
                           <div className="mt-0.5"><span className="font-semibold">Separado:</span> {order.separator?.name} #{order.separator?.code}</div>
+                        )}
+                        {(order as any).separation_finished_by && (
+                          <div className="mt-0.5">
+                            <span className="font-semibold">Sepa. fina.:</span> {(order as any).separation_finisher?.name} #{(order as any).separation_finisher?.code}
+                            {(order as any).separation_finished_at && (
+                              <span> · {format(new Date((order as any).separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            )}
+                          </div>
                         )}
                         {order.collected_by && (
                           <div className="mt-0.5"><span className="font-semibold">Coletado:</span> {order.collector?.name} #{order.collector?.code}
