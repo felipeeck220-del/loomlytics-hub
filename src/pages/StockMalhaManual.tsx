@@ -184,9 +184,13 @@ function ManualEntryModal({
       setWeight('');
     } catch (err: any) {
       const msg = String(err?.message || '');
-      toast.error(msg.includes('insufficient_machine_stock')
-        ? 'Quantidade maior que o saldo do palete nessa máquina'
-        : getFriendlyErrorMessage(err));
+      toast.error(
+        msg.includes('insufficient_machine_stock')
+          ? 'Quantidade maior que o saldo do palete nessa máquina'
+          : msg.includes('insufficient_stock')
+            ? 'Quantidade maior que o saldo disponível na expedição desse artigo/máquina'
+            : getFriendlyErrorMessage(err)
+      );
     } finally {
       setSaving(false);
     }
