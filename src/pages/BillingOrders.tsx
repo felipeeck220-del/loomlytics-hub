@@ -3161,9 +3161,24 @@ const BillingOrders = () => {
                     )}
                   </div>
                   <div className="pt-1 mt-1 border-t text-[10px] text-muted-foreground">
-                    Criado por {order.creator?.name} #{order.creator?.code} em {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    {order.separated_by && <> · Separado por {order.separator?.name} #{order.separator?.code}</>}
-                    {order.collected_by && <> · Coletado por {order.collector?.name} #{order.collector?.code}</>}
+                    <div>Criado: {order.creator?.name} #{order.creator?.code} · {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
+                    {(order as any).separation_started_by ? (
+                      <div>Sepa. inic.: {(order as any).separation_starter?.name || order.separator?.name} #{(order as any).separation_starter?.code ?? order.separator?.code}
+                        {(order as any).separation_started_at && <> · {format(new Date((order as any).separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
+                      </div>
+                    ) : order.separated_by ? (
+                      <div>Separado: {order.separator?.name} #{order.separator?.code}</div>
+                    ) : null}
+                    {(order as any).separation_finished_by && (
+                      <div>Sepa. fina.: {(order as any).separation_finisher?.name} #{(order as any).separation_finisher?.code}
+                        {(order as any).separation_finished_at && <> · {format(new Date((order as any).separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
+                      </div>
+                    )}
+                    {order.collected_by && (
+                      <div>Coletado: {order.collector?.name} #{order.collector?.code}
+                        {(order as any).collected_at && <> · {format(new Date((order as any).collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -3188,6 +3203,8 @@ const BillingOrders = () => {
                                 <th className="text-left px-2 py-1">#</th>
                                 <th className="text-right px-2 py-1">Peças</th>
                                 <th className="text-right px-2 py-1">Peso (kg)</th>
+                                <th className="text-right px-2 py-1">Média</th>
+                                <th className="hidden sm:table-cell text-right px-2 py-1">Auditoria</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -3196,6 +3213,13 @@ const BillingOrders = () => {
                                   <td className="px-2 py-1">Palete {p.pallet_number}</td>
                                   <td className="px-2 py-1 text-right">{p.pieces}</td>
                                   <td className="px-2 py-1 text-right">{p.weight.toFixed(2)}</td>
+                                  <td className="px-2 py-1 text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                                    {p.pieces > 0 ? `${(p.weight / p.pieces).toFixed(2)} kg/pç` : '—'}
+                                  </td>
+                                  <td className="hidden sm:table-cell px-2 py-1 text-right text-[10px] text-muted-foreground leading-tight">
+                                    {p.created_by_name ? `${p.created_by_name} #${p.created_by_code ?? ''}` : '—'}
+                                    {p.created_at && <div>{format(new Date(p.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -3207,7 +3231,7 @@ const BillingOrders = () => {
                         single ? 'text-indigo-900 dark:text-indigo-100' : 'text-indigo-900 dark:text-indigo-100'
                       )}>
                         <span>{single ? 'Total (única máquina)' : 'Total geral'}</span>
-                        <span>{totalP} pç · {totalW.toFixed(2)} kg</span>
+                        <span>{totalP} pç · {totalW.toFixed(2)} kg{totalP > 0 ? ` · ${(totalW / totalP).toFixed(2)} kg/pç` : ''}</span>
                       </div>
                     </div>
                   )}
