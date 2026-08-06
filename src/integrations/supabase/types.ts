@@ -5580,6 +5580,7 @@ export type Database = {
         Returns: Json
       }
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
+      get_mecanica_stats: { Args: { p_company_id: string }; Returns: Json }
       get_needle_stock: { Args: { p_company_id: string }; Returns: Json }
       get_outsource_bootstrap: { Args: { p_company_id: string }; Returns: Json }
       get_outsource_freights_list: {
