@@ -382,12 +382,12 @@ export default function ArticleChangeOrdersTab() {
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
           {([
-            { key: 'aberto', label: 'Aberto', icon: AlertTriangle, count: orders.filter(o => o.status === 'aberto').length, active: 'data-[state=active]:bg-amber-500 data-[state=active]:text-white' },
-            { key: 'troca_fio_em_curso', label: 'Troca de Fio', icon: Clock, count: orders.filter(o => o.status === 'troca_fio_em_curso').length, active: 'data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
-            { key: 'aguardando_regulagem', label: 'Aguardando Regulagem', icon: Wrench, count: orders.filter(o => o.status === 'aguardando_regulagem').length, active: 'data-[state=active]:bg-amber-600 data-[state=active]:text-white' },
-            { key: 'em_regulagem', label: 'Em Regulagem', icon: Wrench, count: orders.filter(o => o.status === 'em_regulagem').length, active: 'data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
-            { key: 'em_acompanhamento', label: 'Acompanhamento', icon: ClipboardCheck, count: orders.filter(o => o.status === 'em_acompanhamento').length, active: 'data-[state=active]:bg-cyan-600 data-[state=active]:text-white' },
-            { key: 'concluidas', label: 'Concluídas', icon: Square, count: orders.filter(o => o.status === 'concluida' || o.status === 'cancelada').length, active: 'data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
+            { key: 'aberto', label: 'Aberto', icon: AlertTriangle, count: otCounts.aberto || 0, active: 'data-[state=active]:bg-amber-500 data-[state=active]:text-white' },
+            { key: 'troca_fio_em_curso', label: 'Troca de Fio', icon: Clock, count: otCounts.troca_fio_em_curso || 0, active: 'data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
+            { key: 'aguardando_regulagem', label: 'Aguardando Regulagem', icon: Wrench, count: otCounts.aguardando_regulagem || 0, active: 'data-[state=active]:bg-amber-600 data-[state=active]:text-white' },
+            { key: 'em_regulagem', label: 'Em Regulagem', icon: Wrench, count: otCounts.em_regulagem || 0, active: 'data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
+            { key: 'em_acompanhamento', label: 'Acompanhamento', icon: ClipboardCheck, count: otCounts.em_acompanhamento || 0, active: 'data-[state=active]:bg-cyan-600 data-[state=active]:text-white' },
+            { key: 'concluidas', label: 'Concluídas', icon: Square, count: (otCounts.concluida || 0) + (otCounts.cancelada || 0), active: 'data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
           ] as const).map(t => {
             const Icon = t.icon;
             return (
