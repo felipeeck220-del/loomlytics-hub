@@ -252,17 +252,15 @@ export function useCompanyData() {
        setLoadingProgress(0);
      }
      try {
-       const tasks = [
-         { name: 'machines', fn: () => fetchAll('machines', { column: 'company_id', value: companyId }, 'number') },
-         { name: 'clients', fn: () => fetchAll('clients', { column: 'company_id', value: companyId }, 'name') },
-         { name: 'articles', fn: () => fetchAll('articles', { column: 'company_id', value: companyId }, 'name') },
-         { name: 'weavers', fn: () => fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') },
-         { name: 'productions', fn: () => fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) },
-         { name: 'machine_logs', fn: () => fetchAll('machine_logs', { column: 'company_id', value: companyId }, 'started_at', false) },
-         { name: 'article_machine_turns', fn: () => fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at') },
-         { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
-         { name: 'defect_records', fn: () => fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) },
-         { name: 'needle_inventory', fn: () => fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
+        const tasks = [
+          { name: 'machines', fn: () => fetchAll('machines', { column: 'company_id', value: companyId }, 'number') },
+          { name: 'clients', fn: () => fetchAll('clients', { column: 'company_id', value: companyId }, 'name') },
+          { name: 'articles', fn: () => fetchAll('articles', { column: 'company_id', value: companyId }, 'name') },
+          { name: 'weavers', fn: () => fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') },
+          { name: 'productions', fn: () => fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) },
+          { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
+          { name: 'defect_records', fn: () => fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) },
+          { name: 'needle_inventory', fn: () => fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
           { name: 'needle_transactions', fn: () => fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'sinker_inventory', fn: () => fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
           { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
@@ -270,7 +268,7 @@ export function useCompanyData() {
           { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
           { name: 'machine_needle_refs', fn: () => fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') },
           { name: 'machine_sinker_refs', fn: () => fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') },
-         ];
+        ];
  
        let completed = 0;
        const results = await Promise.all(tasks.map(async (task) => {
@@ -280,16 +278,14 @@ export function useCompanyData() {
          return result;
        }));
  
-        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData] = results;
- 
-       setMachines(mData.map(mapMachine));
-       setMachineLogs(mlRes.map(mapMachineLog));
-       setClients(cData.map(mapClient));
-       setArticles(aData.map(mapArticle));
-       setWeavers(wData.map(mapWeaver));
-       setProductions(pData.map(mapProduction));
-       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
-       setDefectRecords(drRes.map(mapDefectRecord));
+        const [mData, cData, aData, wData, pData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData] = results;
+
+        setMachines(mData.map(mapMachine));
+        setClients(cData.map(mapClient));
+        setArticles(aData.map(mapArticle));
+        setWeavers(wData.map(mapWeaver));
+        setProductions(pData.map(mapProduction));
+        setDefectRecords(drRes.map(mapDefectRecord));
        setNeedles(nData.map(mapNeedle));
         setNeedleTransactions(ntData.map(mapNeedleTransaction));
         setSinkers(sData.map(mapSinker));
