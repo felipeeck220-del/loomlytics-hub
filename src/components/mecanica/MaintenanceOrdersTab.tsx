@@ -994,21 +994,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
-  const modeOrders = useMemo(
-    () => orders.filter(o =>
-      isOE ? o.type === 'manutencao_eletrica' :
-      isOC ? o.type === 'manutencao_corretiva' :
-      (o.type !== 'manutencao_corretiva' && o.type !== 'manutencao_eletrica'),
-    ),
-    [orders, isOC, isOE],
-  );
-  const filtered = useMemo(() => modeOrders.filter(o => o.status === tab), [modeOrders, tab]);
-  const counts = useMemo(() => ({
-    aberto: modeOrders.filter(o => o.status === 'aberto').length,
-    em_curso: modeOrders.filter(o => o.status === 'em_curso').length,
-    finalizada: modeOrders.filter(o => o.status === 'finalizada').length,
-    cancelada: modeOrders.filter(o => o.status === 'cancelada').length,
-  }), [modeOrders]);
+  const [counts, setCounts] = useState<Record<string, number>>({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
+  const filtered = orders; // Já vem filtrado da RPC
+  const modeOrders = orders; // Fallback para compatibilidade em props de outros componentes
 
   // Urgência de manutenção por máquina (mesma lógica do Calendário)
   const urgencyByMachine = useMemo(() => {
