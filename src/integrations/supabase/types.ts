@@ -5542,16 +5542,28 @@ export type Database = {
         }
         Returns: Json
       }
-      get_maintenance_orders_list: {
-        Args: {
-          p_company_id: string
-          p_limit?: number
-          p_offset?: number
-          p_search?: string
-          p_status?: string
-        }
-        Returns: Json
-      }
+      get_maintenance_orders_list:
+        | {
+            Args: {
+              p_company_id: string
+              p_limit?: number
+              p_offset?: number
+              p_search?: string
+              p_status?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_company_id: string
+              p_limit?: number
+              p_mode?: string
+              p_offset?: number
+              p_search?: string
+              p_status?: string
+            }
+            Returns: Json
+          }
       get_manual_stock_bootstrap: {
         Args: { p_company_id: string }
         Returns: Json
