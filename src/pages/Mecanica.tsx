@@ -36,6 +36,8 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
   'troca_agulhas',
 ];
 
+type NeedleProvider = { id: string; company_id: string; name: string };
+type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
 type NeedleLot = { id: string; company_id: string; provider_id: string; needle_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; observations: string | null; created_at: string };
 
 type SinkerProvider = { id: string; company_id: string; name: string };
