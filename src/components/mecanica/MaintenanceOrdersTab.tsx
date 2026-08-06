@@ -195,12 +195,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (!companyId) return;
     const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
     if (!error && data) {
-      const maintenance = data.maintenance || {};
+      // mode can be 'om', 'oc' or 'oe'
+      const modeStats = data[mode] || {};
       setCounts({
-        aberto: (maintenance.aberto || 0) + (maintenance.prioritaria || 0), // Ajustar se status prioritaria for separado
-        em_curso: maintenance.em_curso || 0,
-        finalizada: maintenance.finalizada || 0,
-        cancelada: maintenance.cancelada || 0
+        aberto: (modeStats.aberto || 0),
+        em_curso: modeStats.em_curso || 0,
+        finalizada: modeStats.finalizada || 0,
+        cancelada: modeStats.cancelada || 0
       });
     }
   };
