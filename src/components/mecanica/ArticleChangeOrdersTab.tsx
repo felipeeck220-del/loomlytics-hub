@@ -157,6 +157,7 @@ export default function ArticleChangeOrdersTab() {
   const [photosTarget, setPhotosTarget] = useState<OT | null>(null);
   const [concluidasSearch, setConcluidasSearch] = useState('');
   const [concluidasPage, setConcluidasPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const CONCLUIDAS_PAGE_SIZE = 15;
 
   const isAdmin = role === 'admin';
