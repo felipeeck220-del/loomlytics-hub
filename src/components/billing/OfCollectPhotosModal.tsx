@@ -66,6 +66,10 @@ export const OfCollectPhotosModal: React.FC<Props> = ({
 
   const handleConfirm = async () => {
     if (!order || saving) return;
+    if (drafts.length === 0) {
+      toast({ title: 'Anexo obrigatório', description: 'Adicione pelo menos uma foto das notas fiscais para finalizar.', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     const uploadedPaths: string[] = [];
     try {
