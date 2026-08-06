@@ -1289,12 +1289,12 @@ export default function MecanicaPage() {
     const openNewLot = (providerId?: string) => {
       setEditingLot(null);
       const nextCode = providerId ? nextLotCodeForProvider(providerId) : '';
-      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '', observations: '' });
       setShowLotModal(true);
     };
     const openEditLot = (l: NeedleLot) => {
       setEditingLot(l);
-      setLotForm({ provider_id: l.provider_id, needle_id: l.needle_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || '') });
+      setLotForm({ provider_id: l.provider_id, needle_id: l.needle_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || ''), observations: l.observations || '' });
       setShowLotModal(true);
     };
     const handleSaveLot = async () => {
@@ -1482,12 +1482,12 @@ export default function MecanicaPage() {
     const openNewSinkerLot = (providerId?: string) => {
       setEditingSinkerLot(null);
       const nextCode = providerId ? nextSinkerLotCodeForProvider(providerId) : '';
-      setSinkerLotForm({ provider_id: providerId || '', sinker_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      setSinkerLotForm({ provider_id: providerId || '', sinker_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '', observations: '' });
       setShowSinkerLotModal(true);
     };
     const openEditSinkerLot = (l: SinkerLot) => {
       setEditingSinkerLot(l);
-      setSinkerLotForm({ provider_id: l.provider_id, sinker_id: l.sinker_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || '') });
+      setSinkerLotForm({ provider_id: l.provider_id, sinker_id: l.sinker_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || ''), observations: l.observations || '' });
       setShowSinkerLotModal(true);
     };
     const handleSaveSinkerLot = async () => {
