@@ -326,8 +326,8 @@ export default function MecanicaPage() {
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
-  const [maintenanceLogs, setMaintenanceLogs] = useState<MachineLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+
 
   const loadMaintenanceLogs = async () => {
     if (!user?.company_id) return;
