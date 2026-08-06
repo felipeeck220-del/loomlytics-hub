@@ -5374,17 +5374,16 @@ export type Database = {
         }
         Returns: Json
       }
-      get_article_change_orders_list:
-        | { Args: { p_company_id: string }; Returns: Json }
-        | {
-            Args: {
-              p_company_id: string
-              p_limit?: number
-              p_offset?: number
-              p_status?: string
-            }
-            Returns: Json
-          }
+      get_article_change_orders_list: {
+        Args: {
+          p_company_id: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       get_billing_order_detail: {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
@@ -5543,17 +5542,16 @@ export type Database = {
         }
         Returns: Json
       }
-      get_maintenance_orders_list:
-        | { Args: { p_company_id: string }; Returns: Json }
-        | {
-            Args: {
-              p_company_id: string
-              p_limit?: number
-              p_offset?: number
-              p_status?: string
-            }
-            Returns: Json
-          }
+      get_maintenance_orders_list: {
+        Args: {
+          p_company_id: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       get_manual_stock_bootstrap: {
         Args: { p_company_id: string }
         Returns: Json
