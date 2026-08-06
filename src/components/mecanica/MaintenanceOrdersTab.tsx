@@ -191,7 +191,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [escalatePhotos, setEscalatePhotos] = useState<Array<{ id: string; file: File; preview: string; description: string }>>([]);
   const [escalateSaving, setEscalateSaving] = useState(false);
 
-  const load = async (opts?: { silent?: boolean; status?: MaintenanceOrderStatus; page?: number }) => {
+  const loadStats = async () => {
+    if (!companyId) return;
+    const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
+    if (!error && data) {
+      const maintenance = data.maintenance || {};
+      setCounts({
+        aberto: (maintenance.aberto || 0) + (maintenance.prioritaria || 0), // Ajustar se status prioritaria for separado
+        em_curso: maintenance.em_curso || 0,
+        finalizada: maintenance.finalizada || 0,
+        cancelada: maintenance.cancelada || 0
+      });
+    }
+  };
+
+  const load = async (opts?: { silent?: boolean; status?: MaintenanceOrderStatus; page?: number; search?: string }) => {
     if (!companyId) return;
     if (!opts?.silent) setLoading(true);
     
@@ -199,12 +213,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const page = opts?.page ?? (status === 'finalizada' || status === 'cancelada' ? finalizedPage : 0);
     const limit = (status === 'finalizada' || status === 'cancelada') ? FINALIZED_PAGE_SIZE : 1000;
     const offset = page * limit;
+    const search = opts?.search ?? (status === 'finalizada' ? finalizedSearch : '');
 
     const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { 
       p_company_id: companyId,
       p_status: status,
       p_limit: limit,
-      p_offset: offset
+      p_offset: offset,
+      p_search: search
     });
 
     if (error) {
@@ -219,9 +235,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setItems((payload.items as MaintenanceOrderItem[]) || []);
     setTotalCount(payload.count || 0);
     if (!opts?.silent) setLoading(false);
+    loadStats();
   };
 
-  useEffect(() => { load(); }, [companyId, tab, finalizedPage]);
+  useEffect(() => {
+    load();
+  }, [companyId, tab, finalizedPage]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tab === 'finalizada') load({ silent: true });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [finalizedSearch]);
 
   // Realtime: recarrega OMs/itens/observações quando qualquer usuário da empresa mexer
   useEffect(() => {
