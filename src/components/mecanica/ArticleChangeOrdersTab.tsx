@@ -169,7 +169,17 @@ export default function ArticleChangeOrdersTab() {
   const articleById = useMemo(() => Object.fromEntries(articles.map(a => [a.id, a])), [articles]);
   const yarnById = useMemo(() => Object.fromEntries(yarnTypes.map(y => [y.id, y])), [yarnTypes]);
 
-  const load = useCallback(async (opts: { silent?: boolean; status?: OTStatus | 'concluidas'; page?: number } = {}) => {
+  const [otCounts, setOtCounts] = useState<Record<string, number>>({});
+  
+  const loadStats = useCallback(async () => {
+    if (!user?.company_id) return;
+    const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: user.company_id });
+    if (!error && data) {
+      setOtCounts(data.ot || {});
+    }
+  }, [user?.company_id]);
+
+  const load = useCallback(async (opts: { silent?: boolean; status?: OTStatus | 'concluidas'; page?: number; search?: string } = {}) => {
     if (!user?.company_id) return;
     if (!opts.silent) setLoading(true);
 
@@ -177,14 +187,10 @@ export default function ArticleChangeOrdersTab() {
     let p_status: string | null = null;
     let limit = 1000;
     let offset = 0;
+    const search = opts.search ?? (statusStr === 'concluidas' ? concluidasSearch : '');
 
     if (statusStr === 'concluidas') {
-      p_status = 'concluida'; // A RPC vai filtrar 'concluida' ou 'cancelada' se eu ajustar a RPC ou passar um status especial.
-      // Ajuste: Vamos permitir passar status específicos ou null.
-      // A RPC get_article_change_orders_list filtra por status exato se p_status != NULL.
-      // Se eu quiser 'concluida' e 'cancelada' juntas, talvez precise de uma nova RPC ou mudar a lógica.
-      // Para simplificar, vamos filtrar pelo tab atual.
-      p_status = statusStr === 'concluidas' ? 'concluida' : statusStr; 
+      p_status = 'concluida'; 
       limit = CONCLUIDAS_PAGE_SIZE;
       offset = (opts.page ?? concluidasPage) * limit;
     } else {
@@ -193,9 +199,10 @@ export default function ArticleChangeOrdersTab() {
 
     const { data, error } = await (supabase.rpc as any)('get_article_change_orders_list', { 
       p_company_id: user.company_id,
-      p_status: p_status === 'concluidas' ? null : p_status,
+      p_status: p_status,
       p_limit: limit,
-      p_offset: offset
+      p_offset: offset,
+      p_search: search
     });
 
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); setLoading(false); return; }
@@ -203,9 +210,17 @@ export default function ArticleChangeOrdersTab() {
     setOrders((payload.orders || []) as OT[]);
     setTotalCount(payload.count || 0);
     setLoading(false);
-  }, [user?.company_id, tab, concluidasPage]);
+    loadStats();
+  }, [user?.company_id, tab, concluidasPage, concluidasSearch, loadStats]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tab === 'concluidas') load({ silent: true });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [concluidasSearch, tab]);
 
   useEffect(() => {
     if (!user?.company_id) return;
@@ -217,37 +232,16 @@ export default function ArticleChangeOrdersTab() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.company_id, load]);
 
-  const filtered = useMemo(() => {
-    if (tab === 'aberto') return orders.filter(o => o.status === 'aberto');
-    if (tab === 'concluidas') return orders.filter(o => o.status === 'concluida' || o.status === 'cancelada');
-    return orders.filter(o => o.status === tab);
-  }, [orders, tab]);
-
-  const concluidasFiltered = useMemo(() => {
-    if (tab !== 'concluidas') return filtered;
-    const q = concluidasSearch.trim().toLowerCase();
-    if (!q) return filtered;
-    return filtered.filter(o => {
-      const num = String(o.ot_number ?? '').padStart(3, '0');
-      const machineName = (machineById[o.machine_id]?.name || '').toLowerCase();
-      const currA = o.current_article_id ? (articleById[o.current_article_id]?.name || '').toLowerCase() : '';
-      const nextA = o.next_article_id ? (articleById[o.next_article_id]?.name || '').toLowerCase() : '';
-      return num.includes(q) || machineName.includes(q) || currA.includes(q) || nextA.includes(q);
-    });
-  }, [filtered, tab, concluidasSearch, machineById, articleById]);
-
-  const concluidasTotal = concluidasFiltered.length;
+  const filtered = orders;
+  const concluidasFiltered = orders;
+  const concluidasTotal = totalCount;
   const concluidasTotalPages = Math.max(1, Math.ceil(concluidasTotal / CONCLUIDAS_PAGE_SIZE));
-  const concluidasPageSafe = Math.min(concluidasPage, concluidasTotalPages - 1);
-  const pagedConcluidas = useMemo(() => {
-    if (tab !== 'concluidas') return filtered;
-    const start = concluidasPageSafe * CONCLUIDAS_PAGE_SIZE;
-    return concluidasFiltered.slice(start, start + CONCLUIDAS_PAGE_SIZE);
-  }, [tab, filtered, concluidasFiltered, concluidasPageSafe]);
+  const concluidasPageSafe = concluidasPage;
+  const pagedConcluidas = orders;
 
   useEffect(() => { setConcluidasPage(0); }, [concluidasSearch, tab]);
 
-  const listToRender = tab === 'concluidas' ? pagedConcluidas : filtered;
+  const listToRender = orders;
 
   // Ações de transição
   const patch = async (id: string, patch: any, auditKey: string, auditExtra: any = {}) => {
