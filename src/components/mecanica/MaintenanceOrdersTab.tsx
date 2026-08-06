@@ -1096,31 +1096,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     return m;
   }, [items]);
 
-  // Busca + paginação para aba "Finalizadas"
-  const finalizedFiltered = useMemo(() => {
-    if (tab !== 'finalizada') return displayed;
-    const q = finalizedSearch.trim().toLowerCase();
-    if (!q) return displayed;
-    return displayed.filter(o => {
-      const num = displayNumber(o).toLowerCase();
-      const machineName = (machineById[o.machine_id]?.name || '').toLowerCase();
-      const desc = (o.description || '').toLowerCase();
-      return num.includes(q) || machineName.includes(q) || desc.includes(q);
-    });
-  }, [displayed, tab, finalizedSearch, machineById]);
-
-  const finalizedTotal = finalizedFiltered.length;
-  const finalizedTotalPages = Math.max(1, Math.ceil(finalizedTotal / FINALIZED_PAGE_SIZE));
-  const finalizedPageSafe = Math.min(finalizedPage, finalizedTotalPages - 1);
-  const pagedFinalized = useMemo(() => {
-    if (tab !== 'finalizada') return displayed;
-    const start = finalizedPageSafe * FINALIZED_PAGE_SIZE;
-    return finalizedFiltered.slice(start, start + FINALIZED_PAGE_SIZE);
-  }, [tab, displayed, finalizedFiltered, finalizedPageSafe]);
+  // Com a RPC paginada, listToRender é o próprio orders
+  const listToRender = displayed;
 
   useEffect(() => { setFinalizedPage(0); }, [finalizedSearch, tab, mode]);
 
-  const listToRender = tab === 'finalizada' ? pagedFinalized : displayed;
+  const finalizedTotal = totalCount;
+  const finalizedTotalPages = Math.max(1, Math.ceil(finalizedTotal / FINALIZED_PAGE_SIZE));
+  const finalizedPageSafe = finalizedPage;
 
   // Só renderiza os cards quando TODOS os dados chegaram (ordens + dados da empresa/máquinas),
   // evitando card parcial (descrição sem máquina) em conexões lentas.
