@@ -46,7 +46,7 @@ type SinkerLot = { id: string; company_id: string; provider_id: string; sinker_i
 
 export default function MecanicaPage() {
    const { 
-     getMachines, getMachineLogs, getProductions, saveMachineLogs, 
+     getMachines, getProductions, saveMachineLogs, 
      saveMachines,
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
      updateNeedleTransaction, deleteNeedleTransaction,
@@ -182,7 +182,7 @@ export default function MecanicaPage() {
           : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
-  const machineLogs = getMachineLogs();
+  const machineLogs = maintenanceLogs; // Legacy fallback
   const productions = getProductions();
   const { logAction, userName, userCode } = useAuditLog();
   const { user } = useAuth();
@@ -211,14 +211,13 @@ export default function MecanicaPage() {
       setTimeout(() => { scheduled = false; refreshData(); }, 400);
     };
     const tables = [
-      'machines', 'machine_logs',
+      'machines',
       'needle_inventory', 'needle_transactions',
       'needle_providers', 'needle_provider_prices', 'needle_lots',
       'sinker_inventory', 'sinker_transactions',
       'sinker_providers', 'sinker_provider_prices', 'sinker_lots',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
-      'machine_maintenance_observations',
       'article_change_orders', 'article_change_yarns',
     ];
     const channel = supabase.channel(`mecanica-rt-${cid}`);
@@ -315,14 +314,34 @@ export default function MecanicaPage() {
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
-  const maintenanceLogs = useMemo(() => {
-    return machineLogs.filter(log => {
-      const status = log.status as MachineStatus;
-      const matchStatus = MAINTENANCE_STATUSES.includes(status);
+  const [maintenanceLogs, setMaintenanceLogs] = useState<MachineLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  const loadMaintenanceLogs = async () => {
+    if (!user?.company_id) return;
+    setLogsLoading(true);
+    const { data, error } = await sb('machine_logs')
+      .select('*')
+      .eq('company_id', user.company_id)
+      .in('status', MAINTENANCE_STATUSES)
+      .order('started_at', { ascending: false });
+    
+    if (!error && data) {
+      setMaintenanceLogs(data.map(mapMachineLog));
+    }
+    setLogsLoading(false);
+  };
+
+  useEffect(() => {
+    loadMaintenanceLogs();
+  }, [user?.company_id]);
+
+  const filteredLogs = useMemo(() => {
+    return maintenanceLogs.filter(log => {
       const matchMachine = selectedMachineId === 'all' || log.machine_id === selectedMachineId;
-      return matchStatus && matchMachine;
+      return matchMachine;
     });
-  }, [machineLogs, selectedMachineId]);
+  }, [maintenanceLogs, selectedMachineId]);
 
   // Get all logs of a status for a machine, sorted newest first
   const getLogsByStatus = (machineId: string, status: MachineStatus) => {
