@@ -36,13 +36,11 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
   'troca_agulhas',
 ];
 
-type NeedleProvider = { id: string; company_id: string; name: string };
-type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
-type NeedleLot = { id: string; company_id: string; provider_id: string; needle_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
+type NeedleLot = { id: string; company_id: string; provider_id: string; needle_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; observations: string | null; created_at: string };
 
 type SinkerProvider = { id: string; company_id: string; name: string };
 type SinkerProviderPrice = { id: string; company_id: string; provider_id: string; sinker_id: string; unit_price: number };
-type SinkerLot = { id: string; company_id: string; provider_id: string; sinker_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
+type SinkerLot = { id: string; company_id: string; provider_id: string; sinker_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; observations: string | null; created_at: string };
 
 export default function MecanicaPage() {
    const sb = (table: string) => (supabase.from as any)(table);
@@ -112,7 +110,7 @@ export default function MecanicaPage() {
    // Lot state
    const [showLotModal, setShowLotModal] = useState(false);
    const [editingLot, setEditingLot] = useState<NeedleLot | null>(null);
-   const [lotForm, setLotForm] = useState({ provider_id: '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+   const [lotForm, setLotForm] = useState({ provider_id: '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '', observations: '' });
    const [deleteLotId, setDeleteLotId] = useState<string | null>(null);
    // Entrada / Saída — seleção por fornecedor
    const [entryProviderId, setEntryProviderId] = useState('');
@@ -154,7 +152,7 @@ export default function MecanicaPage() {
    const [deleteSinkerPriceId, setDeleteSinkerPriceId] = useState<string | null>(null);
    const [showSinkerLotModal, setShowSinkerLotModal] = useState(false);
    const [editingSinkerLot, setEditingSinkerLot] = useState<SinkerLot | null>(null);
-   const [sinkerLotForm, setSinkerLotForm] = useState({ provider_id: '', sinker_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+   const [sinkerLotForm, setSinkerLotForm] = useState({ provider_id: '', sinker_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '', observations: '' });
    const [deleteSinkerLotId, setDeleteSinkerLotId] = useState<string | null>(null);
    const [entrySinkerProviderId, setEntrySinkerProviderId] = useState('');
    const [entrySinkerLotId, setEntrySinkerLotId] = useState('');
