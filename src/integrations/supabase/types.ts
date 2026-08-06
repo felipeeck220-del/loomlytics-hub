@@ -5375,7 +5375,13 @@ export type Database = {
         Returns: Json
       }
       get_article_change_orders_list: {
-        Args: { p_company_id: string }
+        Args: {
+          p_company_id: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
         Returns: Json
       }
       get_billing_order_detail: {
@@ -5537,7 +5543,13 @@ export type Database = {
         Returns: Json
       }
       get_maintenance_orders_list: {
-        Args: { p_company_id: string }
+        Args: {
+          p_company_id: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
         Returns: Json
       }
       get_manual_stock_bootstrap: {
@@ -5568,6 +5580,7 @@ export type Database = {
         Returns: Json
       }
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
+      get_mecanica_stats: { Args: { p_company_id: string }; Returns: Json }
       get_needle_stock: { Args: { p_company_id: string }; Returns: Json }
       get_outsource_bootstrap: { Args: { p_company_id: string }; Returns: Json }
       get_outsource_freights_list: {

@@ -157,6 +157,7 @@ export default function ArticleChangeOrdersTab() {
   const [photosTarget, setPhotosTarget] = useState<OT | null>(null);
   const [concluidasSearch, setConcluidasSearch] = useState('');
   const [concluidasPage, setConcluidasPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const CONCLUIDAS_PAGE_SIZE = 15;
 
   const isAdmin = role === 'admin';
@@ -168,18 +169,58 @@ export default function ArticleChangeOrdersTab() {
   const articleById = useMemo(() => Object.fromEntries(articles.map(a => [a.id, a])), [articles]);
   const yarnById = useMemo(() => Object.fromEntries(yarnTypes.map(y => [y.id, y])), [yarnTypes]);
 
-  const load = useCallback(async (opts: { silent?: boolean } = {}) => {
+  const [otCounts, setOtCounts] = useState<Record<string, number>>({});
+  
+  const loadStats = useCallback(async () => {
     if (!user?.company_id) return;
-    if (!opts.silent) setLoading(true);
-    // [rpcmecanica Fase 2] 1 RPC consolidada, yarns já embutidos e ordenados
-    const { data, error } = await (supabase.rpc as any)('get_article_change_orders_list', { p_company_id: user.company_id });
-    if (error) { toast.error(getFriendlyErrorMessage(error.message)); setLoading(false); return; }
-    const payload = (data || {}) as { orders?: OT[] };
-    setOrders((payload.orders || []) as OT[]);
-    setLoading(false);
+    const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: user.company_id });
+    if (!error && data) {
+      setOtCounts(data.ot || {});
+    }
   }, [user?.company_id]);
 
+  const load = useCallback(async (opts: { silent?: boolean; status?: OTStatus | 'concluidas'; page?: number; search?: string } = {}) => {
+    if (!user?.company_id) return;
+    if (!opts.silent) setLoading(true);
+
+    const statusStr = opts.status || tab;
+    let p_status: string | null = null;
+    let limit = 1000;
+    let offset = 0;
+    const search = opts.search ?? (statusStr === 'concluidas' ? concluidasSearch : '');
+
+    if (statusStr === 'concluidas') {
+      p_status = 'concluida'; 
+      limit = CONCLUIDAS_PAGE_SIZE;
+      offset = (opts.page ?? concluidasPage) * limit;
+    } else {
+      p_status = statusStr;
+    }
+
+    const { data, error } = await (supabase.rpc as any)('get_article_change_orders_list', { 
+      p_company_id: user.company_id,
+      p_status: p_status,
+      p_limit: limit,
+      p_offset: offset,
+      p_search: search
+    });
+
+    if (error) { toast.error(getFriendlyErrorMessage(error.message)); setLoading(false); return; }
+    const payload = (data || {}) as { orders?: OT[]; count?: number };
+    setOrders((payload.orders || []) as OT[]);
+    setTotalCount(payload.count || 0);
+    setLoading(false);
+    loadStats();
+  }, [user?.company_id, tab, concluidasPage, concluidasSearch, loadStats]);
+
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tab === 'concluidas') load({ silent: true });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [concluidasSearch, tab]);
 
   useEffect(() => {
     if (!user?.company_id) return;
@@ -191,37 +232,16 @@ export default function ArticleChangeOrdersTab() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.company_id, load]);
 
-  const filtered = useMemo(() => {
-    if (tab === 'aberto') return orders.filter(o => o.status === 'aberto');
-    if (tab === 'concluidas') return orders.filter(o => o.status === 'concluida' || o.status === 'cancelada');
-    return orders.filter(o => o.status === tab);
-  }, [orders, tab]);
-
-  const concluidasFiltered = useMemo(() => {
-    if (tab !== 'concluidas') return filtered;
-    const q = concluidasSearch.trim().toLowerCase();
-    if (!q) return filtered;
-    return filtered.filter(o => {
-      const num = String(o.ot_number ?? '').padStart(3, '0');
-      const machineName = (machineById[o.machine_id]?.name || '').toLowerCase();
-      const currA = o.current_article_id ? (articleById[o.current_article_id]?.name || '').toLowerCase() : '';
-      const nextA = o.next_article_id ? (articleById[o.next_article_id]?.name || '').toLowerCase() : '';
-      return num.includes(q) || machineName.includes(q) || currA.includes(q) || nextA.includes(q);
-    });
-  }, [filtered, tab, concluidasSearch, machineById, articleById]);
-
-  const concluidasTotal = concluidasFiltered.length;
+  const filtered = orders;
+  const concluidasFiltered = orders;
+  const concluidasTotal = totalCount;
   const concluidasTotalPages = Math.max(1, Math.ceil(concluidasTotal / CONCLUIDAS_PAGE_SIZE));
-  const concluidasPageSafe = Math.min(concluidasPage, concluidasTotalPages - 1);
-  const pagedConcluidas = useMemo(() => {
-    if (tab !== 'concluidas') return filtered;
-    const start = concluidasPageSafe * CONCLUIDAS_PAGE_SIZE;
-    return concluidasFiltered.slice(start, start + CONCLUIDAS_PAGE_SIZE);
-  }, [tab, filtered, concluidasFiltered, concluidasPageSafe]);
+  const concluidasPageSafe = concluidasPage;
+  const pagedConcluidas = orders;
 
   useEffect(() => { setConcluidasPage(0); }, [concluidasSearch, tab]);
 
-  const listToRender = tab === 'concluidas' ? pagedConcluidas : filtered;
+  const listToRender = orders;
 
   // Ações de transição
   const patch = async (id: string, patch: any, auditKey: string, auditExtra: any = {}) => {
@@ -362,12 +382,12 @@ export default function ArticleChangeOrdersTab() {
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
           {([
-            { key: 'aberto', label: 'Aberto', icon: AlertTriangle, count: orders.filter(o => o.status === 'aberto').length, active: 'data-[state=active]:bg-amber-500 data-[state=active]:text-white' },
-            { key: 'troca_fio_em_curso', label: 'Troca de Fio', icon: Clock, count: orders.filter(o => o.status === 'troca_fio_em_curso').length, active: 'data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
-            { key: 'aguardando_regulagem', label: 'Aguardando Regulagem', icon: Wrench, count: orders.filter(o => o.status === 'aguardando_regulagem').length, active: 'data-[state=active]:bg-amber-600 data-[state=active]:text-white' },
-            { key: 'em_regulagem', label: 'Em Regulagem', icon: Wrench, count: orders.filter(o => o.status === 'em_regulagem').length, active: 'data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
-            { key: 'em_acompanhamento', label: 'Acompanhamento', icon: ClipboardCheck, count: orders.filter(o => o.status === 'em_acompanhamento').length, active: 'data-[state=active]:bg-cyan-600 data-[state=active]:text-white' },
-            { key: 'concluidas', label: 'Concluídas', icon: Square, count: orders.filter(o => o.status === 'concluida' || o.status === 'cancelada').length, active: 'data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
+            { key: 'aberto', label: 'Aberto', icon: AlertTriangle, count: otCounts.aberto || 0, active: 'data-[state=active]:bg-amber-500 data-[state=active]:text-white' },
+            { key: 'troca_fio_em_curso', label: 'Troca de Fio', icon: Clock, count: otCounts.troca_fio_em_curso || 0, active: 'data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
+            { key: 'aguardando_regulagem', label: 'Aguardando Regulagem', icon: Wrench, count: otCounts.aguardando_regulagem || 0, active: 'data-[state=active]:bg-amber-600 data-[state=active]:text-white' },
+            { key: 'em_regulagem', label: 'Em Regulagem', icon: Wrench, count: otCounts.em_regulagem || 0, active: 'data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
+            { key: 'em_acompanhamento', label: 'Acompanhamento', icon: ClipboardCheck, count: otCounts.em_acompanhamento || 0, active: 'data-[state=active]:bg-cyan-600 data-[state=active]:text-white' },
+            { key: 'concluidas', label: 'Concluídas', icon: Square, count: (otCounts.concluida || 0) + (otCounts.cancelada || 0), active: 'data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
           ] as const).map(t => {
             const Icon = t.icon;
             return (

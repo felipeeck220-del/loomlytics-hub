@@ -166,6 +166,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [tab, setTab] = useState<MaintenanceOrderStatus | 'relatorios'>('aberto');
   const [finalizedSearch, setFinalizedSearch] = useState('');
   const [finalizedPage, setFinalizedPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const FINALIZED_PAGE_SIZE = 15;
   // Confirm dialogs
   const [confirmStart, setConfirmStart] = useState<MaintenanceOrder | null>(null);
@@ -190,22 +191,63 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [escalatePhotos, setEscalatePhotos] = useState<Array<{ id: string; file: File; preview: string; description: string }>>([]);
   const [escalateSaving, setEscalateSaving] = useState(false);
 
-  const load = async (opts?: { silent?: boolean }) => {
+  const loadStats = async () => {
+    if (!companyId) return;
+    const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
+    if (!error && data) {
+      const maintenance = data.maintenance || {};
+      setCounts({
+        aberto: (maintenance.aberto || 0) + (maintenance.prioritaria || 0), // Ajustar se status prioritaria for separado
+        em_curso: maintenance.em_curso || 0,
+        finalizada: maintenance.finalizada || 0,
+        cancelada: maintenance.cancelada || 0
+      });
+    }
+  };
+
+  const load = async (opts?: { silent?: boolean; status?: MaintenanceOrderStatus; page?: number; search?: string }) => {
     if (!companyId) return;
     if (!opts?.silent) setLoading(true);
-    // [rpcmecanica Fase 2] 1 RPC consolidada em vez de 2 SELECTs
-    const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { p_company_id: companyId });
+    
+    const status = opts?.status || (tab === 'relatorios' ? undefined : tab as MaintenanceOrderStatus);
+    const page = opts?.page ?? (status === 'finalizada' || status === 'cancelada' ? finalizedPage : 0);
+    const limit = (status === 'finalizada' || status === 'cancelada') ? FINALIZED_PAGE_SIZE : 1000;
+    const offset = page * limit;
+    const search = opts?.search ?? (status === 'finalizada' ? finalizedSearch : '');
+
+    const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { 
+      p_company_id: companyId,
+      p_status: status,
+      p_limit: limit,
+      p_offset: offset,
+      p_search: search
+    });
+
     if (error) {
       console.error('[MaintenanceOrdersTab.load] rpc failed', error);
       toast.error('Erro ao carregar ordens de manutenção');
+      if (!opts?.silent) setLoading(false);
+      return;
     }
-    const payload = (data || {}) as { orders?: MaintenanceOrder[]; items?: MaintenanceOrderItem[] };
+
+    const payload = (data || {}) as { orders?: MaintenanceOrder[]; items?: MaintenanceOrderItem[]; count?: number };
     setOrders((payload.orders as MaintenanceOrder[]) || []);
     setItems((payload.items as MaintenanceOrderItem[]) || []);
+    setTotalCount(payload.count || 0);
     if (!opts?.silent) setLoading(false);
+    loadStats();
   };
 
-  useEffect(() => { load(); }, [companyId]);
+  useEffect(() => {
+    load();
+  }, [companyId, tab, finalizedPage]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tab === 'finalizada') load({ silent: true });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [finalizedSearch]);
 
   // Realtime: recarrega OMs/itens/observações quando qualquer usuário da empresa mexer
   useEffect(() => {
@@ -978,21 +1020,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
-  const modeOrders = useMemo(
-    () => orders.filter(o =>
-      isOE ? o.type === 'manutencao_eletrica' :
-      isOC ? o.type === 'manutencao_corretiva' :
-      (o.type !== 'manutencao_corretiva' && o.type !== 'manutencao_eletrica'),
-    ),
-    [orders, isOC, isOE],
-  );
-  const filtered = useMemo(() => modeOrders.filter(o => o.status === tab), [modeOrders, tab]);
-  const counts = useMemo(() => ({
-    aberto: modeOrders.filter(o => o.status === 'aberto').length,
-    em_curso: modeOrders.filter(o => o.status === 'em_curso').length,
-    finalizada: modeOrders.filter(o => o.status === 'finalizada').length,
-    cancelada: modeOrders.filter(o => o.status === 'cancelada').length,
-  }), [modeOrders]);
+  const [counts, setCounts] = useState<Record<string, number>>({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
+  const filtered = orders; // Já vem filtrado da RPC
+  const modeOrders = orders; // Fallback para compatibilidade em props de outros componentes
 
   // Urgência de manutenção por máquina (mesma lógica do Calendário)
   const urgencyByMachine = useMemo(() => {
@@ -1080,31 +1110,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     return m;
   }, [items]);
 
-  // Busca + paginação para aba "Finalizadas"
-  const finalizedFiltered = useMemo(() => {
-    if (tab !== 'finalizada') return displayed;
-    const q = finalizedSearch.trim().toLowerCase();
-    if (!q) return displayed;
-    return displayed.filter(o => {
-      const num = displayNumber(o).toLowerCase();
-      const machineName = (machineById[o.machine_id]?.name || '').toLowerCase();
-      const desc = (o.description || '').toLowerCase();
-      return num.includes(q) || machineName.includes(q) || desc.includes(q);
-    });
-  }, [displayed, tab, finalizedSearch, machineById]);
-
-  const finalizedTotal = finalizedFiltered.length;
-  const finalizedTotalPages = Math.max(1, Math.ceil(finalizedTotal / FINALIZED_PAGE_SIZE));
-  const finalizedPageSafe = Math.min(finalizedPage, finalizedTotalPages - 1);
-  const pagedFinalized = useMemo(() => {
-    if (tab !== 'finalizada') return displayed;
-    const start = finalizedPageSafe * FINALIZED_PAGE_SIZE;
-    return finalizedFiltered.slice(start, start + FINALIZED_PAGE_SIZE);
-  }, [tab, displayed, finalizedFiltered, finalizedPageSafe]);
+  // Com a RPC paginada, listToRender é o próprio orders
+  const listToRender = displayed;
 
   useEffect(() => { setFinalizedPage(0); }, [finalizedSearch, tab, mode]);
 
-  const listToRender = tab === 'finalizada' ? pagedFinalized : displayed;
+  const finalizedTotal = totalCount;
+  const finalizedTotalPages = Math.max(1, Math.ceil(finalizedTotal / FINALIZED_PAGE_SIZE));
+  const finalizedPageSafe = finalizedPage;
 
   // Só renderiza os cards quando TODOS os dados chegaram (ordens + dados da empresa/máquinas),
   // evitando card parcial (descrição sem máquina) em conexões lentas.
