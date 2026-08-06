@@ -166,6 +166,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [tab, setTab] = useState<MaintenanceOrderStatus | 'relatorios'>('aberto');
   const [finalizedSearch, setFinalizedSearch] = useState('');
   const [finalizedPage, setFinalizedPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const FINALIZED_PAGE_SIZE = 15;
   // Confirm dialogs
   const [confirmStart, setConfirmStart] = useState<MaintenanceOrder | null>(null);
