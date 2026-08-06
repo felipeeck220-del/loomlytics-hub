@@ -261,9 +261,7 @@ export function useCompanyData() {
           { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
           { name: 'defect_records', fn: () => fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'needle_inventory', fn: () => fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
-          { name: 'needle_transactions', fn: () => fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'sinker_inventory', fn: () => fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
-          { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'cylinders', fn: () => fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') },
           { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
           { name: 'machine_needle_refs', fn: () => fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') },
@@ -278,7 +276,7 @@ export function useCompanyData() {
          return result;
        }));
  
-        const [mData, cData, aData, wData, pData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData] = results;
+        const [mData, cData, aData, wData, pData, csRes, drRes, nData, sData, cylData, ytData, mnrData, msrData] = results;
 
         setMachines(mData.map(mapMachine));
         setClients(cData.map(mapClient));
@@ -286,14 +284,12 @@ export function useCompanyData() {
         setWeavers(wData.map(mapWeaver));
         setProductions(pData.map(mapProduction));
         setDefectRecords(drRes.map(mapDefectRecord));
-       setNeedles(nData.map(mapNeedle));
-        setNeedleTransactions(ntData.map(mapNeedleTransaction));
+        setNeedles(nData.map(mapNeedle));
         setSinkers(sData.map(mapSinker));
-        setSinkerTransactions(stData.map(mapSinkerTransaction));
-         setCylinders(cylData.map(mapCylinder));
-         setYarnTypes(ytData);
-         setMachineNeedleRefs(mnrData as MachineNeedleRef[]);
-         setMachineSinkerRefs(msrData as MachineSinkerRef[]);
+        setCylinders(cylData.map(mapCylinder));
+        setYarnTypes(ytData);
+        setMachineNeedleRefs(mnrData as MachineNeedleRef[]);
+        setMachineSinkerRefs(msrData as MachineSinkerRef[]);
        
        if (csRes.data) {
          setShiftSettings({
