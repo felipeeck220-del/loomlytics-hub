@@ -169,16 +169,41 @@ export default function ArticleChangeOrdersTab() {
   const articleById = useMemo(() => Object.fromEntries(articles.map(a => [a.id, a])), [articles]);
   const yarnById = useMemo(() => Object.fromEntries(yarnTypes.map(y => [y.id, y])), [yarnTypes]);
 
-  const load = useCallback(async (opts: { silent?: boolean } = {}) => {
+  const load = useCallback(async (opts: { silent?: boolean; status?: OTStatus | 'concluidas'; page?: number } = {}) => {
     if (!user?.company_id) return;
     if (!opts.silent) setLoading(true);
-    // [rpcmecanica Fase 2] 1 RPC consolidada, yarns já embutidos e ordenados
-    const { data, error } = await (supabase.rpc as any)('get_article_change_orders_list', { p_company_id: user.company_id });
+
+    const statusStr = opts.status || tab;
+    let p_status: string | null = null;
+    let limit = 1000;
+    let offset = 0;
+
+    if (statusStr === 'concluidas') {
+      p_status = 'concluida'; // A RPC vai filtrar 'concluida' ou 'cancelada' se eu ajustar a RPC ou passar um status especial.
+      // Ajuste: Vamos permitir passar status específicos ou null.
+      // A RPC get_article_change_orders_list filtra por status exato se p_status != NULL.
+      // Se eu quiser 'concluida' e 'cancelada' juntas, talvez precise de uma nova RPC ou mudar a lógica.
+      // Para simplificar, vamos filtrar pelo tab atual.
+      p_status = statusStr === 'concluidas' ? 'concluida' : statusStr; 
+      limit = CONCLUIDAS_PAGE_SIZE;
+      offset = (opts.page ?? concluidasPage) * limit;
+    } else {
+      p_status = statusStr;
+    }
+
+    const { data, error } = await (supabase.rpc as any)('get_article_change_orders_list', { 
+      p_company_id: user.company_id,
+      p_status: p_status === 'concluidas' ? null : p_status,
+      p_limit: limit,
+      p_offset: offset
+    });
+
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); setLoading(false); return; }
-    const payload = (data || {}) as { orders?: OT[] };
+    const payload = (data || {}) as { orders?: OT[]; count?: number };
     setOrders((payload.orders || []) as OT[]);
+    setTotalCount(payload.count || 0);
     setLoading(false);
-  }, [user?.company_id]);
+  }, [user?.company_id, tab, concluidasPage]);
 
   useEffect(() => { load(); }, [load]);
 
