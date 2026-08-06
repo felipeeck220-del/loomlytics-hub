@@ -191,22 +191,37 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [escalatePhotos, setEscalatePhotos] = useState<Array<{ id: string; file: File; preview: string; description: string }>>([]);
   const [escalateSaving, setEscalateSaving] = useState(false);
 
-  const load = async (opts?: { silent?: boolean }) => {
+  const load = async (opts?: { silent?: boolean; status?: MaintenanceOrderStatus; page?: number }) => {
     if (!companyId) return;
     if (!opts?.silent) setLoading(true);
-    // [rpcmecanica Fase 2] 1 RPC consolidada em vez de 2 SELECTs
-    const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { p_company_id: companyId });
+    
+    const status = opts?.status || (tab === 'relatorios' ? undefined : tab as MaintenanceOrderStatus);
+    const page = opts?.page ?? (status === 'finalizada' || status === 'cancelada' ? finalizedPage : 0);
+    const limit = (status === 'finalizada' || status === 'cancelada') ? FINALIZED_PAGE_SIZE : 1000;
+    const offset = page * limit;
+
+    const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { 
+      p_company_id: companyId,
+      p_status: status,
+      p_limit: limit,
+      p_offset: offset
+    });
+
     if (error) {
       console.error('[MaintenanceOrdersTab.load] rpc failed', error);
       toast.error('Erro ao carregar ordens de manutenção');
+      if (!opts?.silent) setLoading(false);
+      return;
     }
-    const payload = (data || {}) as { orders?: MaintenanceOrder[]; items?: MaintenanceOrderItem[] };
+
+    const payload = (data || {}) as { orders?: MaintenanceOrder[]; items?: MaintenanceOrderItem[]; count?: number };
     setOrders((payload.orders as MaintenanceOrder[]) || []);
     setItems((payload.items as MaintenanceOrderItem[]) || []);
+    setTotalCount(payload.count || 0);
     if (!opts?.silent) setLoading(false);
   };
 
-  useEffect(() => { load(); }, [companyId]);
+  useEffect(() => { load(); }, [companyId, tab, finalizedPage]);
 
   // Realtime: recarrega OMs/itens/observações quando qualquer usuário da empresa mexer
   useEffect(() => {
