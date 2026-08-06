@@ -144,9 +144,8 @@ export const OfCollectPhotosModal: React.FC<Props> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <p className="text-sm text-muted-foreground">
-            Antes de finalizar, tire até <strong>{MAX_PHOTOS} fotos</strong> das notas fiscais e demais
-            documentos/volumes. As imagens são comprimidas automaticamente antes do envio.
+          <p className="text-sm text-muted-foreground font-medium bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-amber-700 dark:text-amber-400">
+            <strong>Anexo obrigatório:</strong> Tire pelo menos <strong>1 foto</strong> (máximo {MAX_PHOTOS}) das notas fiscais e demais documentos para finalizar.
           </p>
 
           <div className="space-y-3">
