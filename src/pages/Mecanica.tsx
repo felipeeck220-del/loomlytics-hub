@@ -45,6 +45,16 @@ type SinkerProviderPrice = { id: string; company_id: string; provider_id: string
 type SinkerLot = { id: string; company_id: string; provider_id: string; sinker_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
 
 export default function MecanicaPage() {
+   const sb = (table: string) => (supabase.from as any)(table);
+   const mapMachineLog = (r: any): MachineLog => ({
+    id: r.id, machine_id: r.machine_id, status: r.status,
+    started_at: r.started_at, ended_at: r.ended_at || undefined,
+    started_by_name: r.started_by_name || undefined,
+    started_by_code: r.started_by_code || undefined,
+    ended_by_name: r.ended_by_name || undefined,
+    ended_by_code: r.ended_by_code || undefined,
+   });
+
    const { 
      getMachines, getProductions, saveMachineLogs, 
      saveMachines,
@@ -182,7 +192,9 @@ export default function MecanicaPage() {
           : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
+  const [maintenanceLogs, setMaintenanceLogs] = useState<MachineLog[]>([]);
   const machineLogs = maintenanceLogs; // Legacy fallback
+
   const productions = getProductions();
   const { logAction, userName, userCode } = useAuditLog();
   const { user } = useAuth();
