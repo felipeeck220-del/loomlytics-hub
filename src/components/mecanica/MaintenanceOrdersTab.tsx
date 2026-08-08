@@ -192,11 +192,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [escalateSaving, setEscalateSaving] = useState(false);
 
   
-  const loadStats = async () => {
+  const loadStats = async (forceMode?: 'om' | 'oc' | 'oe') => {
     if (!companyId) return;
+    const activeMode = forceMode || mode;
     const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
     if (!error && data) {
-      const modeStats = data[mode] || {};
+      const modeStats = data[activeMode] || {};
       setCounts({
         aberto: (modeStats.aberto || 0),
         em_curso: modeStats.em_curso || 0,
@@ -206,10 +207,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
   };
 
-  const load = async (opts?: { silent?: boolean; status?: MaintenanceOrderStatus; page?: number; search?: string }) => {
+  const load = async (opts?: { silent?: boolean; status?: MaintenanceOrderStatus; page?: number; search?: string; forceMode?: 'om' | 'oc' | 'oe' }) => {
     if (!companyId) return;
     if (!opts?.silent) setLoading(true);
     
+    const activeMode = opts?.forceMode || mode;
     const status = opts?.status || (tab === 'relatorios' ? undefined : tab as MaintenanceOrderStatus);
     const page = opts?.page ?? (status === 'finalizada' || status === 'cancelada' ? finalizedPage : 0);
     const limit = (status === 'finalizada' || status === 'cancelada') ? FINALIZED_PAGE_SIZE : 1000;
@@ -222,7 +224,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       p_limit: limit,
       p_offset: offset,
       p_search: search,
-      p_mode: mode
+      p_mode: activeMode
     });
 
     if (error) {
@@ -236,13 +238,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setOrders((payload.orders as MaintenanceOrder[]) || []);
     setItems((payload.items as MaintenanceOrderItem[]) || []);
     setTotalCount(payload.count || 0);
-    loadStats();
+    loadStats(activeMode);
     if (!opts?.silent) setLoading(false);
   };
 
   useEffect(() => {
-    load();
-  }, [companyId, tab, finalizedPage]);
+    load({ forceMode: mode });
+  }, [companyId, tab, finalizedPage, mode]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
