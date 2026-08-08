@@ -1176,14 +1176,12 @@ function NewOFRModal({
     delivery_doc_number?: string | null;
     items: Array<{
       item_type: "malha" | "fio" | "outros";
-      article_id?: string | null;
-      article_name?: string | null;
-      yarn_type_id?: string | null;
-      yarn_type_name?: string | null;
-      boxes?: number | null;
-      description?: string | null;
+      article_id: string;
+      yarn_type_id: string;
+      boxes: string;
       pieces: number;
-      weight_kg: number;
+      weight_kg: string;
+      description?: string;
     }>;
   };
   onSubmit: (p: {
@@ -1243,11 +1241,11 @@ function NewOFRModal({
           initial.items?.length
             ? initial.items.map((i) => ({
                 item_type: i.item_type,
-                article_id: i.article_id || "",
-                yarn_type_id: i.yarn_type_id || "",
-                boxes: (i.boxes || "").toString(),
-                pieces: i.pieces || 0,
-                weight_kg: (i.weight_kg || "").toString(),
+                article_id: i.article_id,
+                yarn_type_id: i.yarn_type_id,
+                boxes: i.boxes,
+                pieces: i.pieces,
+                weight_kg: i.weight_kg,
                 description: i.description || "",
               }))
             : [{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }],
