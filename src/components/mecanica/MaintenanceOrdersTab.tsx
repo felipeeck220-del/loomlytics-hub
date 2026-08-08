@@ -191,11 +191,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [escalatePhotos, setEscalatePhotos] = useState<Array<{ id: string; file: File; preview: string; description: string }>>([]);
   const [escalateSaving, setEscalateSaving] = useState(false);
 
+  const [counts, setCounts] = useState({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
   const loadStats = async () => {
     if (!companyId) return;
     const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
     if (!error && data) {
-      // mode can be 'om', 'oc' or 'oe'
       const modeStats = data[mode] || {};
       setCounts({
         aberto: (modeStats.aberto || 0),
@@ -1112,8 +1112,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     return m;
   }, [items]);
 
-  // Com a RPC paginada, listToRender é o próprio orders
-  const listToRender = displayed;
+  const listToRender = orders;
 
   useEffect(() => { setFinalizedPage(0); }, [finalizedSearch, tab, mode]);
 
@@ -1128,9 +1127,6 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   if (loading) {
     return (
       <div className="space-y-4 p-2">
-        <div className="flex items-center justify-center py-4 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…
-        </div>
         <OrderCardSkeleton count={3} label={labelShort} />
       </div>
     );
