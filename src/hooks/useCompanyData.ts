@@ -260,7 +260,7 @@ export function useCompanyData() {
           { name: 'weavers', fn: () => fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') },
           { name: 'productions', fn: () => fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
-          { name: 'defect_records', fn: () => fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) },
+          { name: 'defect_records', fn: () => isMecanicaPage ? fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
           { name: 'needle_inventory', fn: () => isMecanicaPage ? fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },
           { name: 'sinker_inventory', fn: () => isMecanicaPage ? fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },
           { name: 'cylinders', fn: () => isMecanicaPage ? fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') : Promise.resolve([]) },
