@@ -1,6 +1,7 @@
-- **08/08/2026 (Brasília) — Mecânica: Correção definitiva do isolamento de abas (OM/OC/OE):**
-    - Corrigido bug onde a mudança entre abas de mecânica mantinha dados da aba anterior. Implementado o parâmetro `forceMode` na função `load` de `MaintenanceOrdersTab.tsx` e adicionado o `mode` como dependência no `useEffect` de carregamento, garantindo o isolamento total dos dados entre OM, OC e OE.
-    - Otimizada a experiência de carregamento: removidos textos de "Carregando..." redundantes, utilizando apenas skeletons para uma transição visual mais limpa.
+- **08/08/2026 (Brasília) — Mecânica: Remoção de Skeletons e otimização visual:**
+    - Removidos os `OrderCardSkeleton` de todas as abas de Mecânica (OM, OC, OE e OT) por solicitação do usuário, visando reduzir a percepção de demora no carregamento.
+    - Implementado um spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados, garantindo feedback imediato sem o "salto" visual dos skeletons.
+    - Mantido o isolamento definitivo de abas implementado anteriormente.
     - Ajustado o estado de carregamento para evitar a exibição de dados parciais ou incorretos durante a transição entre abas.
 - **08/08/2026 (Brasília) — Ordem de Frete (OFR): Registro Manual de fretes realizados:**
 1:     - Implementado o botão "Registro Manual" que abre um modal idêntico ao de "Nova OFR", mas com o campo obrigatório "Data do Frete Realizado".

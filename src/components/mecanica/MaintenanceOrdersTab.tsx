@@ -26,7 +26,6 @@ import { generateOmReportPdf } from '@/lib/omReportPdf';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import OCReportsTab from './OCReportsTab';
-import OrderCardSkeleton from './OrderCardSkeleton';
 
 const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
@@ -1128,8 +1127,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   if (loading) {
     return (
-      <div className="space-y-4 p-2">
-        <OrderCardSkeleton count={3} label={labelShort} />
+      <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground animate-pulse">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="text-sm font-medium">Carregando ordens...</p>
       </div>
     );
   }
@@ -1235,7 +1235,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             </div>
           )}
           {dataLoading ? (
-            <OrderCardSkeleton count={3} label={labelShort} />
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground animate-pulse">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <p className="text-sm font-medium">Carregando...</p>
+            </div>
           ) : listToRender.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
