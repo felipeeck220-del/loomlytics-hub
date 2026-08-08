@@ -209,8 +209,8 @@ export default function ArticleChangeOrdersTab() {
     const payload = (data || {}) as { orders?: OT[]; count?: number };
     setOrders((payload.orders || []) as OT[]);
     setTotalCount(payload.count || 0);
-    setLoading(false);
     loadStats();
+    setLoading(false);
   }, [user?.company_id, tab, concluidasPage, concluidasSearch, loadStats]);
 
   useEffect(() => { load(); }, [load]);

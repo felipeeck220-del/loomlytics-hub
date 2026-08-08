@@ -1,3 +1,7 @@
+- **08/08/2026 (Brasília) — Mecânica: Otimização de carregamento e isolamento de ordens:**
+    - Resolvido o problema de transbordo de ordens entre abas (OM/OC/OE) garantindo que o parâmetro `p_mode` da RPC `get_maintenance_orders_list` seja respeitado no frontend.
+    - Otimizada a experiência de carregamento: removidos textos de "Carregando..." redundantes, utilizando apenas skeletons para uma transição visual mais limpa.
+    - Ajustado o estado de carregamento para evitar a exibição de dados parciais ou incorretos durante a transição entre abas.
 - **08/08/2026 (Brasília) — Ordem de Frete (OFR): Registro Manual de fretes realizados:**
 1:     - Implementado o botão "Registro Manual" que abre um modal idêntico ao de "Nova OFR", mas com o campo obrigatório "Data do Frete Realizado".
 2:     - OFRs criadas via Registro Manual são salvas diretamente com status `completed` e utilizam a data informada como `created_at` e `completed_at`, garantindo que apareçam no mês correto dos relatórios de faturamento.

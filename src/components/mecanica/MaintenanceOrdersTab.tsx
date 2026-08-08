@@ -236,8 +236,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setOrders((payload.orders as MaintenanceOrder[]) || []);
     setItems((payload.items as MaintenanceOrderItem[]) || []);
     setTotalCount(payload.count || 0);
-    if (!opts?.silent) setLoading(false);
     loadStats();
+    if (!opts?.silent) setLoading(false);
   };
 
   useEffect(() => {
