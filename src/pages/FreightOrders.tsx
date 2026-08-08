@@ -1140,6 +1140,7 @@ function NewOFRModal({
   onSubmit,
   submitting,
   mode = "create",
+  isManualRegistration = false,
   initial,
 }: {
   open: boolean;
@@ -1227,7 +1228,15 @@ function NewOFRModal({
         setDocNumber(initial.delivery_doc_number || "");
         setItems(
           initial.items?.length
-            ? initial.items.map((i) => ({ ...i, description: i.description || "" }))
+            ? initial.items.map((i) => ({
+                item_type: i.item_type,
+                article_id: i.article_id || "",
+                yarn_type_id: i.yarn_type_id || "",
+                boxes: (i.boxes || "").toString(),
+                pieces: i.pieces || 0,
+                weight_kg: (i.weight_kg || "").toString(),
+                description: i.description || "",
+              }))
             : [{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }],
         );
       } else {
