@@ -484,57 +484,70 @@ export default function FreightOrders() {
       </Tabs>
 
       {hasFullAccess && (
-        <NewOFRModal
-          open={newOpen}
-          onOpenChange={setNewOpen}
-          freighters={freighters}
-          costCompanies={costCompanies}
-          addresses={addresses}
-          articles={articles as any}
-          yarnTypes={yarnTypes as any}
-          onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
-          submitting={createOrder.isPending}
-        />
-      )}
+        <>
+          <NewOFRModal
+            open={newOpen}
+            onOpenChange={setNewOpen}
+            freighters={freighters}
+            costCompanies={costCompanies}
+            addresses={addresses}
+            articles={articles}
+            yarnTypes={yarnTypes}
+            onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
+            submitting={createOrder.isPending}
+          />
 
-      {hasFullAccess && (
-        <NewOFRModal
-          open={!!editOrder}
-          onOpenChange={(o) => !o && setEditOrder(null)}
-          freighters={freighters}
-          costCompanies={costCompanies}
-          addresses={addresses}
-          articles={articles as any}
-          yarnTypes={yarnTypes as any}
-          mode="edit"
-          initial={
-            editOrder
-              ? {
-                  freighter_id: editOrder.freighter_id,
-                  cost_company_id: editOrder.cost_company_id || "",
-                  pickup_location: editOrder.pickup_location,
-                  delivery_location: editOrder.delivery_location,
-                  observations: editOrder.observations || "",
-                  delivery_doc_type: editOrder.delivery_doc_type || null,
-                  delivery_doc_number: editOrder.delivery_doc_number || "",
-                  items: (editOrder.items || []).map((it) => ({
-                    item_type: (it.item_type || "malha") as "malha" | "fio" | "outros",
-                    article_id: it.article_id || "",
-                    yarn_type_id: it.yarn_type_id || "",
-                    boxes: it.boxes != null ? String(it.boxes) : "",
-                    pieces: Number(it.pieces || 0),
-                    weight_kg: it.weight_kg != null ? String(it.weight_kg).replace(".", ",") : "",
-                    description: (it as any).description || "",
-                  })),
-                }
-              : undefined
-          }
-          onSubmit={(payload) => {
-            if (!editOrder) return;
-            updateOrder.mutate({ id: editOrder.id, ...payload }, { onSuccess: () => setEditOrder(null) });
-          }}
-          submitting={updateOrder.isPending}
-        />
+          <NewOFRModal
+            open={newManualOpen}
+            onOpenChange={setNewManualOpen}
+            freighters={freighters}
+            costCompanies={costCompanies}
+            addresses={addresses}
+            articles={articles}
+            yarnTypes={yarnTypes}
+            onSubmit={(payload) => createOrder.mutate({ ...payload, status: "completed" }, { onSuccess: () => setNewManualOpen(false) })}
+            submitting={createOrder.isPending}
+            isManualRegistration
+          />
+
+          <NewOFRModal
+            open={!!editOrder}
+            onOpenChange={(o) => !o && setEditOrder(null)}
+            freighters={freighters}
+            costCompanies={costCompanies}
+            addresses={addresses}
+            articles={articles}
+            yarnTypes={yarnTypes}
+            mode="edit"
+            initial={
+              editOrder
+                ? {
+                    freighter_id: editOrder.freighter_id,
+                    cost_company_id: editOrder.cost_company_id || "",
+                    pickup_location: editOrder.pickup_location,
+                    delivery_location: editOrder.delivery_location,
+                    observations: editOrder.observations || "",
+                    delivery_doc_type: editOrder.delivery_doc_type || null,
+                    delivery_doc_number: editOrder.delivery_doc_number || "",
+                    items: (editOrder.items || []).map((it) => ({
+                      item_type: (it.item_type || "malha") as "malha" | "fio" | "outros",
+                      article_id: it.article_id || "",
+                      yarn_type_id: it.yarn_type_id || "",
+                      boxes: it.boxes != null ? String(it.boxes) : "",
+                      pieces: Number(it.pieces || 0),
+                      weight_kg: it.weight_kg != null ? String(it.weight_kg).replace(".", ",") : "",
+                      description: (it as any).description || "",
+                    })),
+                  }
+                : undefined
+            }
+            onSubmit={(payload) => {
+              if (!editOrder) return;
+              updateOrder.mutate({ id: editOrder.id, ...payload }, { onSuccess: () => setEditOrder(null) });
+            }}
+            submitting={updateOrder.isPending}
+          />
+        </>
       )}
 
       {hasFullAccess && (
