@@ -191,7 +191,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [escalatePhotos, setEscalatePhotos] = useState<Array<{ id: string; file: File; preview: string; description: string }>>([]);
   const [escalateSaving, setEscalateSaving] = useState(false);
 
-  const [counts, setCounts] = useState({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
+  
   const loadStats = async () => {
     if (!companyId) return;
     const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
