@@ -177,6 +177,7 @@ export default function FreightOrders() {
   const [completedPage, setCompletedPage] = useState(0);
   const COMPLETED_PAGE_SIZE = 15;
   const [newOpen, setNewOpen] = useState(false);
+  const [newManualOpen, setNewManualOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
@@ -312,6 +313,9 @@ export default function FreightOrders() {
               </Button>
               <Button variant="outline" onClick={() => setAddressesOpen(true)} className="gap-2">
                 <MapPin className="h-4 w-4" /> Endereços
+              </Button>
+              <Button variant="outline" onClick={() => setNewManualOpen(true)} className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
+                <History className="h-4 w-4" /> Registro Manual
               </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
@@ -1145,12 +1149,15 @@ function NewOFRModal({
   addresses: Array<{ id: string; name: string; full_address: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
   yarnTypes: Array<{ id: string; name: string }>;
-  onSubmit: (p: {
+  submitting: boolean;
+  mode?: "create" | "edit";
+  isManualRegistration?: boolean;
+  initial?: {
     freighter_id: string;
     cost_company_id: string;
     pickup_location: string;
     delivery_location: string;
-    observations?: string;
+    observations?: string | null;
     delivery_doc_type?: "nf" | "rom" | null;
     delivery_doc_number?: string | null;
     items: Array<{
@@ -1164,27 +1171,28 @@ function NewOFRModal({
       pieces: number;
       weight_kg: number;
     }>;
-  }) => void;
-  submitting: boolean;
-  mode?: "create" | "edit";
-  initial?: {
+  };
+  onSubmit: (p: {
     freighter_id: string;
     cost_company_id: string;
     pickup_location: string;
     delivery_location: string;
-    observations?: string | null;
+    observations?: string;
     delivery_doc_type?: "nf" | "rom" | null;
     delivery_doc_number?: string | null;
+    manual_date?: string | null;
     items: Array<{
       item_type: "malha" | "fio" | "outros";
-      article_id: string;
-      yarn_type_id: string;
-      boxes: string;
+      article_id?: string | null;
+      article_name?: string | null;
+      yarn_type_id?: string | null;
+      yarn_type_name?: string | null;
+      boxes?: number | null;
+      description?: string | null;
       pieces: number;
-      weight_kg: string;
-      description?: string;
+      weight_kg: number;
     }>;
-  };
+  }) => void;
 }) {
   const [freighterId, setFreighterId] = useState("");
   const [costCompanyId, setCostCompanyId] = useState("");
@@ -1193,6 +1201,7 @@ function NewOFRModal({
   const [obs, setObs] = useState("");
   const [docType, setDocType] = useState<"nf" | "rom" | "">("");
   const [docNumber, setDocNumber] = useState("");
+  const [manualDate, setManualDate] = useState("");
   const [items, setItems] = useState<
     Array<{
       item_type: "malha" | "fio" | "outros";
@@ -1229,6 +1238,7 @@ function NewOFRModal({
         setObs("");
         setDocType("");
         setDocNumber("");
+        setManualDate("");
         setItems([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }]);
       }
     }
@@ -1237,6 +1247,7 @@ function NewOFRModal({
   const submit = () => {
     if (!freighterId) return toast({ title: "Selecione o freteiro", variant: "destructive" });
     if (!costCompanyId) return toast({ title: "Selecione a empresa (Rateio de custo)", variant: "destructive" });
+    if (isManualRegistration && !manualDate) return toast({ title: "Selecione a data do registro", variant: "destructive" });
     if (!pickup.trim() || !delivery.trim())
       return toast({ title: "Preencha coleta e entrega", variant: "destructive" });
     const cleaned = items
@@ -1259,6 +1270,7 @@ function NewOFRModal({
       observations: obs.trim() || undefined,
       delivery_doc_type: docType || null,
       delivery_doc_number: docNumber.trim() || null,
+      manual_date: manualDate ? new Date(manualDate).toISOString() : null,
       items: cleaned.map((i) => {
         if (i.item_type === "fio") {
           const yt = yarnTypes.find((y) => y.id === i.yarn_type_id);
@@ -1304,7 +1316,9 @@ function NewOFRModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{mode === "edit" ? "Editar Ordem de Frete" : "Nova Ordem de Frete"}</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Editar Ordem de Frete" : isManualRegistration ? "Registro Manual de Frete Realizado" : "Nova Ordem de Frete"}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1391,6 +1405,20 @@ function NewOFRModal({
               <Input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} placeholder="Ex: 12345" />
             </div>
           </div>
+          {isManualRegistration && (
+            <div>
+              <Label>Data do Frete Realizado *</Label>
+              <Input
+                type="date"
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                A data informada será usada como data base do registro no sistema.
+              </p>
+            </div>
+          )}
           <div>
             <Label>Observações</Label>
             <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} />

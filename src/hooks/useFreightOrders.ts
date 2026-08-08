@@ -288,6 +288,8 @@ export function useFreightOrders() {
       observations?: string;
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
+      status?: FreightOrderStatus;
+      manual_date?: string | null;
       items: Array<{
         item_type: 'malha' | 'fio' | 'outros';
         article_id?: string | null;
@@ -323,7 +325,10 @@ export function useFreightOrders() {
             observations: payload.observations || null,
             delivery_doc_type: payload.delivery_doc_type || null,
             delivery_doc_number: payload.delivery_doc_number || null,
-            status: 'open',
+            status: payload.status || 'open',
+            created_at: payload.manual_date || new Date().toISOString(),
+            completed_at: payload.status === 'completed' ? (payload.manual_date || new Date().toISOString()) : null,
+            completed_by: payload.status === 'completed' ? (profile?.id ?? null) : null,
             created_by: profile?.id ?? null,
           })
           .select()
