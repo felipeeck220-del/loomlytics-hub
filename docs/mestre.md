@@ -1,4 +1,8 @@
-- **06/08/2026 (Brasília) — Correção de contagem e isolamento OM/OC/OE e erro de coluna em OT:**
+- **08/08/2026 (Brasília) — Ordem de Frete (OFR): Registro Manual de fretes realizados:**
+1:     - Implementado o botão "Registro Manual" que abre um modal idêntico ao de "Nova OFR", mas com o campo obrigatório "Data do Frete Realizado".
+2:     - OFRs criadas via Registro Manual são salvas diretamente com status `completed` e utilizam a data informada como `created_at` e `completed_at`, garantindo que apareçam no mês correto dos relatórios de faturamento.
+3:     - Atualizada a mutation `createOrder` no `useFreightOrders` para suportar `manual_date` e `status` customizado.
+4: - **06/08/2026 (Brasília) — Correção de contagem e isolamento OM/OC/OE e erro de coluna em OT:**
     - **Mecânica (OM/OC/OE):** As Ordens Elétricas e de Corretiva agora são filtradas corretamente por aba, incluindo os badges de contagem. A RPC `get_mecanica_stats` foi atualizada para retornar contagens separadas por modo (`om`, `oc`, `oe`), evitando a soma de todos os tipos em todas as abas.
     - **Mecânica (OM/OC/OE):** A RPC `get_maintenance_orders_list` recebeu o parâmetro `p_mode` para isolar os tipos de ordem em suas abas respectivas (OM: preventiva/artigo/agulha; OC: corretiva; OE: elétrica).
     - **Mecânica (OT):** Corrigido erro `column "notes" does not exist` na listagem de Troca de Artigo (OT). A RPC `get_article_change_orders_list` foi atualizada para usar a coluna correta `observations`.
