@@ -22,7 +22,6 @@ import { getFriendlyErrorMessage } from '@/lib/utils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { generateOtReportPdf } from '@/lib/otReportPdf';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
-import OrderCardSkeleton from './OrderCardSkeleton';
 
 type OTStatus =
   | 'aberto'
@@ -405,8 +404,9 @@ export default function ArticleChangeOrdersTab() {
 
         <TabsContent value={tab} className="mt-4">
           {loading || companyLoading ? (
-            <div className="space-y-3">
-              <OrderCardSkeleton count={3} label="OT" />
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground animate-pulse">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <p className="text-sm font-medium">Carregando OTs...</p>
             </div>
           ) : (
             <>
