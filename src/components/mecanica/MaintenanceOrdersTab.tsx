@@ -1235,7 +1235,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             </div>
           )}
           {dataLoading ? (
-            <OrderCardSkeleton count={3} label={labelShort} />
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground animate-pulse">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <p className="text-sm font-medium">Carregando...</p>
+            </div>
           ) : listToRender.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
