@@ -192,8 +192,8 @@ export default function MecanicaPage() {
           : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
-  const [maintenanceLogs, setMaintenanceLogs] = useState<MachineLog[]>([]);
-  const machineLogs = maintenanceLogs; // Legacy fallback
+  const maintenanceLogs: MachineLog[] = []; // Now empty as we use MaintenanceOrdersTab with RPC
+  const machineLogs = maintenanceLogs;
 
   const productions = getProductions();
   const { logAction, userName, userCode } = useAuditLog();

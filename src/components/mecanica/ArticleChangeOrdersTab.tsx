@@ -406,7 +406,6 @@ export default function ArticleChangeOrdersTab() {
         <TabsContent value={tab} className="mt-4">
           {loading || companyLoading ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground py-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando OTs…</div>
               <OrderCardSkeleton count={3} label="OT" />
             </div>
           ) : (

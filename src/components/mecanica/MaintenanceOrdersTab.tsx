@@ -222,7 +222,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       p_limit: limit,
       p_offset: offset,
       p_search: search,
-      p_mode: mode // Pass current mode (om, oc, or oe)
+      p_mode: mode
     });
 
     if (error) {
