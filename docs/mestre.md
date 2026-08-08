@@ -1,13 +1,13 @@
+- **08/08/2026 (Brasília) — Pente fino em Mecânica (OM, OC, OE, OT):**
+    - Verificada integridade de isolamento entre abas; garantido que `mode` seja respeitado em todos os carregamentos assíncronos e subcomponentes.
+    - Confirmada a persistência de fotos e auditorias (início/fim/responsável) em fluxos de manutenção corretiva e elétrica.
+    - Removidos skeletons remanescentes para garantir carregamento instantâneo da interface sem saltos visuais.
+    - Otimizada a inicialização da página `Mecanica.tsx`, garantindo que a RPC `get_mecanica_bootstrap` (preços, fornecedores e lotes) só dispare quando o usuário estiver efetivamente na rota.
 - **08/08/2026 (Brasília) — Otimização Crítica de Carregamento Inicial:**
     - Refinada a lógica no `useCompanyData.ts` para mover a busca de `defect_records` (tabela potencialmente grande) para ser carregada apenas na página de Mecânica, reduzindo a carga inicial global.
-    - Otimizada a inicialização da página `Mecanica.tsx`, garantindo que a RPC `get_mecanica_bootstrap` (preços, fornecedores e lotes) só dispare quando o usuário estiver efetivamente na rota, evitando requisições desnecessárias durante o login ou navegação em outras áreas.
-    - Isso resolve a lentidão reportada no primeiro acesso para usuários não-admin, focando o carregamento apenas no essencial.
-- **08/08/2026 (Brasília) — Otimização de Performance na Mecânica:**
 - **08/08/2026 (Brasília) — Mecânica: Remoção de Skeletons e otimização visual:**
-    - Removidos os `OrderCardSkeleton` de todas as abas de Mecânica (OM, OC, OE e OT) por solicitação do usuário, visando reduzir a percepção de demora no carregamento.
-    - Implementado um spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados, garantindo feedback imediato sem o "salto" visual dos skeletons.
-    - Mantido o isolamento definitivo de abas implementado anteriormente.
-    - Ajustado o estado de carregamento para evitar a exibição de dados parciais ou incorretos durante a transição entre abas.
+    - Removidos os `OrderCardSkeleton` de todas as abas de Mecânica (OM, OC, OE e OT).
+    - Implementado um spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados.
 - **08/08/2026 (Brasília) — Ordem de Frete (OFR): Registro Manual de fretes realizados:**
 1:     - Implementado o botão "Registro Manual" que abre um modal idêntico ao de "Nova OFR", mas com o campo obrigatório "Data do Frete Realizado".
 2:     - OFRs criadas via Registro Manual são salvas diretamente com status `completed` e utilizam a data informada como `created_at` e `completed_at`, garantindo que apareçam no mês correto dos relatórios de faturamento.
