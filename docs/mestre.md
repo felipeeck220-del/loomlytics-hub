@@ -1,3 +1,7 @@
+- **08/08/2026 (Brasília) — Otimização de Performance na Mecânica:**
+    - Otimizado o carregamento de dados globais no `useCompanyData.ts` para buscar tabelas de estoque de agulhas, platinas e cilindros apenas quando o usuário acessa a página de Mecânica.
+    - Isso acelera o carregamento inicial do sistema para mecânicos e usuários com acesso restrito que não precisam desses dados em outras telas.
+    - Mantido o feedback imediato em OM, OC, OE e OT sem skeletons, garantindo isolamento total entre abas.
 - **08/08/2026 (Brasília) — Mecânica: Remoção de Skeletons e otimização visual:**
     - Removidos os `OrderCardSkeleton` de todas as abas de Mecânica (OM, OC, OE e OT) por solicitação do usuário, visando reduzir a percepção de demora no carregamento.
     - Implementado um spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados, garantindo feedback imediato sem o "salto" visual dos skeletons.
