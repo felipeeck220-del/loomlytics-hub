@@ -209,8 +209,8 @@ export default function ArticleChangeOrdersTab() {
     const payload = (data || {}) as { orders?: OT[]; count?: number };
     setOrders((payload.orders || []) as OT[]);
     setTotalCount(payload.count || 0);
-    setLoading(false);
     loadStats();
+    setLoading(false);
   }, [user?.company_id, tab, concluidasPage, concluidasSearch, loadStats]);
 
   useEffect(() => { load(); }, [load]);
@@ -406,7 +406,6 @@ export default function ArticleChangeOrdersTab() {
         <TabsContent value={tab} className="mt-4">
           {loading || companyLoading ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground py-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando OTs…</div>
               <OrderCardSkeleton count={3} label="OT" />
             </div>
           ) : (
