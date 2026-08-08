@@ -1,7 +1,8 @@
+- **08/08/2026 (Brasília) — Otimização Crítica de Carregamento Inicial:**
+    - Refinada a lógica no `useCompanyData.ts` para mover a busca de `defect_records` (tabela potencialmente grande) para ser carregada apenas na página de Mecânica, reduzindo a carga inicial global.
+    - Otimizada a inicialização da página `Mecanica.tsx`, garantindo que a RPC `get_mecanica_bootstrap` (preços, fornecedores e lotes) só dispare quando o usuário estiver efetivamente na rota, evitando requisições desnecessárias durante o login ou navegação em outras áreas.
+    - Isso resolve a lentidão reportada no primeiro acesso para usuários não-admin, focando o carregamento apenas no essencial.
 - **08/08/2026 (Brasília) — Otimização de Performance na Mecânica:**
-    - Otimizado o carregamento de dados globais no `useCompanyData.ts` para buscar tabelas de estoque de agulhas, platinas e cilindros apenas quando o usuário acessa a página de Mecânica.
-    - Isso acelera o carregamento inicial do sistema para mecânicos e usuários com acesso restrito que não precisam desses dados em outras telas.
-    - Mantido o feedback imediato em OM, OC, OE e OT sem skeletons, garantindo isolamento total entre abas.
 - **08/08/2026 (Brasília) — Mecânica: Remoção de Skeletons e otimização visual:**
     - Removidos os `OrderCardSkeleton` de todas as abas de Mecânica (OM, OC, OE e OT) por solicitação do usuário, visando reduzir a percepção de demora no carregamento.
     - Implementado um spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados, garantindo feedback imediato sem o "salto" visual dos skeletons.

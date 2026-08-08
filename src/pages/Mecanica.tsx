@@ -247,7 +247,7 @@ export default function MecanicaPage() {
   // [rpcmecanica Fase 1] Carrega fornecedores + preços + lotes (agulhas e platinas)
   // em uma única RPC consolidada `get_mecanica_bootstrap`, substituindo 6 SELECTs.
   useEffect(() => {
-    if (!user?.company_id) return;
+    if (!user?.company_id || !window.location.pathname.includes('/mecanica')) return;
     const cid = user.company_id;
     (async () => {
       const { data, error } = await (supabase.rpc as any)('get_mecanica_bootstrap', { p_company_id: cid });
