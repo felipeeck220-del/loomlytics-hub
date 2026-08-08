@@ -1,5 +1,5 @@
-- **08/08/2026 (Brasília) — Mecânica: Otimização de carregamento e isolamento de ordens:**
-    - Resolvido o problema de transbordo de ordens entre abas (OM/OC/OE) garantindo que o parâmetro `p_mode` da RPC `get_maintenance_orders_list` seja respeitado no frontend.
+- **08/08/2026 (Brasília) — Mecânica: Correção definitiva do isolamento de abas (OM/OC/OE):**
+    - Corrigido bug onde a mudança entre abas de mecânica mantinha dados da aba anterior. Implementado o parâmetro `forceMode` na função `load` de `MaintenanceOrdersTab.tsx` e adicionado o `mode` como dependência no `useEffect` de carregamento, garantindo o isolamento total dos dados entre OM, OC e OE.
     - Otimizada a experiência de carregamento: removidos textos de "Carregando..." redundantes, utilizando apenas skeletons para uma transição visual mais limpa.
     - Ajustado o estado de carregamento para evitar a exibição de dados parciais ou incorretos durante a transição entre abas.
 - **08/08/2026 (Brasília) — Ordem de Frete (OFR): Registro Manual de fretes realizados:**
