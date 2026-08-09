@@ -1647,7 +1647,7 @@ const BillingOrders = () => {
                   type="button"
                   variant={form.order_type === 'all' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setForm({ ...form, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '', multiplier: '' })}
+                  onClick={() => setForm({ ...form, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '' })}
                 >Coletar Tudo</Button>
               </div>
             </div>
@@ -1705,7 +1705,6 @@ const BillingOrders = () => {
                   value={form.multiplier}
                   onChange={e => setForm({ ...form, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
                   placeholder="Ex: 13 (separar em múltiplos de 13 peças)"
-                  disabled={form.order_type === 'all'}
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Se preenchido, a separação só pode ser finalizada com total de peças múltiplo desse valor.
@@ -1964,7 +1963,7 @@ const BillingOrders = () => {
               <div className="col-span-3 grid grid-cols-3 gap-2">
                 <Button type="button" size="sm" variant={editForm.order_type === 'pieces' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'pieces'})}>Por Peças</Button>
                 <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso</Button>
-                <Button type="button" size="sm" variant={editForm.order_type === 'all' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '', multiplier: ''})}>Coletar Tudo</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'all' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: ''})}>Coletar Tudo</Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
@@ -2012,7 +2011,6 @@ const BillingOrders = () => {
                 value={editForm.multiplier}
                 onChange={e => setEditForm({ ...editForm, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
                 placeholder="Opcional — ex: 13"
-                disabled={editForm.order_type === 'all'}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
