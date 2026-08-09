@@ -1362,6 +1362,12 @@ const BillingOrders = () => {
                           <div className="text-[10px] uppercase text-muted-foreground font-semibold">Máquina</div>
                           <div className="text-foreground font-medium whitespace-normal break-words">{order.machine?.name || '—'}</div>
                         </div>
+                        {order.multiplier && (
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase text-indigo-600 dark:text-indigo-400 font-bold">Múltiplo</div>
+                            <Badge className="bg-indigo-600 hover:bg-indigo-600 text-white font-bold h-5 px-1.5">{order.multiplier}</Badge>
+                          </div>
+                        )}
                       </div>
 
                       {order.status === 'ready' && order.weight_avg && (
