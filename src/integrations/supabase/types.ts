@@ -5571,38 +5571,15 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
-      get_manual_stock_estoque:
-        | {
-            Args: {
-              p_article_id?: string
-              p_client_id?: string
-              p_company_id: string
-              p_month?: string
-            }
-            Returns: {
-              article_id: string
-              article_name: string
-              available_kg: number
-              available_pc: number
-              client_id: string
-              client_name: string
-              delivered_kg: number
-              delivered_pc: number
-              machine_pc: number
-              manual_kg: number
-              manual_pc: number
-              reserved_kg: number
-              reserved_pc: number
-            }[]
-          }
-        | {
-            Args: {
-              p_company_id: string
-              p_end_date?: string
-              p_start_date?: string
-            }
-            Returns: Json
-          }
+      get_manual_stock_estoque: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_month?: string
+        }
+        Returns: Json
+      }
       get_manual_stock_movements: {
         Args: {
           p_article_id?: string
