@@ -2705,10 +2705,8 @@ const BillingOrders = () => {
                             const sorted = Array.from(bal.entries())
                               .filter(([, v]) => v.weight > 0.0001 || v.pieces > 0)
                               .sort((a, b) => b[1].weight - a[1].weight);
-
                             let remPc = pc || 0;
                             let remKg = wt || 0;
-
                             for (const [mid, v] of sorted) {
                               if (remKg <= 0.0001 && remPc <= 0) break;
                               const takePc = Math.min(Math.max(v.pieces, 0), remPc);
@@ -2718,18 +2716,24 @@ const BillingOrders = () => {
                               remPc -= takePc;
                               remKg -= takeKg;
                             }
-
-                            // Revertido: Não permite alocação forçada sem estoque físico.
-                            // Se remanescente for positivo, a reserva deve falhar ou ser limitada ao saldo real
-                            // para evitar "zerar" o estoque visual por excesso de reserva.
+                            // Se ainda sobrou algo (estoque insuficiente ou negativo),
+                            // distribuímos o restante na primeira máquina da lista (maior saldo)
+                            // ou na máquina principal do artigo para garantir o desconto total solicitado.
                             if (remKg > 0.0001 || remPc > 0) {
-                              toast({ 
-                                title: 'Saldo Insuficiente', 
-                                description: `Não há saldo físico suficiente para a reserva total (${remPc} pç / ${remKg.toFixed(2)} kg restantes).`, 
-                                variant: 'destructive' 
-                              });
-                              setPalletBusy(false);
-                              return;
+                              const allMachines = getMachines();
+                              const fallbackMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || allMachines[0]?.id);
+                              if (!fallbackMid) {
+                                toast({ title: 'Erro de integridade', description: 'Nenhuma máquina encontrada para alocação.', variant: 'destructive' });
+                                setPalletBusy(false);
+                                return;
+                              }
+                              const existing = allocations.find(a => a.machine_id === fallbackMid);
+                              if (existing) {
+                                existing.pieces += remPc;
+                                existing.weight_kg = Number((existing.weight_kg + remKg).toFixed(3));
+                              } else {
+                                allocations.push({ machine_id: fallbackMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
+                              }
                             }
                           }
 

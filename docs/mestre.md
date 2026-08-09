@@ -1,13 +1,16 @@
-- **10/08/2026 (Brasília) — Reversão de Reserva Forçada e Ajuste de Saldo:**
-    - **Estoque Malha (Manual):** Revertida a lógica de alocação "SEM MÁQUINA" em `BillingOrders.tsx`. O sistema voltou a bloquear reservas que excedam o saldo físico real das máquinas, evitando que o estoque disponível "zere" indevidamente devido a reservas globais agressivas que consumiam saldos inexistentes.
-    - **Auditoria:** Mantida a implementação de `public._of_audit` para registro centralizado em `audit_logs`.
+- **10/08/2026 (Brasília) — Correção de Baixa "SEM MÁQUINA" no Estoque Manual:**
+    - Corrigido bug onde a coleta de Ordens de Faturamento (OF) marcadas como "SEM MÁQUINA" não descontava o saldo no módulo de **Estoque Malha (Manual)**.
+    - O trigger `mirror_of_to_manual_stock` foi ajustado para processar corretamente movimentos com `machine_id` nulo e garantir o fallback de cliente via artigo.
+    - Realizado backfill automático para sincronizar movimentos de saída ('out') que haviam ficado órfãos no histórico manual.
 - **10/08/2026 (Brasília) — Auditoria e Consistência (OF e Estoque Manual):**
     - **Auditoria:** Implementado `public._of_audit` para registro centralizado em `audit_logs`. Atualizadas RPCs `create_billing_order`, `edit_billing_order`, `save_manual_stock_manual_entry` e `save_manual_stock_machine_adjust` para registrar todas as criações, edições e ajustes manuais com autoria e detalhes.
-    - **Consistência "SEM MÁQUINA":** [REVERTIDO] Lógica de alocação forçada removida para restaurar visibilidade de estoque real.
+    - **Consistência "SEM MÁQUINA":** Refatorada lógica de alocação no frontend (`src/pages/BillingOrders.tsx`) para garantir que 100% das peças/kg solicitados sejam baixados do estoque global, mesmo que o saldo físico nas máquinas seja insuficiente ou negativo (alocação forçada na máquina principal/fallback).
     - **Validação de Estoque Manual:** RPC `save_manual_stock_manual_entry` agora utiliza a mesma lógica cronológica "greedy" de saldo disponível (Físico - Reservas) para impedir lançamentos de saída que resultariam em saldo negativo, protegendo a integridade do inventário.
     - **Multiplos:** Adicionada validação visual preventiva (Toast) no modal de paletes de OF ao tentar adicionar peças que não fecham com o múltiplo definido, mantendo a trava rígida de finalização no encerramento da separação.
-- **09/08/2026 (Brasília) — [REVERTIDO] Correção na reserva "SEM MÁQUINA" em OF:**
-    - A lógica que permitia reservas sem saldo positivo foi desativada, pois causava distorções no saldo disponível global. O sistema volta a exigir saldo real para reservas.
+- **09/08/2026 (Brasília) — Correção na reserva "SEM MÁQUINA" em OF:**
+    - Corrigido bug no modal de paletes da Ordem de Faturamento (OF) onde a opção "SEM MÁQUINA" recusava a reserva se o saldo estivesse zerado ou negativo.
+    - O sistema agora permite a reserva mesmo sem saldo positivo, alocando a baixa na máquina principal do artigo para garantir a integridade do faturamento (permitindo "pegar peças de outro cliente").
+    - Ajustada a lógica de distribuição de estoque para garantir que o valor exato solicitado (peças/kg) seja descontado do total do artigo, evitando discrepâncias no saldo global.
 - **09/08/2026 (Brasília) — Pente Fino e Refinamento de Múltiplos em OF:**
     - Corrigido o mapeamento da coluna `multiplier` no hook `useBillingOrders.ts` (interfaces e payloads de criação/edição), resolvendo bug onde o multiplicador não era persistido corretamente.
     - Validada a regra de bloqueio de finalização de paletes baseada em múltiplos: o sistema agora impede corretamente o fechamento de OFs que não respeitem a contagem exata (exibindo indicadores + e -).
