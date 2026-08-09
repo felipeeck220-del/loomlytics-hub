@@ -1692,6 +1692,26 @@ const BillingOrders = () => {
               </Label>
               <Input type="number" step="0.01" className="col-span-3" value={form.piece_weight_target} onChange={e => setForm({...form, piece_weight_target: e.target.value})} placeholder="Ex: 10 (cliente solicitou peças de 10kg)" disabled={form.order_type === 'all'} />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right text-indigo-600 dark:text-indigo-400 font-semibold">
+                Múltiplos <span className="text-[10px] text-muted-foreground font-normal">(opc.)</span>
+              </Label>
+              <div className="col-span-3 space-y-1">
+                <Input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  className="border-indigo-300 dark:border-indigo-800 focus-visible:ring-indigo-500"
+                  value={form.multiplier}
+                  onChange={e => setForm({ ...form, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
+                  placeholder="Ex: 13 (separar em múltiplos de 13 peças)"
+                  disabled={form.order_type === 'all'}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Se preenchido, a separação só pode ser finalizada com total de peças múltiplo desse valor.
+                </p>
+              </div>
+            </div>
             {form.order_type === 'all' && (
               <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-900 dark:text-amber-200">
                 Modo <strong>Coletar Tudo</strong>: a expedição vai separar e lançar todo o estoque disponível do artigo no momento da coleta. Peças e peso ficam em branco até o lançamento real.
@@ -1981,6 +2001,19 @@ const BillingOrders = () => {
             <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs">Peso/Peça (kg)</Label>
               <Input type="number" step="0.01" className="col-span-3 h-9" value={editForm.piece_weight_target} onChange={e => setEditForm({...editForm, piece_weight_target: e.target.value})} placeholder="Opcional — ex: 10" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs text-indigo-600 dark:text-indigo-400 font-semibold">Múltiplos</Label>
+              <Input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                className="col-span-3 h-9 border-indigo-300 dark:border-indigo-800 focus-visible:ring-indigo-500"
+                value={editForm.multiplier}
+                onChange={e => setEditForm({ ...editForm, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
+                placeholder="Opcional — ex: 13"
+                disabled={editForm.order_type === 'all'}
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs">Máquina</Label>
