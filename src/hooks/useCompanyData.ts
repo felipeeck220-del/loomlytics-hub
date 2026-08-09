@@ -258,7 +258,7 @@ export function useCompanyData() {
           { name: 'clients', fn: () => fetchAll('clients', { column: 'company_id', value: companyId }, 'name') },
           { name: 'articles', fn: () => fetchAll('articles', { column: 'company_id', value: companyId }, 'name') },
           { name: 'weavers', fn: () => fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') },
-          { name: 'productions', fn: () => fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) },
+          { name: 'productions', fn: () => (isMecanicaPage || window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/reports') || window.location.pathname.includes('/production')) ? fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
           { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
           { name: 'defect_records', fn: () => isMecanicaPage ? fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
           { name: 'needle_inventory', fn: () => isMecanicaPage ? fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },

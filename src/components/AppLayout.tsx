@@ -95,15 +95,6 @@ export default function AppLayout() {
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
 
-   const isExpedition = user?.role === 'expedicao';
-   const isLiderMecanica = user?.role === 'lider_mecanica';
-   const isLider = user?.role === 'lider';
-   const isMecanico = user?.role === 'mecanico';
-   const isLiderNoite = user?.role === 'lider_noite';
-   const isFreteiro = user?.role === 'freteiro';
-   const isLiderFrete = user?.role === 'lider_frete';
-   const isEletricista = user?.role === 'eletricista';
-
   if (companyLoading && !isRefreshing && user?.role === 'admin') {
     return <LoadingScreen progress={loadingProgress} />;
   }

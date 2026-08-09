@@ -254,6 +254,11 @@ export default function MecanicaPage() {
       const { data, error } = await (supabase.rpc as any)('get_mecanica_bootstrap', { p_company_id: cid });
       if (error) {
         console.error('[Mecanica] get_mecanica_bootstrap error:', error);
+        toast.error('Erro ao carregar dados iniciais de mecânica');
+        return;
+      }
+      if (data && (data as any).error === 'Unauthorized') {
+        toast.error('Acesso não autorizado aos dados de mecânica');
         return;
       }
       const payload = (data || {}) as {

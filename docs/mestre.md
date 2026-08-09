@@ -1,8 +1,9 @@
-- **09/08/2026 (Brasília) — Otimização Crítica de UI/Sidebar e Performance em Mecânica:**
-    - Desvinculada a exibição do Sidebar da tela de carregamento global para papéis técnicos/operacionais (Líder de Mecânica, Mecânico, Eletricista, Líder, Líder da Noite, Expedição, Freteiro). 
-    - O Sidebar agora aparece instantaneamente após o login, respeitando as permissões de acesso, enquanto os dados pesados continuam carregando em background (quando necessário).
-    - Removida a tela de bloqueio "Carregando dados da empresa..." para esses usuários, permitindo acesso imediato aos menus de Mecânica e Ordens, resolvendo a percepção de demora no primeiro acesso.
-    - Mantida a tela de carregamento apenas para Administradores, que necessitam de todos os dados consolidados para a visão global.
+- **09/08/2026 (Brasília) — Pente fino e Otimizações Críticas:**
+    - **UI/Sidebar:** Desvinculada a exibição do Sidebar da tela de carregamento global para papéis técnicos/operacionais. O Sidebar agora aparece instantaneamente após o login, permitindo acesso imediato aos menus.
+    - **Performance:** Refinada a carga inicial no `useCompanyData.ts` para tornar a busca da tabela `productions` condicional (carrega apenas nas rotas de Dashboard, Relatórios, Produção e Mecânica), acelerando o acesso global para outros módulos.
+    - **Segurança e Robustez:** Implementada validação de erro "Unauthorized" no frontend da página de Mecânica para tratar retornos da RPC `get_mecanica_bootstrap`.
+    - **Manutenibilidade:** Removidas variáveis não utilizadas no `AppLayout.tsx` e unificada a lógica de bypass do LoadingScreen.
+- **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
 - **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
 - **09/08/2026 (Brasília) — Performance em Mecânica (OM, OC, OE, OT):**
     - Implementado modelo de carregamento acelerado via bootstrap consolidado (similar ao de OF), incluindo máquinas na primeira requisição.
