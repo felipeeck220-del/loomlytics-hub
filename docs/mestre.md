@@ -1,9 +1,8 @@
+- **09/08/2026 (Brasília) — Otimização Definitiva de Carregamento (Load < 3s):**
+    - **Sidebar Instantâneo:** Removida a trava de `settingsLoaded` no `AppSidebar.tsx` para todos os usuários não-admin. Agora o menu lateral aparece imediatamente após o login, sem esperar a validação de permissões do backend.
+    - **Carga de Dados Ultra-Leve:** Refatorado `useCompanyData.ts` para que usuários operacionais (Mecânicos, Líderes, etc.) carreguem APENAS a lista de máquinas inicialmente. Tabelas pesadas (clientes, artigos, tecelões, estoques) agora são carregadas sob demanda apenas na página de Mecânica ou para Administradores.
+    - **Correção de Tipagem:** Resolvido erro de compilação `isAdmin` no hook de dados.
 - **09/08/2026 (Brasília) — Pente fino e Otimizações Críticas:**
-    - **UI/Sidebar:** Desvinculada a exibição do Sidebar da tela de carregamento global para papéis técnicos/operacionais. O Sidebar agora aparece instantaneamente após o login, permitindo acesso imediato aos menus.
-    - **Performance:** Refinada a carga inicial no `useCompanyData.ts` para tornar a busca da tabela `productions` condicional (carrega apenas nas rotas de Dashboard, Relatórios, Produção e Mecânica), acelerando o acesso global para outros módulos.
-    - **Segurança e Robustez:** Implementada validação de erro "Unauthorized" no frontend da página de Mecânica para tratar retornos da RPC `get_mecanica_bootstrap`.
-    - **Manutenibilidade:** Removidas variáveis não utilizadas no `AppLayout.tsx` e unificada a lógica de bypass do LoadingScreen.
-- **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
 - **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
 - **09/08/2026 (Brasília) — Performance em Mecânica (OM, OC, OE, OT):**
     - Implementado modelo de carregamento acelerado via bootstrap consolidado (similar ao de OF), incluindo máquinas na primeira requisição.

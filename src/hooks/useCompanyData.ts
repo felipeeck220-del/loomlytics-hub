@@ -253,20 +253,21 @@ export function useCompanyData() {
      }
      try {
         const isMecanicaPage = window.location.pathname.includes('/mecanica');
+        const isAdmin = user?.role === 'admin';
         const tasks = [
           { name: 'machines', fn: () => fetchAll('machines', { column: 'company_id', value: companyId }, 'number') },
-          { name: 'clients', fn: () => fetchAll('clients', { column: 'company_id', value: companyId }, 'name') },
-          { name: 'articles', fn: () => fetchAll('articles', { column: 'company_id', value: companyId }, 'name') },
-          { name: 'weavers', fn: () => fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') },
-          { name: 'productions', fn: () => (isMecanicaPage || window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/reports') || window.location.pathname.includes('/production')) ? fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
+          { name: 'clients', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('clients', { column: 'company_id', value: companyId }, 'name') : Promise.resolve([]) },
+          { name: 'articles', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('articles', { column: 'company_id', value: companyId }, 'name') : Promise.resolve([]) },
+          { name: 'weavers', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') : Promise.resolve([]) },
+          { name: 'productions', fn: () => (isAdmin || window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/reports') || window.location.pathname.includes('/production')) ? fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
           { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
-          { name: 'defect_records', fn: () => isMecanicaPage ? fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
-          { name: 'needle_inventory', fn: () => isMecanicaPage ? fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },
-          { name: 'sinker_inventory', fn: () => isMecanicaPage ? fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },
-          { name: 'cylinders', fn: () => isMecanicaPage ? fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') : Promise.resolve([]) },
-          { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
-          { name: 'machine_needle_refs', fn: () => isMecanicaPage ? fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') : Promise.resolve([]) },
-          { name: 'machine_sinker_refs', fn: () => isMecanicaPage ? fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') : Promise.resolve([]) },
+          { name: 'defect_records', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) : Promise.resolve([]) },
+          { name: 'needle_inventory', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },
+          { name: 'sinker_inventory', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') : Promise.resolve([]) },
+          { name: 'cylinders', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') : Promise.resolve([]) },
+          { name: 'yarn_types', fn: () => (isMecanicaPage || isAdmin || liderFreteLightLoad) ? fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') : Promise.resolve([]) },
+          { name: 'machine_needle_refs', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') : Promise.resolve([]) },
+          { name: 'machine_sinker_refs', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') : Promise.resolve([]) },
         ];
  
        let completed = 0;
