@@ -191,7 +191,8 @@ export default function MecanicaPage() {
           ? 'ot'
           : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
-  const machines = getMachines();
+  const [machinesList, setMachinesList] = useState<Machine[]>([]);
+  const machines = machinesList.length > 0 ? machinesList : getMachines();
   const [maintenanceLogs, setMaintenanceLogs] = useState<MachineLog[]>([]);
   const machineLogs = maintenanceLogs; // Legacy fallback
 
@@ -262,6 +263,7 @@ export default function MecanicaPage() {
         sinker_providers?: SinkerProvider[];
         sinker_provider_prices?: SinkerProviderPrice[];
         sinker_lots?: SinkerLot[];
+        machines?: Machine[];
       };
       setProviders((payload.needle_providers || []) as NeedleProvider[]);
       setProviderPrices((payload.needle_provider_prices || []) as NeedleProviderPrice[]);
@@ -269,6 +271,7 @@ export default function MecanicaPage() {
       setSinkerProviders((payload.sinker_providers || []) as SinkerProvider[]);
       setSinkerProviderPrices((payload.sinker_provider_prices || []) as SinkerProviderPrice[]);
       setSinkerLots((payload.sinker_lots || []) as SinkerLot[]);
+      if (payload.machines) setMachinesList(payload.machines);
     })();
   }, [user?.company_id, providersRefreshKey, sinkerProvidersRefreshKey]);
 
