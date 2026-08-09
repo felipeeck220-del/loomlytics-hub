@@ -157,7 +157,7 @@ export function AppSidebar() {
     // Gate: enquanto a validação de enabled_nav_items não chegou, não
     // renderiza itens (evita flash). Só permite a lista quando o load
     // concluiu.
-    if (!settingsLoaded) return [];
+    if (!settingsLoaded && role === 'admin') return [];
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
