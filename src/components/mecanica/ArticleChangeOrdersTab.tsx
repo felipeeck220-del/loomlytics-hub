@@ -1076,7 +1076,12 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders, e
       })
       .select('id, ot_number')
       .single();
-    if (error || !ins) { toast.error(getFriendlyErrorMessage(error?.message)); return; }
+    if (error || !ins) { 
+      toast.error(getFriendlyErrorMessage(error?.message)); 
+      savingRef.current = false;
+      setSaving(false);
+      return; 
+    }
 
     const yarnRows: any[] = [];
     fitas.forEach((f, i) => {
