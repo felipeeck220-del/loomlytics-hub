@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
+import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog, type Machine } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getDateLimits, isDateValid } from '@/lib/formatters';
@@ -191,7 +191,8 @@ export default function MecanicaPage() {
           ? 'ot'
           : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
-  const machines = getMachines();
+  const [machinesList, setMachinesList] = useState<Machine[]>([]);
+  const machines = machinesList.length > 0 ? machinesList : getMachines();
   const [maintenanceLogs, setMaintenanceLogs] = useState<MachineLog[]>([]);
   const machineLogs = maintenanceLogs; // Legacy fallback
 
@@ -262,6 +263,7 @@ export default function MecanicaPage() {
         sinker_providers?: SinkerProvider[];
         sinker_provider_prices?: SinkerProviderPrice[];
         sinker_lots?: SinkerLot[];
+        machines?: Machine[];
       };
       setProviders((payload.needle_providers || []) as NeedleProvider[]);
       setProviderPrices((payload.needle_provider_prices || []) as NeedleProviderPrice[]);
@@ -269,6 +271,7 @@ export default function MecanicaPage() {
       setSinkerProviders((payload.sinker_providers || []) as SinkerProvider[]);
       setSinkerProviderPrices((payload.sinker_provider_prices || []) as SinkerProviderPrice[]);
       setSinkerLots((payload.sinker_lots || []) as SinkerLot[]);
+      if (payload.machines) setMachinesList(payload.machines);
     })();
   }, [user?.company_id, providersRefreshKey, sinkerProvidersRefreshKey]);
 

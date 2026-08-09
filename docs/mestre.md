@@ -1,3 +1,6 @@
+- **09/08/2026 (Brasília) — Performance em Mecânica (OM, OC, OE, OT):**
+    - Implementado modelo de carregamento acelerado via bootstrap consolidado (similar ao de OF), incluindo máquinas na primeira requisição.
+    - Otimizada a transição entre abas OM/OC/OE garantindo carregamento instantâneo sem depender do `useCompanyData` pesado para a visualização básica.
 - **08/08/2026 (Brasília) — Pente fino em Mecânica (OM, OC, OE, OT):**
     - Verificada integridade de isolamento entre abas; garantido que `mode` seja respeitado em todos os carregamentos assíncronos e subcomponentes.
     - Confirmada a persistência de fotos e auditorias (início/fim/responsável) em fluxos de manutenção corretiva e elétrica.
