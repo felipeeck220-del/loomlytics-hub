@@ -2350,11 +2350,11 @@ const BillingOrders = () => {
             const remainingWeight = targetWeight - totalWeight;
             const orderType = order.order_type || 'pieces';
             const canFinish = pallets.length > 0;
-            const multiplier = Number(order.multiplier || 0);
-            const isMultiplierValid = multiplier > 0 ? (totalPieces % multiplier === 0) : true;
-            const multiplierDiff = multiplier > 0 ? (totalPieces % multiplier) : 0;
-            const diffUp = multiplier > 0 ? (multiplier - multiplierDiff) : 0;
-            const diffDown = multiplier > 0 ? multiplierDiff : 0;
+            const multiplierVal = Number(order.multiplier || 0);
+            const isMultiplierValValid = multiplierVal > 0 ? (totalPieces % multiplierVal === 0) : true;
+            const multiplierDiffVal = multiplierVal > 0 ? (totalPieces % multiplierVal) : 0;
+            const diffUpVal = multiplierVal > 0 ? (multiplierVal - multiplierDiffVal) : 0;
+            const diffDownVal = multiplierVal > 0 ? multiplierDiffVal : 0;
 
             return (
               <div className="space-y-3 py-2">
@@ -2902,11 +2902,11 @@ const BillingOrders = () => {
             <Button
               className={cn(
                 "font-bold gap-1.5",
-                multiplier > 0 && !isMultiplierValid 
+                multiplierVal > 0 && !isMultiplierValValid 
                   ? "bg-slate-400 cursor-not-allowed" 
                   : "bg-emerald-600 hover:bg-emerald-700 text-white"
               )}
-              disabled={pallets.length === 0 || updateStatus.isPending || (multiplier > 0 && !isMultiplierValid)}
+              disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid)}
               onClick={() => {
                 const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                 if (totalWeight <= 0) {
@@ -2917,8 +2917,8 @@ const BillingOrders = () => {
               }}
             >
               <CheckCircle2 className="h-4 w-4" /> 
-              {multiplier > 0 && !isMultiplierValid 
-                ? `Ajustar Múltiplo (${multiplier})` 
+              {multiplierVal > 0 && !isMultiplierValValid 
+                ? `Ajustar Múltiplo (${multiplierVal})` 
                 : `Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`
               }
             </Button>
