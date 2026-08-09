@@ -1,8 +1,7 @@
-- **10/08/2026 (Brasília) — Correção Definitiva de Saldo no Estoque Manual:**
-    - Identificada e corrigida causa raiz do "estoque zerado": a coexistência de dois triggers redundantes gerou movimentos de reserva e saída duplicados no módulo manual.
-    - Implementada limpeza profunda de movimentos "espelhados órfãos" (sem `source_movement_id`) e consolidado o trigger `mirror_of_update_to_manual_stock` como fonte única de verdade.
-    - Realizado backfill completo e limpo de todos os movimentos de Ordens de Faturamento (OF) para garantir consistência entre o estoque físico e o manual.
-    - Mantida a lógica de "trava em zero" cronológica para proteger o histórico contra saídas retroativas sem lastro manual.
+- **10/08/2026 (Brasília) — Correção Crítica de Saldo e Reserva (Estoque Manual):**
+    - Corrigido bug onde a coleta de OFs "SEM MÁQUINA" não descontava o saldo disponível. O trigger `mirror_of_to_manual_stock` foi reforçado para garantir o espelhamento de movimentos globais e a RPC `get_manual_stock_estoque` agora distribui corretamente reservas sem máquina no cálculo de disponível.
+    - Resolvida inconsistência onde reservas em máquinas específicas às vezes não baixavam o saldo total do artigo; a lógica de agregação foi unificada para garantir Σ(máquinas) ≡ artigo.
+    - Realizado backfill final de movimentos de OF (reservas e saídas) para o estoque manual, garantindo integridade histórica completa.
 - **10/08/2026 (Brasília) — Auditoria e Consistência (OF e Estoque Manual):**
     - **Auditoria:** Implementado `public._of_audit` para registro centralizado em `audit_logs`. Atualizadas RPCs `create_billing_order`, `edit_billing_order`, `save_manual_stock_manual_entry` e `save_manual_stock_machine_adjust` para registrar todas as criações, edições e ajustes manuais com autoria e detalhes.
     - **Consistência "SEM MÁQUINA":** Refatorada lógica de alocação no frontend (`src/pages/BillingOrders.tsx`) para garantir que 100% das peças/kg solicitados sejam baixados do estoque global, mesmo que o saldo físico nas máquinas seja insuficiente ou negativo (alocação forçada na máquina principal/fallback).
