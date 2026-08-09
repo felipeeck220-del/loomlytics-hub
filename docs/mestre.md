@@ -1,3 +1,10 @@
+- **10/08/2026 (Brasília) — Correção de Saldo Zerado no Estoque Manual:**
+    - **Causa:** Identificada injeção massiva de reservas históricas (2.795 registros) no **Estoque Malha (Manual)** provenientes de Ordens de Faturamento (OF) já coletadas ou canceladas. Isso ocorria devido a um efeito colateral no trigger de espelhamento durante o processamento de dados antigos.
+    - **Resolução:** 
+        - Executada limpeza profunda para remover reservas/liberações vinculadas a OFs fechadas no estoque manual.
+        - Refatorado o trigger `mirror_of_to_manual_stock` para ignorar automaticamente movimentos de reserva/liberação de OFs que já possuem status final (`collected`/`cancelled`), prevenindo reincidência.
+        - Saldo disponível restaurado para refletir apenas o estoque físico real menos as reservas de pedidos em aberto.
+    - **Auditoria:** Verificada integridade global; zero saldo negativo e KPIs sincronizados com a realidade física.
 - **10/08/2026 (Brasília) — Pente fino e Correção de Consistência (OF e Estoque Manual):**
     - **Neutralização de Saldos:** Realizada limpeza profunda no banco de dados para neutralizar movimentos de reserva negativos (causados por duplicidade histórica de liberações). Inseridos movimentos de neutralização para garantir que o saldo de reserva líquida por OF/máquina nunca seja menor que zero.
     - **Redistribuição de Reservas (RPC):** Refatorada a RPC `get_manual_stock_estoque` para garantir que a soma dos saldos das máquinas seja sempre consistente com o total do artigo e KPIs. Implementada trava `GREATEST(0)` no cálculo de reservas líquidas por máquina para evitar que erros de lançamento afetem a visualização.
