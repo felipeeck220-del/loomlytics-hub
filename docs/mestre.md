@@ -1,7 +1,9 @@
+- **09/08/2026 (Brasília) — Otimização Crítica de UI/Sidebar e Performance em Mecânica:**
+    - Desvinculada a exibição do Sidebar da tela de carregamento global para papéis técnicos/operacionais (Líder de Mecânica, Mecânico, Eletricista, Líder, Líder da Noite, Expedição, Freteiro). 
+    - O Sidebar agora aparece instantaneamente após o login, respeitando as permissões de acesso, enquanto os dados pesados continuam carregando em background (quando necessário).
+    - Removida a tela de bloqueio "Carregando dados da empresa..." para esses usuários, permitindo acesso imediato aos menus de Mecânica e Ordens, resolvendo a percepção de demora no primeiro acesso.
+    - Mantida a tela de carregamento apenas para Administradores, que necessitam de todos os dados consolidados para a visão global.
 - **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
-    - Refatorada a RPC `get_mecanica_bootstrap` para incluir validação de tenant (`company_id`) e carregamento condicional de dados.
-    - Lotes de agulhas e platinas (dados pesados) agora só são enviados no bootstrap para usuários com papéis administrativos ou técnicos (admin, lider, mecanico, lider_mecanica, lider_noite), reduzindo o payload inicial para outros usuários.
-    - Garantido que a lista básica de máquinas (necessária para os cards) continue disponível para todos com acesso à página.
 - **09/08/2026 (Brasília) — Performance em Mecânica (OM, OC, OE, OT):**
     - Implementado modelo de carregamento acelerado via bootstrap consolidado (similar ao de OF), incluindo máquinas na primeira requisição.
     - Otimizada a transição entre abas OM/OC/OE garantindo carregamento instantâneo sem depender do `useCompanyData` pesado para a visualização básica.
