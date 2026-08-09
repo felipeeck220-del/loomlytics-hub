@@ -1,3 +1,7 @@
+- **09/08/2026 (Brasília) — Correção na reserva "SEM MÁQUINA" em OF:**
+    - Corrigido bug no modal de paletes da Ordem de Faturamento (OF) onde a opção "SEM MÁQUINA" recusava a reserva se o saldo estivesse zerado ou negativo.
+    - O sistema agora permite a reserva mesmo sem saldo positivo, alocando a baixa na máquina principal do artigo para garantir a integridade do faturamento (permitindo "pegar peças de outro cliente").
+    - Ajustada a lógica de distribuição de estoque para garantir que o valor exato solicitado (peças/kg) seja descontado do total do artigo, evitando discrepâncias no saldo global.
 - **09/08/2026 (Brasília) — Pente Fino e Refinamento de Múltiplos em OF:**
     - Corrigido o mapeamento da coluna `multiplier` no hook `useBillingOrders.ts` (interfaces e payloads de criação/edição), resolvendo bug onde o multiplicador não era persistido corretamente.
     - Validada a regra de bloqueio de finalização de paletes baseada em múltiplos: o sistema agora impede corretamente o fechamento de OFs que não respeitem a contagem exata (exibindo indicadores + e -).

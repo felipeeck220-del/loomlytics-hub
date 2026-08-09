@@ -2717,15 +2717,31 @@ const BillingOrders = () => {
                               remKg -= takeKg;
                             }
                             // Sobra: joga na máquina com maior saldo restante (ou última) para preservar total exato
-                            if ((remKg > 0.0001 || remPc > 0)) {
+                            // Se ainda sobrou algo (ex: estoque total insuficiente ou negativo),
+                            // consumimos o restante da primeira máquina que tenha qualquer saldo (ou da última da lista)
+                            // para garantir que o total solicitado seja descontado.
+                            if (remKg > 0.0001 || remPc > 0) {
                               if (allocations.length > 0) {
                                 const last = allocations[allocations.length - 1];
                                 last.pieces += Math.max(remPc, 0);
                                 last.weight_kg = Number((last.weight_kg + Math.max(remKg, 0)).toFixed(3));
+                              } else if (sorted.length > 0) {
+                                // Caso especial: as máquinas tinham saldo mas o "Math.min" zerou tudo?
+                                // (Não deve ocorrer com a lógica acima, mas por segurança:)
+                                const [mid] = sorted[0];
+                                allocations.push({ machine_id: mid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
                               } else {
-                                toast({ title: 'Sem estoque em nenhuma máquina', description: 'Não há saldo positivo para descontar. Selecione uma máquina específica.', variant: 'destructive' });
-                                setPalletBusy(false);
-                                return;
+                                // Nenhuma máquina tem saldo positivo. Pegamos a primeira máquina que produz este artigo
+                                // ou qualquer máquina da empresa para não deixar o movimento órfão de máquina.
+                                const allMachines = getMachines();
+                                const articleMachine = allMachines.find(m => m.id === order.machine_id) || allMachines[0];
+                                if (articleMachine) {
+                                  allocations.push({ machine_id: articleMachine.id, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
+                                } else {
+                                  toast({ title: 'Erro de integridade', description: 'Nenhuma máquina encontrada para alocação.', variant: 'destructive' });
+                                  setPalletBusy(false);
+                                  return;
+                                }
                               }
                             }
                           }
