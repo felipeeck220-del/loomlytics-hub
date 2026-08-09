@@ -601,6 +601,7 @@ export type Database = {
           last_edited_by: string | null
           link_group_id: string | null
           machine_id: string | null
+          multiplier: number | null
           of_number: string
           order_type: string
           piece_weight_target: number | null
@@ -652,6 +653,7 @@ export type Database = {
           last_edited_by?: string | null
           link_group_id?: string | null
           machine_id?: string | null
+          multiplier?: number | null
           of_number: string
           order_type?: string
           piece_weight_target?: number | null
@@ -703,6 +705,7 @@ export type Database = {
           last_edited_by?: string | null
           link_group_id?: string | null
           machine_id?: string | null
+          multiplier?: number | null
           of_number?: string
           order_type?: string
           piece_weight_target?: number | null
@@ -5207,8 +5210,8 @@ export type Database = {
       }
       create_billing_order: {
         Args: {
-          p_author_code?: string
-          p_author_name?: string
+          p_author_code: string
+          p_author_name: string
           p_company_id: string
           p_payload: Json
         }
@@ -5264,14 +5267,14 @@ export type Database = {
       }
       edit_billing_order: {
         Args: {
-          p_author_code?: string
-          p_author_name?: string
+          p_author_code: string
+          p_author_name: string
           p_company_id: string
-          p_expected_status?: string
+          p_expected_status: string
           p_id: string
           p_note: string
           p_payload: Json
-          p_revert_to_open?: boolean
+          p_revert_to_open: boolean
         }
         Returns: Json
       }
