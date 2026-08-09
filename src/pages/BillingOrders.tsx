@@ -2411,6 +2411,24 @@ const BillingOrders = () => {
                     )}
                   </div>
                 </div>
+
+                {order.multiplier && (
+                  <div className="rounded-md border border-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 p-3 flex items-center justify-between gap-3 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-indigo-600 text-white p-1.5 rounded-md">
+                        <Boxes className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300">Regra de Múltiplo Ativa</div>
+                        <div className="text-sm font-black text-indigo-900 dark:text-indigo-100 italic">Separar em pacotes de {order.multiplier} peças</div>
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-indigo-900 border-2 border-indigo-600 rounded-full h-10 w-10 flex items-center justify-center shadow-inner">
+                      <span className="text-lg font-black text-indigo-600 dark:text-indigo-200">{order.multiplier}</span>
+                    </div>
+                  </div>
+                )}
+
                 {(order as any).admin_notes && (
                   <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs space-y-1">
                     <div className="text-[10px] uppercase font-semibold text-amber-800 dark:text-amber-300">📋 Observações do admin</div>
