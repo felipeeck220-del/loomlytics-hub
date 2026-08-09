@@ -104,9 +104,9 @@ export default function AppLayout() {
    const isLiderFrete = user?.role === 'lider_frete';
    const isEletricista = user?.role === 'eletricista';
 
-   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider && !isMecanico && !isLiderNoite && !isFreteiro && !isLiderFrete && !isEletricista) {
-     return <LoadingScreen progress={loadingProgress} />;
-   }
+  if (companyLoading && !isRefreshing && user?.role === 'admin') {
+    return <LoadingScreen progress={loadingProgress} />;
+  }
  
    return (
      <SidebarProvider>
