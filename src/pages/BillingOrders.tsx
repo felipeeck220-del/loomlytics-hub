@@ -2900,8 +2900,13 @@ const BillingOrders = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-              disabled={pallets.length === 0 || updateStatus.isPending}
+              className={cn(
+                "font-bold gap-1.5",
+                multiplier > 0 && !isMultiplierValid 
+                  ? "bg-slate-400 cursor-not-allowed" 
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              )}
+              disabled={pallets.length === 0 || updateStatus.isPending || (multiplier > 0 && !isMultiplierValid)}
               onClick={() => {
                 const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                 if (totalWeight <= 0) {
@@ -2911,7 +2916,11 @@ const BillingOrders = () => {
                 setConfirmFinalizePallets(true);
               }}
             >
-              <CheckCircle2 className="h-4 w-4" /> Finalizar com {pallets.length} palete{pallets.length !== 1 ? 's' : ''}
+              <CheckCircle2 className="h-4 w-4" /> 
+              {multiplier > 0 && !isMultiplierValid 
+                ? `Ajustar Múltiplo (${multiplier})` 
+                : `Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`
+              }
             </Button>
           </DialogFooter>
         </DialogContent>

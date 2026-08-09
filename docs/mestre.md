@@ -1,3 +1,8 @@
+- **09/08/2026 (Brasília) — Ordem de Faturamento (OF): Controle de Múltiplos na Separação:**
+    - Adicionada opção opcional de "Múltiplos" na criação e edição de OFs.
+    - O múltiplo é exibido em destaque no modal de separação por paletes.
+    - Implementada validação que impede a finalização da separação se o total de peças não for múltiplo exato do valor definido.
+    - Exibição de indicadores (+ e -) no modal de paletes para orientar o usuário sobre quanto falta ou sobra para atingir o múltiplo mais próximo.
 - **09/08/2026 (Brasília) — Ajuste Visual em Abas de Mecânica:**
     - Removidos os badges numéricos das abas "Finalizadas", "Canceladas" (OM/OC/OE) e "Concluídas" (OT) para reduzir poluição visual em históricos longos.
 - **09/08/2026 (Brasília) — Pente Fino em Mecânica e Estabilização de Interface:**
