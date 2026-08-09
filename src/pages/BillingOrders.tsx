@@ -2381,6 +2381,44 @@ const BillingOrders = () => {
                   </div>
                 )}
 
+                {multiplierVal > 0 && (
+                  <div className={cn(
+                    "rounded-md border p-3 flex items-center justify-between transition-colors",
+                    isMultiplierValValid 
+                      ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" 
+                      : "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-800"
+                  )}>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Status do Múltiplo ({multiplierVal})</span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-lg font-black tracking-tighter",
+                          isMultiplierValValid ? "text-green-600" : "text-indigo-600"
+                        )}>
+                          {totalPieces} pç
+                        </span>
+                        {isMultiplierValValid ? (
+                          <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5">OK</Badge>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-white h-5 text-[10px] font-bold">
+                              +{diffUpVal}
+                            </Badge>
+                            <Badge variant="outline" className="text-amber-600 border-amber-200 bg-white h-5 text-[10px] font-bold">
+                              -{diffDownVal}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {!isMultiplierValValid && (
+                      <span className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium italic animate-pulse">
+                        Ajuste para fechar múltiplo
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
                   <div className="text-xs font-semibold uppercase text-muted-foreground">Adicionar palete</div>
@@ -2894,35 +2932,35 @@ const BillingOrders = () => {
                     )}
                   </div>
                 </div>
+                <DialogFooter className="mt-4 pt-4 border-t px-0">
+                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
+                  <Button
+                    className={cn(
+                      "font-bold gap-1.5",
+                      multiplierVal > 0 && !isMultiplierValValid 
+                        ? "bg-slate-400 cursor-not-allowed" 
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    )}
+                    disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid)}
+                    onClick={() => {
+                      const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+                      if (totalWeight <= 0) {
+                        toast({ title: 'Adicione pelo menos um palete com peso para finalizar', variant: 'destructive' });
+                        return;
+                      }
+                      setConfirmFinalizePallets(true);
+                    }}
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> 
+                    {multiplierVal > 0 && !isMultiplierValValid 
+                      ? `Ajustar Múltiplo (${multiplierVal})` 
+                      : `Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`
+                    }
+                  </Button>
+                </DialogFooter>
               </div>
             );
           })()}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
-            <Button
-              className={cn(
-                "font-bold gap-1.5",
-                multiplierVal > 0 && !isMultiplierValValid 
-                  ? "bg-slate-400 cursor-not-allowed" 
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-              )}
-              disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid)}
-              onClick={() => {
-                const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
-                if (totalWeight <= 0) {
-                  toast({ title: 'Adicione pelo menos um palete com peso para finalizar', variant: 'destructive' });
-                  return;
-                }
-                setConfirmFinalizePallets(true);
-              }}
-            >
-              <CheckCircle2 className="h-4 w-4" /> 
-              {multiplierVal > 0 && !isMultiplierValValid 
-                ? `Ajustar Múltiplo (${multiplierVal})` 
-                : `Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`
-              }
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
