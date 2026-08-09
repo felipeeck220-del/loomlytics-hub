@@ -45,3 +45,18 @@ BEGIN
   RETURN NEW;
 END;
 $fn$;
+
+-- Cleanup existing inconsistent data
+DO $$
+BEGIN
+    DELETE FROM public.manual_stock_movements msm
+    USING public.billing_orders bo
+    WHERE msm.billing_order_id = bo.id
+      AND msm.type IN ('reserve', 'release')
+      AND bo.status IN ('collected', 'cancelled');
+
+    DELETE FROM public.manual_stock_movements
+    WHERE type IN ('reserve', 'release')
+      AND billing_order_id IS NOT NULL
+      AND billing_order_id NOT IN (SELECT id FROM public.billing_orders);
+END $$;
