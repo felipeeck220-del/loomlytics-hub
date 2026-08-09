@@ -378,11 +378,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
   const saveOrder = async () => {
     if (savingOrderRef.current) return;
-    savingOrderRef.current = true;
-    setSavingOrder(true);
     try {
-    if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
-    const isCorrective = form.type === 'manutencao_corretiva';
+      if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
+      const isCorrective = form.type === 'manutencao_corretiva';
     const isElectrical = form.type === 'manutencao_eletrica';
     if (isCorrective && !canCreateCorrective) { toast.error('Apenas admin ou líder podem criar OC'); return; }
     if (isElectrical && !canCreateElectrical) { toast.error('Sem permissão para criar OE'); return; }
@@ -414,6 +412,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       }
     }
     const orderLabel = isElectrical ? 'OE' : (isCorrective ? 'OC' : 'OM');
+    
+    savingOrderRef.current = true;
+    setSavingOrder(true);
+
     if (editing) {
       const { error } = await (supabase.from as any)('maintenance_orders').update({
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
@@ -431,7 +433,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         created_by_id: user?.id,
         created_by_name: authorLabel,
       }).select().single();
-      if (error) { toast.error(`Erro ao criar ${orderLabel}: ${error.message}`); return; }
+      if (error) { 
+        toast.error(`Erro ao criar ${orderLabel}: ${error.message}`); 
+        savingOrderRef.current = false;
+        setSavingOrder(false);
+        return; 
+      }
       const created = data as any;
       const createdNum = isElectrical ? (created.oe_number ?? created.om_number)
                        : isCorrective ? (created.oc_number ?? created.om_number)
