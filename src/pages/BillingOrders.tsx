@@ -103,6 +103,7 @@ const BillingOrders = () => {
   const [conflictInfo, setConflictInfo] = useState<{ action: string; ofNumber: string; currentStatus?: string; actor?: { name: string; code: string } | null } | null>(null);
   const [editForm, setEditForm] = useState<any>({
     of_number: '', client_id: '', article_id: '', machine_id: '',
+    multiplier: '',
     pieces_expected: '', weight_expected: '', dyehouse: '',
     order_type: 'pieces', edit_note: '', piece_weight_target: ''
   });
@@ -242,6 +243,7 @@ const BillingOrders = () => {
     client_id: '',
     article_id: '',
     machine_id: '',
+    multiplier: '',
     pieces_expected: '',
     dyehouse: '',
     weight_expected: '',
@@ -475,7 +477,7 @@ const BillingOrders = () => {
     try {
       await createOrder.mutateAsync(payload);
       setShowCreateModal(false);
-      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces', admin_notes: '' });
+      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', multiplier: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces', admin_notes: '' });
       setCreateDupError(null);
     } catch (err: any) {
       if (err?.code === 'DUPLICATE_OF') {
@@ -509,6 +511,7 @@ const BillingOrders = () => {
       client_id: form.client_id,
       article_id: form.article_id,
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
+      multiplier: form.multiplier ? parseInt(form.multiplier) : undefined,
       pieces_expected: form.order_type === 'all' ? undefined : (form.pieces_expected ? parseInt(form.pieces_expected) : undefined),
       weight_expected: form.order_type === 'all' ? undefined : (form.weight_expected ? parseFloat(form.weight_expected) : undefined),
       piece_weight_target: form.order_type === 'all' ? null : (form.piece_weight_target ? parseFloat(form.piece_weight_target) : null),
@@ -547,6 +550,7 @@ const BillingOrders = () => {
       client_id: order.client_id || '',
       article_id: order.article_id || '',
       machine_id: order.machine_id || 'none',
+      multiplier: order.multiplier != null ? String(order.multiplier) : '',
       pieces_expected: order.pieces_expected != null ? String(order.pieces_expected) : '',
       weight_expected: order.weight_expected != null ? String(order.weight_expected) : '',
       piece_weight_target: order.piece_weight_target != null ? String(order.piece_weight_target) : '',
@@ -582,6 +586,7 @@ const BillingOrders = () => {
       client_id: editForm.client_id,
       article_id: editForm.article_id,
       machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
+      multiplier: editForm.multiplier ? parseInt(editForm.multiplier) : null,
       pieces_expected: editForm.order_type === 'all' ? null : (editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null),
       weight_expected: editForm.order_type === 'all' ? null : (editForm.weight_expected ? parseFloat(editForm.weight_expected) : null),
       piece_weight_target: editForm.order_type === 'all' ? null : (editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null),
@@ -1642,7 +1647,7 @@ const BillingOrders = () => {
                   type="button"
                   variant={form.order_type === 'all' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setForm({ ...form, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '' })}
+                  onClick={() => setForm({ ...form, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '', multiplier: '' })}
                 >Coletar Tudo</Button>
               </div>
             </div>
@@ -1939,7 +1944,7 @@ const BillingOrders = () => {
               <div className="col-span-3 grid grid-cols-3 gap-2">
                 <Button type="button" size="sm" variant={editForm.order_type === 'pieces' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'pieces'})}>Por Peças</Button>
                 <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso</Button>
-                <Button type="button" size="sm" variant={editForm.order_type === 'all' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: ''})}>Coletar Tudo</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'all' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '', multiplier: ''})}>Coletar Tudo</Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
@@ -2345,10 +2350,21 @@ const BillingOrders = () => {
             const remainingWeight = targetWeight - totalWeight;
             const orderType = order.order_type || 'pieces';
             const canFinish = pallets.length > 0;
+            const multiplier = Number(order.multiplier || 0);
+            const isMultiplierValid = multiplier > 0 ? (totalPieces % multiplier === 0) : true;
+            const multiplierDiff = multiplier > 0 ? (totalPieces % multiplier) : 0;
+            const diffUp = multiplier > 0 ? (multiplier - multiplierDiff) : 0;
+            const diffDown = multiplier > 0 ? multiplierDiff : 0;
+
             return (
               <div className="space-y-3 py-2">
                 {/* Resumo do pedido */}
-                <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+                <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1 relative overflow-hidden">
+                  {order.multiplier && (
+                    <div className="absolute top-0 right-0 bg-indigo-600 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-bl-md shadow-sm">
+                      Múltiplo: {order.multiplier}
+                    </div>
+                  )}
                   <div><span className="text-muted-foreground">Cliente:</span> <strong>{order.client?.name}</strong></div>
                   <div><span className="text-muted-foreground">Artigo:</span> <strong>{order.article?.name}</strong></div>
                   <div className="flex flex-wrap gap-3 pt-1">
