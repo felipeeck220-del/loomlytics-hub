@@ -1207,14 +1207,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
             <Square className="h-3 w-3" /> Finalizadas
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.finalizada}</Badge>
           </TabsTrigger>
           <TabsTrigger
             value="cancelada"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-muted-foreground data-[state=active]:text-background"
           >
             <X className="h-3 w-3" /> Canceladas
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelada}</Badge>
           </TabsTrigger>
           {isOC && isAdmin && (
             <TabsTrigger

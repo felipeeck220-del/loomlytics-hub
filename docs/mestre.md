@@ -1,5 +1,6 @@
+- **09/08/2026 (Brasília) — Ajuste Visual em Abas de Mecânica:**
+    - Removidos os badges numéricos das abas "Finalizadas", "Canceladas" (OM/OC/OE) e "Concluídas" (OT) para reduzir poluição visual em históricos longos.
 - **09/08/2026 (Brasília) — Pente Fino em Mecânica e Estabilização de Interface:**
-    - Corrigido bug visual em `MaintenanceOrdersTab.tsx` onde os badges das abas (Aberto, Em Curso, etc.) ficavam zerados mesmo com ordens presentes, vinculando corretamente o estado `counts` à renderização.
     - Validada a integridade de todas as abas de Mecânica (OM, OC, OE e OT) quanto a duplicidade e isolamento de tenant.
 - **09/08/2026 (Brasília) — Prevenção de Duplicidade em Ordens de Mecânica:**
 - **09/08/2026 (Brasília) — Correção Definitiva de Acesso em Mecânica:**

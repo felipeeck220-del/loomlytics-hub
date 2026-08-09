@@ -396,7 +396,9 @@ export default function ArticleChangeOrdersTab() {
                 className={cn('gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial', t.count > 0 && t.active)}
               >
                 <Icon className="h-3 w-3" /> {t.label}
-                <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{t.count}</Badge>
+                {t.key !== 'concluidas' && (
+                  <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{t.count}</Badge>
+                )}
               </TabsTrigger>
             );
           })}
