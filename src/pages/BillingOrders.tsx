@@ -2912,30 +2912,45 @@ const BillingOrders = () => {
                                       });
                                       if (relErr) throw relErr;
                                     } else {
-                                      // SEM MÁQUINA: busca todas as reservas deste palete e libera uma por máquina
-                                      const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
-                                        .select('id, machine_id, pieces, weight_kg, article_id, client_id')
+                                      // SEM MÁQUINA: busca todas as reservas e liberações deste palete para calcular o saldo líquido real
+                                      const { data: allSm, error: qErr } = await (supabase.from as any)('stock_movements')
+                                        .select('type, pieces, weight_kg, machine_id, article_id, client_id')
                                         .eq('company_id', user.company_id)
                                         .eq('billing_order_id', order.id)
-                                        .eq('type', 'reserve')
-                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina%`);
+                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (%`);
+
                                       if (qErr) throw qErr;
-                                      const releases = (reservas || []).map((r: any) => ({
-                                        company_id: user.company_id,
-                                        article_id: r.article_id || p.alt_article_id || order.article_id,
-                                        client_id: r.client_id || p.alt_client_id || order.client_id,
-                                        billing_order_id: order.id,
-                                        machine_id: r.machine_id,
-                                        type: 'release',
-                                        pieces: Number(r.pieces) || 0,
-                                        weight_kg: Number(r.weight_kg) || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva · sem máquina${p.alt_article_id ? ' · outro artigo' : ''})`,
-                                        created_by: profile?.id ?? null,
-                                      }));
+
+                                      // Agrupa por máquina para calcular o saldo líquido (reserve - release)
+                                      const machineBalances = (allSm || []).reduce((acc: any, curr: any) => {
+                                        const mId = curr.machine_id || 'no_machine';
+                                        if (!acc[mId]) acc[mId] = { pieces: 0, weight: 0, machine_id: curr.machine_id, article_id: curr.article_id, client_id: curr.client_id };
+                                        const factor = curr.type === 'reserve' ? 1 : -1;
+                                        acc[mId].pieces += (Number(curr.pieces) || 0) * factor;
+                                        acc[mId].weight += (Number(curr.weight_kg) || 0) * factor;
+                                        return acc;
+                                      }, {} as Record<string, any>);
+
+                                      const releases = Object.values(machineBalances)
+                                        .filter((b: any) => b.pieces > 0 || b.weight > 0)
+                                        .map((b: any) => ({
+                                          company_id: user.company_id,
+                                          article_id: b.article_id || p.alt_article_id || order.article_id,
+                                          client_id: b.client_id || p.alt_client_id || order.client_id,
+                                          billing_order_id: order.id,
+                                          machine_id: b.machine_id === 'no_machine' ? null : b.machine_id,
+                                          type: 'release',
+                                          pieces: b.pieces,
+                                          weight_kg: b.weight,
+                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera saldo líquido reserva · sem máquina${p.alt_article_id ? ' · outro artigo' : ''})`,
+                                          created_by: profile?.id ?? null,
+                                        }));
+
                                       if (releases.length > 0) {
                                         const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
                                         if (relErr) throw relErr;
                                       }
+
                                     }
                                     // 2. Apaga palete
                                     const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
