@@ -253,6 +253,7 @@ export function useCompanyData() {
      }
      try {
         const isMecanicaPage = window.location.pathname.includes('/mecanica');
+        const isAdmin = user?.role === 'admin';
         const tasks = [
           { name: 'machines', fn: () => fetchAll('machines', { column: 'company_id', value: companyId }, 'number') },
           { name: 'clients', fn: () => (isMecanicaPage || isAdmin) ? fetchAll('clients', { column: 'company_id', value: companyId }, 'name') : Promise.resolve([]) },
