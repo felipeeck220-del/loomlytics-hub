@@ -5579,7 +5579,21 @@ export type Database = {
               p_company_id: string
               p_month?: string
             }
-            Returns: Json
+            Returns: {
+              article_id: string
+              article_name: string
+              available_kg: number
+              available_pc: number
+              client_id: string
+              client_name: string
+              delivered_kg: number
+              delivered_pc: number
+              machine_pc: number
+              manual_kg: number
+              manual_pc: number
+              reserved_kg: number
+              reserved_pc: number
+            }[]
           }
         | {
             Args: {
