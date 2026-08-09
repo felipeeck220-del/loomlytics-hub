@@ -1,5 +1,6 @@
-- **09/08/2026 (Brasília) — Ordem de Faturamento (OF): Controle de Múltiplos na Separação:**
-    - Adicionada opção opcional de "Múltiplos" na criação e edição de OFs.
+- **09/08/2026 (Brasília) — Correção de Constraint em OF e Controle de Múltiplos:**
+    - Resolvido erro de chave estrangeira (`billing_orders_created_by_fkey`) na criação de OFs, ajustando as RPCs `create_billing_order` e `edit_billing_order` para utilizarem o ID do perfil (`profiles.id`) em vez do UUID de autenticação direta.
+    - Implementada opção opcional de "Múltiplos" na criação e edição de OFs.
     - O múltiplo permanece ativo e configurável mesmo no modo "Coletar Tudo", permitindo impor regras de pacotes/lotes para qualquer tipo de OF.
     - O múltiplo é exibido em destaque no modal de separação por paletes.
     - Implementada validação que impede a finalização da separação se o total de peças não for múltiplo exato do valor definido.
