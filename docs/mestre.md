@@ -1,9 +1,9 @@
+- **09/08/2026 (Brasília) — Pente Fino e Refinamento de Múltiplos em OF:**
+    - Corrigido o mapeamento da coluna `multiplier` no hook `useBillingOrders.ts` (interfaces e payloads de criação/edição), resolvendo bug onde o multiplicador não era persistido corretamente.
+    - Validada a regra de bloqueio de finalização de paletes baseada em múltiplos: o sistema agora impede corretamente o fechamento de OFs que não respeitem a contagem exata (exibindo indicadores + e -).
+    - Refinada a interface de edição de OF para incluir o campo de múltiplos, sincronizado com o backend via RPC.
+    - Confirmada a integridade visual dos badges de múltiplos no card e alertas no modal de separação.
 - **09/08/2026 (Brasília) — Destaque Visual de Múltiplos em OF:**
-    - Adicionados badges de destaque visual para "Múltiplos" no card da Ordem de Faturamento (OF) e um bloco de alerta colorido no topo do modal de separação por paletes.
-    - Corrigido o erro de chave estrangeira (`billing_orders_created_by_fkey`) na criação de OFs, ajustando as RPCs para utilizarem o ID do perfil em vez do UUID de autenticação.
-    - Implementada opção opcional de "Múltiplos" na criação e edição de OFs com trava de segurança na finalização.
-    - O múltiplo permanece ativo e configurável mesmo no modo "Coletar Tudo".
-    - Exibição de indicadores (+ e -) no modal de paletes para orientar o usuário.
 - **09/08/2026 (Brasília) — Ajuste Visual em Abas de Mecânica:**
     - Removidos os badges numéricos das abas "Finalizadas", "Canceladas" (OM/OC/OE) e "Concluídas" (OT) para reduzir poluição visual em históricos longos.
 - **09/08/2026 (Brasília) — Pente Fino em Mecânica e Estabilização de Interface:**

@@ -46,6 +46,7 @@ export interface BillingOrder {
   delivery_doc_number?: string | null;
   delivery_doc_set_by?: string | null;
   delivery_doc_set_at?: string | null;
+  multiplier?: number | null;
   // Joins
   client?: { name: string };
   article?: { name: string };
@@ -192,6 +193,7 @@ export function useBillingOrders() {
         dyehouse: newOrder.dyehouse,
         order_type: orderType,
         admin_notes: (newOrder as any).admin_notes ?? null,
+        multiplier: newOrder.multiplier ?? null,
       };
       const { data, error } = await (supabase as any).rpc('create_billing_order', {
         p_company_id: user?.company_id,
@@ -318,7 +320,7 @@ export function useBillingOrders() {
       // Somente campos permitidos são serializados; RPC ignora ausentes (COALESCE).
       const allowed = ['of_number','client_id','article_id','machine_id','dyehouse',
                        'pieces_expected','weight_expected','piece_weight_target',
-                       'order_type','admin_notes','priority','priority_reason'] as const;
+                       'order_type','admin_notes','priority','priority_reason', 'multiplier'] as const;
       const payload: Record<string, any> = {};
       for (const k of allowed) {
         if ((changes as any)[k] !== undefined) payload[k] = (changes as any)[k];
