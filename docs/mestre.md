@@ -1,3 +1,7 @@
+- **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
+    - Refatorada a RPC `get_mecanica_bootstrap` para incluir validação de tenant (`company_id`) e carregamento condicional de dados.
+    - Lotes de agulhas e platinas (dados pesados) agora só são enviados no bootstrap para usuários com papéis administrativos ou técnicos (admin, lider, mecanico, lider_mecanica, lider_noite), reduzindo o payload inicial para outros usuários.
+    - Garantido que a lista básica de máquinas (necessária para os cards) continue disponível para todos com acesso à página.
 - **09/08/2026 (Brasília) — Performance em Mecânica (OM, OC, OE, OT):**
     - Implementado modelo de carregamento acelerado via bootstrap consolidado (similar ao de OF), incluindo máquinas na primeira requisição.
     - Otimizada a transição entre abas OM/OC/OE garantindo carregamento instantâneo sem depender do `useCompanyData` pesado para a visualização básica.
