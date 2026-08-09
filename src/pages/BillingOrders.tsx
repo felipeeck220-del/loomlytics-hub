@@ -1705,7 +1705,6 @@ const BillingOrders = () => {
                   value={form.multiplier}
                   onChange={e => setForm({ ...form, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
                   placeholder="Ex: 13 (separar em múltiplos de 13 peças)"
-                  disabled={form.order_type === 'all'}
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Se preenchido, a separação só pode ser finalizada com total de peças múltiplo desse valor.
@@ -2012,7 +2011,6 @@ const BillingOrders = () => {
                 value={editForm.multiplier}
                 onChange={e => setEditForm({ ...editForm, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
                 placeholder="Opcional — ex: 13"
-                disabled={editForm.order_type === 'all'}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
