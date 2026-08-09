@@ -160,7 +160,6 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     canExecuteOrder(o) || canManageOrder(o) || isAdmin;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
-  const [counts, setCounts] = useState({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<MaintenanceOrderStatus | 'relatorios'>('aberto');
@@ -1032,7 +1031,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
-  const [counts, setCounts] = useState<Record<string, number>>({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
+  const [counts, setCounts] = useState({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
   const filtered = orders; // Já vem filtrado da RPC
   const modeOrders = orders; // Fallback para compatibilidade em props de outros componentes
 
