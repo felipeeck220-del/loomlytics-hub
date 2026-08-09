@@ -2716,35 +2716,27 @@ const BillingOrders = () => {
                               remPc -= takePc;
                               remKg -= takeKg;
                             }
-                            // Sobra: joga na máquina com maior saldo restante (ou última) para preservar total exato
-                            // Se ainda sobrou algo (ex: estoque total insuficiente ou negativo),
-                            // consumimos o restante da primeira máquina que tenha qualquer saldo (ou da última da lista)
-                            // para garantir que o total solicitado seja descontado.
+                            // Se ainda sobrou algo (estoque insuficiente ou negativo),
+                            // distribuímos o restante na primeira máquina da lista (maior saldo)
+                            // ou na máquina principal do artigo para garantir o desconto total solicitado.
                             if (remKg > 0.0001 || remPc > 0) {
-                              if (allocations.length > 0) {
-                                const last = allocations[allocations.length - 1];
-                                last.pieces += Math.max(remPc, 0);
-                                last.weight_kg = Number((last.weight_kg + Math.max(remKg, 0)).toFixed(3));
-                              } else if (sorted.length > 0) {
-                                // Caso especial: as máquinas tinham saldo mas o "Math.min" zerou tudo?
-                                // (Não deve ocorrer com a lógica acima, mas por segurança:)
-                                const [mid] = sorted[0];
-                                allocations.push({ machine_id: mid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
+                              const allMachines = getMachines();
+                              const fallbackMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || allMachines[0]?.id);
+                              if (!fallbackMid) {
+                                toast({ title: 'Erro de integridade', description: 'Nenhuma máquina encontrada para alocação.', variant: 'destructive' });
+                                setPalletBusy(false);
+                                return;
+                              }
+                              const existing = allocations.find(a => a.machine_id === fallbackMid);
+                              if (existing) {
+                                existing.pieces += remPc;
+                                existing.weight_kg = Number((existing.weight_kg + remKg).toFixed(3));
                               } else {
-                                // Nenhuma máquina tem saldo positivo. Pegamos a primeira máquina que produz este artigo
-                                // ou qualquer máquina da empresa para não deixar o movimento órfão de máquina.
-                                const allMachines = getMachines();
-                                const articleMachine = allMachines.find(m => m.id === order.machine_id) || allMachines[0];
-                                if (articleMachine) {
-                                  allocations.push({ machine_id: articleMachine.id, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
-                                } else {
-                                  toast({ title: 'Erro de integridade', description: 'Nenhuma máquina encontrada para alocação.', variant: 'destructive' });
-                                  setPalletBusy(false);
-                                  return;
-                                }
+                                allocations.push({ machine_id: fallbackMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
                               }
                             }
                           }
+
 
                           // 1. Cria movimento(s) de reserva
                           const reserveRows = isNoMachine
