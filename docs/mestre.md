@@ -1,8 +1,8 @@
-- **10/08/2026 (Brasília) — Estabilização do Estoque Manual (Cálculo de Disponível e Reservas):**
-    - Corrigido bug crítico na RPC `get_manual_stock_estoque` onde o cálculo de saldo disponível (Físico - Reservas) estava "zerando" o estoque exibido ao absorver indevidamente entradas manuais recentes em históricos com saídas antigas negativas.
-    - Refinada a lógica de trava cronológica em zero: saídas de OF (reservas e coletas) feitas antes de qualquer entrada manual agora são absorvidas corretamente, permitindo que as entradas manuais fiquem visíveis no saldo disponível.
-    - Garantido que reservas "SEM MÁQUINA" sejam agregadas no total do artigo, mantendo a consistência entre o detalhamento por máquina e o resumo do cliente.
-    - Atualizado o trigger `mirror_of_to_manual_stock` com lógica idempotente (`ON CONFLICT UPDATE`) para garantir que mudanças em paletes de OF sejam refletidas instantaneamente no estoque manual.
+- **10/08/2026 (Brasília) — Correção Definitiva de Saldo no Estoque Manual:**
+    - Identificada e corrigida causa raiz do "estoque zerado": a coexistência de dois triggers redundantes gerou movimentos de reserva e saída duplicados no módulo manual.
+    - Implementada limpeza profunda de movimentos "espelhados órfãos" (sem `source_movement_id`) e consolidado o trigger `mirror_of_update_to_manual_stock` como fonte única de verdade.
+    - Realizado backfill completo e limpo de todos os movimentos de Ordens de Faturamento (OF) para garantir consistência entre o estoque físico e o manual.
+    - Mantida a lógica de "trava em zero" cronológica para proteger o histórico contra saídas retroativas sem lastro manual.
 - **10/08/2026 (Brasília) — Auditoria e Consistência (OF e Estoque Manual):**
     - **Auditoria:** Implementado `public._of_audit` para registro centralizado em `audit_logs`. Atualizadas RPCs `create_billing_order`, `edit_billing_order`, `save_manual_stock_manual_entry` e `save_manual_stock_machine_adjust` para registrar todas as criações, edições e ajustes manuais com autoria e detalhes.
     - **Consistência "SEM MÁQUINA":** Refatorada lógica de alocação no frontend (`src/pages/BillingOrders.tsx`) para garantir que 100% das peças/kg solicitados sejam baixados do estoque global, mesmo que o saldo físico nas máquinas seja insuficiente ou negativo (alocação forçada na máquina principal/fallback).
