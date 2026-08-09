@@ -1,5 +1,7 @@
+- **09/08/2026 (Brasília) — Pente Fino em Mecânica e Estabilização de Interface:**
+    - Corrigido bug visual em `MaintenanceOrdersTab.tsx` onde os badges das abas (Aberto, Em Curso, etc.) ficavam zerados mesmo com ordens presentes, vinculando corretamente o estado `counts` à renderização.
+    - Validada a integridade de todas as abas de Mecânica (OM, OC, OE e OT) quanto a duplicidade e isolamento de tenant.
 - **09/08/2026 (Brasília) — Prevenção de Duplicidade em Ordens de Mecânica:**
-    - Corrigido bug de duplicidade na criação de OM, OC, OE e OT. O bloqueio de clique duplo agora ocorre apenas APÓS as validações de regra de negócio, e o estado de carregamento é resetado corretamente em caso de erro no banco de dados, evitando que o usuário fique travado ou tente criar múltiplas ordens por falta de feedback visual imediato.
 - **09/08/2026 (Brasília) — Correção Definitiva de Acesso em Mecânica:**
 - **09/08/2026 (Brasília) — Otimização Definitiva de Carregamento (Load < 3s):**
     - **Sidebar Instantâneo:** Removida a trava de `settingsLoaded` no `AppSidebar.tsx` para todos os usuários não-admin. Agora o menu lateral aparece imediatamente após o login, sem esperar a validação de permissões do backend.

@@ -160,6 +160,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     canExecuteOrder(o) || canManageOrder(o) || isAdmin;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
+  const [counts, setCounts] = useState({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<MaintenanceOrderStatus | 'relatorios'>('aberto');
@@ -197,12 +198,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
     if (!error && data) {
       const modeStats = data[activeMode] || {};
-      setCounts({
+      const countsObj = {
         aberto: (modeStats.aberto || 0),
         em_curso: modeStats.em_curso || 0,
         finalizada: modeStats.finalizada || 0,
         cancelada: modeStats.cancelada || 0
-      });
+      };
+      setCounts(countsObj);
     }
   };
 
