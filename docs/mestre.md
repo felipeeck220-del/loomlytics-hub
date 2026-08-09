@@ -1,5 +1,5 @@
-- **09/08/2026 (Brasília) — Correção de Segurança e Estabilidade em Mecânica:**
-    - Corrigido erro de "Unauthorized" na RPC `get_mecanica_bootstrap` ajustando a busca do `company_id` para usar a coluna `id` (PK) em vez de `user_id` na tabela `profiles`, garantindo consistência com o esquema do banco.
+- **09/08/2026 (Brasília) — Correção Definitiva de Acesso em Mecânica:**
+    - Corrigido erro de "Unauthorized" na RPC `get_mecanica_bootstrap` ajustando a busca do `company_id` para usar a coluna `user_id` (que referencia `auth.uid()`) em vez da PK `id` da tabela `profiles`, resolvendo a falha de acesso para usuários não-admin (Líderes, Mecânicos, etc).
 - **09/08/2026 (Brasília) — Otimização Definitiva de Carregamento (Load < 3s):**
     - **Sidebar Instantâneo:** Removida a trava de `settingsLoaded` no `AppSidebar.tsx` para todos os usuários não-admin. Agora o menu lateral aparece imediatamente após o login, sem esperar a validação de permissões do backend.
     - **Carga de Dados Ultra-Leve:** Refatorado `useCompanyData.ts` para que usuários operacionais (Mecânicos, Líderes, etc.) carreguem APENAS a lista de máquinas inicialmente. Tabelas pesadas (clientes, artigos, tecelões, estoques) agora são carregadas sob demanda apenas na página de Mecânica ou para Administradores.
