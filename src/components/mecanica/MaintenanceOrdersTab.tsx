@@ -197,12 +197,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const { data, error } = await (supabase.rpc as any)('get_mecanica_stats', { p_company_id: companyId });
     if (!error && data) {
       const modeStats = data[activeMode] || {};
-      setCounts({
+      const countsObj = {
         aberto: (modeStats.aberto || 0),
         em_curso: modeStats.em_curso || 0,
         finalizada: modeStats.finalizada || 0,
         cancelada: modeStats.cancelada || 0
-      });
+      };
+      setCounts(countsObj);
     }
   };
 
@@ -1030,7 +1031,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
-  const [counts, setCounts] = useState<Record<string, number>>({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
+  const [counts, setCounts] = useState({ aberto: 0, em_curso: 0, finalizada: 0, cancelada: 0 });
   const filtered = orders; // Já vem filtrado da RPC
   const modeOrders = orders; // Fallback para compatibilidade em props de outros componentes
 
