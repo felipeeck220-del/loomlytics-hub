@@ -2418,8 +2418,7 @@ const BillingOrders = () => {
 
                   <div className={cn(
                     "rounded-md border p-3 flex items-center justify-between transition-colors",
-                      ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" 
-                      : "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-800"
+                    "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-800"
                   )}>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
@@ -2428,23 +2427,9 @@ const BillingOrders = () => {
                         )}>
                           {totalPieces} pç
                         </span>
-                          <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5">OK</Badge>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-white h-5 text-[10px] font-bold">
-                            </Badge>
-                            <Badge variant="outline" className="text-amber-600 border-amber-200 bg-white h-5 text-[10px] font-bold">
-                            </Badge>
-                          </div>
-                        )}
                       </div>
                     </div>
-                      <span className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium italic animate-pulse">
-                        Ajuste para fechar múltiplo
-                      </span>
-                    )}
                   </div>
-                )}
 
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
