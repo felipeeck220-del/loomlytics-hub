@@ -2702,14 +2702,6 @@ const BillingOrders = () => {
                               else if (mv.type === 'release') { cur.pieces += pcs; cur.weight += kg; }
                               bal.set(mv.machine_id, cur);
                             }
-                            // Ordena por peças disponíveis decrescente (prioridade do usuário)
-                            const sorted = Array.from(bal.entries())
-                              .filter(([, v]) => v.pieces >= 1)
-                              .sort((a, b) => b[1].pieces - a[1].pieces);
-                            
-                            let remPc = pc || 0;
-                            let remKg = wt || 0;
-
                             // 1. Tentar encontrar uma única máquina que supra tudo (ex: preciso 50, tenho uma com 85)
                             const perfectMatch = sorted.find(([, v]) => v.pieces >= remPc);
                             if (perfectMatch) {
@@ -2750,6 +2742,7 @@ const BillingOrders = () => {
                                 allocations.push({ machine_id: fallbackMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
                               }
                             }
+
                           }
 
 
