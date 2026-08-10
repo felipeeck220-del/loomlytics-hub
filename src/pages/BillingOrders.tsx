@@ -3117,62 +3117,73 @@ const BillingOrders = () => {
           })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmFinalizePallets(false)}>Cancelar</Button>
-            <Button
-              className={cn(
-                "gap-1.5",
-                !isMultiplierValValid 
-                  ? "bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse" 
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-              )}
-              disabled={updateStatus.isPending}
-              onClick={async () => {
-                if (!showPalletsModal) return;
-                
-                // Trava de múltiplos
-                if (multiplierVal > 0 && !isMultiplierValValid) {
-                  toast({
-                    title: "Separação incompleta",
-                    description: `Esta OF exige múltiplos de ${multiplierVal} peças. Faltam ${diffUpVal} pç ou sobram ${diffDownVal} pç para fechar a conta.`,
-                    variant: "destructive"
-                  });
-                  return;
-                }
+            {showPalletsModal && (() => {
+              const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+              const multiplierVal = Number(showPalletsModal.multiplier || 0);
+              const isMultiplierValValid = multiplierVal > 0 ? (totalPieces % multiplierVal === 0) : true;
+              const multiplierDiffVal = multiplierVal > 0 ? (totalPieces % multiplierVal) : 0;
+              const diffUpVal = multiplierVal > 0 ? (multiplierVal - multiplierDiffVal) : 0;
+              const diffDownVal = multiplierVal > 0 ? multiplierDiffVal : 0;
 
-                const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
-                const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
-                const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
-                const target = showPalletsModal;
-                try {
-                  await updateStatus.mutateAsync({
-                    id: target.id,
-                    status: 'ready',
-                    data: { pieces_real: totalPieces, weight_real: totalWeight, weight_avg: avg },
-                    expectedStatus: 'separating',
-                  });
-                  setConfirmFinalizePallets(false);
-                  setShowPalletsModal(null);
-                  setPallets([]);
-                  setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
-                } catch (err: any) {
-                  if (err?.code === 'CONFLICT') {
-                    setConfirmFinalizePallets(false);
-                    setShowPalletsModal(null);
-                    setPallets([]);
-                    setConflictInfo({ action: 'lançar dados', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
-                  }
-                }
-              }}
-            >
-              {!isMultiplierValValid ? (
-                <>
-                  <AlertTriangle className="h-4 w-4" /> Finalizar com erro de múltiplos
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
-                </>
-              )}
-            </Button>
+              return (
+                <Button
+                  className={cn(
+                    "gap-1.5",
+                    !isMultiplierValValid 
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse" 
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  )}
+                  disabled={updateStatus.isPending}
+                  onClick={async () => {
+                    if (!showPalletsModal) return;
+                    
+                    // Trava de múltiplos
+                    if (multiplierVal > 0 && !isMultiplierValValid) {
+                      toast({
+                        title: "Separação incompleta",
+                        description: `Esta OF exige múltiplos de ${multiplierVal} peças. Faltam ${diffUpVal} pç ou sobram ${diffDownVal} pç para fechar a conta.`,
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
+                    const totalPiecesVal = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+                    const totalWeightVal = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+                    const avgVal = totalPiecesVal > 0 ? totalWeightVal / totalPiecesVal : 0;
+                    const target = showPalletsModal;
+                    try {
+                      await updateStatus.mutateAsync({
+                        id: target.id,
+                        status: 'ready',
+                        data: { pieces_real: totalPiecesVal, weight_real: totalWeightVal, weight_avg: avgVal },
+                        expectedStatus: 'separating',
+                      });
+                      setConfirmFinalizePallets(false);
+                      setShowPalletsModal(null);
+                      setPallets([]);
+                      setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                    } catch (err: any) {
+                      if (err?.code === 'CONFLICT') {
+                        setConfirmFinalizePallets(false);
+                        setShowPalletsModal(null);
+                        setPallets([]);
+                        setConflictInfo({ action: 'lançar dados', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+                      }
+                    }
+                  }}
+                >
+                  {!isMultiplierValValid ? (
+                    <>
+                      <AlertTriangle className="h-4 w-4" /> Finalizar com erro de múltiplos
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
+                    </>
+                  )}
+                </Button>
+              );
+            })()}
           </DialogFooter>
         </DialogContent>
       </Dialog>
