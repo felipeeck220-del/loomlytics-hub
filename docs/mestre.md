@@ -1,3 +1,9 @@
+- **10/08/2026 (Brasília) — Reset Total e Rebuild do Estoque Malha (Manual):**
+    - **Reset de Dados:** Executado `TRUNCATE` na tabela `manual_stock_movements` para zerar saldos inconsistentes e históricos antigos, permitindo um recomeço limpo conforme solicitado.
+    - **Reconstrução de Lógica:** Refatoradas as RPCs e triggers de espelhamento para garantir que o saldo "Disponível" seja calculado de forma robusta: `(Expedição - Reservas Ativas) + Em Máquina`.
+    - **Gestão de Reservas:** Implementado sistema de sincronização que puxa apenas reservas de OFs ativas (não coletadas nem canceladas). Garantido que cancelamento de OF ou remoção de palete retorne o saldo para a expedição e remova a reserva.
+    - **Backfill de Reservas:** Realizada carga inicial de reservas pendentes do estoque global para o manual, garantindo que o faturamento em andamento seja respeitado no novo saldo.
+    - **Segurança:** Reforçados os grants e isolamento de tenant em todas as funções refatoradas.
 - **10/08/2026 (Brasília) — Correção de Erro de Tipo em Edição de OF:**
     - Corrigido erro `CASE types billing_order_status and text cannot be matched` na RPC `edit_billing_order`.
     - Implementada conversão explícita de tipos (cast) para `text` na verificação de status e para `billing_order_status` na atualização de status ao reverter para aberto.
