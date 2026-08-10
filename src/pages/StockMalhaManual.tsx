@@ -96,8 +96,10 @@ function ManualEntryModal({
 
   useEffect(() => {
     if (open) {
-      setType('adjust_in'); setDest('expedicao'); setClientId(''); setArticleId(''); setMachineId('');
-      setPieces(''); setWeight(''); setReason('');
+      // Manter cliente, artigo e máquina se já selecionados para facilitar lançamentos sequenciais
+      setPieces(''); 
+      setWeight(''); 
+      setReason('');
     }
   }, [open]);
 
