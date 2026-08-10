@@ -2727,16 +2727,7 @@ const BillingOrders = () => {
                       const order = showPalletsModal;
                       setPalletBusy(true);
                       try {
-                                        company_id: user.company_id,
-                                        
-                                        type: 'in',
-                                        pieces: p.pieces || 0,
-                                        weight_kg: p.weight || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (devolve Estoque ${companyFirstName})`,
-                                        created_by: profile?.id ?? null,
-                                      });
-                                      if (ownErr) throw ownErr;
-                                    } else if (p.machine_id) {
+                                    if (p.machine_id) {
                                       // Palete com máquina: uma reserva → uma liberação
                                       const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
                                         company_id: user.company_id,
