@@ -2955,11 +2955,7 @@ const BillingOrders = () => {
                 <DialogFooter className="mt-4 pt-4 border-t px-0">
                   <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
                   <Button
-                    className={cn(
-                      "font-bold gap-1.5",
-                        ? "bg-slate-400 cursor-not-allowed" 
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    )}
+                    className="font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={() => {
                       const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                       if (totalWeight <= 0) {
@@ -2970,8 +2966,7 @@ const BillingOrders = () => {
                     }}
                   >
                     <CheckCircle2 className="h-4 w-4" /> 
-                      : `Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`
-                    }
+                    {`Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`}
                   </Button>
                 </DialogFooter>
               </div>

@@ -317,7 +317,7 @@ export function useBillingOrders() {
       const a = authorMeta();
       // Somente campos permitidos são serializados; RPC ignora ausentes (COALESCE).
       const allowed = ['of_number','client_id','article_id','machine_id','dyehouse',
-                       'pieces_expected','weight_expected','piece_weight_target',
+                       'pieces_expected','weight_expected','piece_weight_target'];
       const payload: Record<string, any> = {};
       for (const k of allowed) {
         if ((changes as any)[k] !== undefined) payload[k] = (changes as any)[k];
