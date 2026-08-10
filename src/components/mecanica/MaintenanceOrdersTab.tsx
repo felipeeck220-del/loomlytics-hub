@@ -1799,7 +1799,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <Textarea rows={8} value={finishNotes} onChange={e => setFinishNotes(e.target.value)} placeholder="Ex.: Realizada troca completa de agulhas. Verificada folga no cilindro — recomenda-se preventiva em 30 dias..." />
               </div>
 
-              {finishOrder.type === 'manutencao_eletrica' && (
+              {(finishOrder.type === 'manutencao_eletrica' || finishOrder.type === 'manutencao_corretiva') && (
                 <div className="border-t pt-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label className="font-semibold flex items-center gap-2">
