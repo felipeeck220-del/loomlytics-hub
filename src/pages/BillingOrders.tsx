@@ -2610,6 +2610,7 @@ const BillingOrders = () => {
                           const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
                           const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
                           const reasonSuffix = `OF #${order.of_number} · Palete ${nextNumber}`;
+                          const reasonSuffix = `OF #${order.of_number} · Palete ${nextNumber}`;
 
                           // ============ MODO ESTOQUE PRÓPRIO ============
                           // Baixa direto do own_stock (sem passar por stock_movements/reserve)
