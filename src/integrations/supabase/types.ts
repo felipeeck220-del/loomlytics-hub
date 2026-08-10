@@ -6086,7 +6086,7 @@ export type Database = {
       }
       save_manual_stock_machine_adjust: {
         Args: { p_payload: Json }
-        Returns: Json
+        Returns: string
       }
       save_manual_stock_manual_entry: {
         Args: { p_payload: Json }
