@@ -2445,8 +2445,9 @@ const BillingOrders = () => {
                           const nextNumber = Math.max(localMax, dbMax) + 1;
                           const isNoMachine = palletInput.machine_id === '__none__';
                           const palletMachineId = isNoMachine ? null : palletInput.machine_id;
-                          const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
-                          const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
+                           const useAlt = palletInput.source_mode === 'alt';
+                           const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
+                           const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
 
                             const [prodRes, mvRes] = await Promise.all([
                               (supabase.from as any)('productions')
