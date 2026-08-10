@@ -2448,61 +2448,6 @@ const BillingOrders = () => {
                           const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
                           const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
 
-                          // ============ MODO ESTOQUE PRÓPRIO ============
-                          // Baixa direto do own_stock (sem passar por stock_movements/reserve)
-                          if (useOwn) {
-                            const { data: ownMv, error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
-                              company_id: user.company_id,
-                              
-                              type: 'out',
-                              pieces: pc || 0,
-                              weight_kg: wt || 0,
-                              reason: `OF #${order.of_number} · Palete ${nextNumber} (Estoque ${companyFirstName})`,
-                              created_by: profile?.id ?? null,
-                            }).select('id').single();
-                            if (ownErr) throw ownErr;
-                            const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
-                              billing_order_id: order.id,
-                              company_id: user.company_id,
-                              pallet_number: nextNumber,
-                              pieces: pc || 0,
-                              weight_kg: wt || 0,
-                              reserve_movement_id: null,
-                              machine_id: null,
-                              alt_client_id: null,
-                              alt_article_id: null,
-                              
-                              own_stock_movement_id: ownMv?.id ?? null,
-                              created_by: profile?.id ?? null,
-                            }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
-                            if (pErr) {
-                              // rollback do movimento próprio
-                              if (ownMv?.id) await (supabase.from as any)('own_stock_movements').delete().eq('id', ownMv.id);
-                              throw pErr;
-                            }
-                            setPallets(prev => [...prev, {
-                              id: row.id,
-                              pallet_number: row.pallet_number,
-                              pieces: Number(row.pieces),
-                              weight: Number(row.weight_kg),
-                              reserve_movement_id: null,
-                              machine_id: null,
-                              alt_client_id: null,
-                              alt_article_id: null,
-                              
-                              
-                            }]);
-                            setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '' });
-                            refreshStockCaches();
-                            toast({ title: `Palete ${nextNumber} salvo (Estoque ${companyFirstName})` });
-                            setPalletBusy(false);
-                            return;
-                          }
-
-                          // Se SEM MÁQUINA: computa saldo por máquina do artigo e distribui a baixa.
-                          type Alloc = { machine_id: string; pieces: number; weight_kg: number };
-                          const allocations: Alloc[] = [];
-                          if (isNoMachine) {
                             const [prodRes, mvRes] = await Promise.all([
                               (supabase.from as any)('productions')
                                 .select('machine_id, rolls_produced, weight_kg')
