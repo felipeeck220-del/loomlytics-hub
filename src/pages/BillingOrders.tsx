@@ -2790,19 +2790,29 @@ const BillingOrders = () => {
                             const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
                             if (ids.length) await (supabase.from as any)('stock_movements').delete().in('id', ids);
                             throw pErr;
-                          }
-                          setPallets(prev => [...prev, {
-                            id: row.id,
-                            pallet_number: row.pallet_number,
-                            pieces: Number(row.pieces),
-                            weight: Number(row.weight_kg),
-                            reserve_movement_id: row.reserve_movement_id,
-                            machine_id: row.machine_id ?? null,
-                            alt_client_id: row.alt_client_id ?? null,
-                            alt_article_id: row.alt_article_id ?? null,
-                            own_article_id: row.own_article_id ?? null,
-                            own_stock_movement_id: row.own_stock_movement_id ?? null,
-                          }]);
+                           }
+                           
+                           // Link das reservas ao palete para estorno robusto no futuro
+                           const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
+                           if (ids.length) {
+                             await (supabase.from as any)('stock_movements')
+                               .update({ reason: `${reasonSuffix} (Pallet ID: ${row.id})` })
+                               .in('id', ids);
+                           }
+
+                           setPallets(prev => [...prev, {
+                             id: row.id,
+                             pallet_number: row.pallet_number,
+                             pieces: Number(row.pieces),
+                             weight: Number(row.weight_kg),
+                             reserve_movement_id: row.reserve_movement_id,
+                             machine_id: row.machine_id ?? null,
+                             alt_client_id: row.alt_client_id ?? null,
+                             alt_article_id: row.alt_article_id ?? null,
+                             own_article_id: row.own_article_id ?? null,
+                             own_stock_movement_id: row.own_stock_movement_id ?? null,
+                           }]);
+
                           setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                           refreshStockCaches();
                           toast({
@@ -2911,7 +2921,7 @@ const BillingOrders = () => {
                                           .eq('company_id', user.company_id)
                                           .eq('billing_order_id', order.id)
                                           .eq('type', 'reserve')
-                                          .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} %`);
+                                          .or(`reason.like.OF #${order.of_number} · Palete ${p.pallet_number} %,reason.like.% (Pallet ID: ${p.id})`);
                                         
                                         if (qErr) throw qErr;
 
