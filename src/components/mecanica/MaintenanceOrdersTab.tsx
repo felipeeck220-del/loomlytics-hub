@@ -1615,15 +1615,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>{correctiveMode ? 'Descrição do problema' : 'Descrição / serviço'}</Label>
+              <Label className="font-bold text-indigo-700 dark:text-indigo-400">
+                {correctiveMode || form.type === 'manutencao_eletrica' ? 'Descrição do problema *' : 'Descrição / serviço *'}
+              </Label>
               <Textarea
                 rows={3}
                 value={form.description}
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                placeholder={correctiveMode ? 'Descreva o problema apresentado pela máquina' : 'O que precisa ser feito'}
+                placeholder={correctiveMode || form.type === 'manutencao_eletrica' ? 'Descreva detalhadamente o problema' : 'O que precisa ser feito'}
+                className="border-indigo-200 dark:border-indigo-800 focus-visible:ring-indigo-500"
               />
             </div>
-            {correctiveMode && !editing && (
+            {(correctiveMode || form.type === 'manutencao_eletrica') && !editing && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <Label className="flex items-center gap-1.5">
