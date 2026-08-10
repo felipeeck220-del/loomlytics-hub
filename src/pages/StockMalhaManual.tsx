@@ -1434,7 +1434,7 @@ function MvCardMobile({ row }: { row: any }) {
         <span className="font-semibold">{formatWeight(row.weight_kg || 0)}</span>
       </div>
       {(row.author || row.reason) && (
-        <div className="text-[10px] text-muted-foreground border-t pt-1">
+        <div className="text-[10px] text-muted-foreground border-t pt-1 break-words">
           {row.author ? `${row.author.name}${row.author.code ? ` #${row.author.code}` : ''}` : ''}
           {row.reason ? ` · ${row.reason}` : ''}
         </div>
