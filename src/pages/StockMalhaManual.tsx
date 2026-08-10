@@ -84,7 +84,7 @@ function ManualEntryModal({
   const { user, profile } = useAuth();
   const modalQueryClient = useQueryClient();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
-  const [dest, setDest] = useState<'expedicao' | 'maquina'>('expedicao');
+  
   const [clientId, setClientId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [machineId, setMachineId] = useState('');
@@ -95,7 +95,7 @@ function ManualEntryModal({
 
   useEffect(() => {
     if (open) {
-      setType('adjust_in'); setDest('expedicao'); setClientId(''); setArticleId(''); setMachineId('');
+      setType('adjust_in'); setClientId(''); setArticleId(''); setMachineId('');
       setPieces(''); setWeight(''); setReason('');
     }
   }, [open]);
@@ -151,7 +151,6 @@ function ManualEntryModal({
           pieces: piecesNum,
           weight_kg: weightNum,
           reason: reason.trim(),
-          on_machine: dest === 'maquina',
         },
       });
       if (error) throw error;

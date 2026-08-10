@@ -147,20 +147,7 @@ const BillingOrders = () => {
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
   const [palletToDelete, setPalletToDelete] = useState<null | { id: string; pallet_number: number; pieces: number; weight: number; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>(null);
-  const [ownArticles, setOwnArticles] = useState<Array<{ id: string; name: string }>>([]);
-  useEffect(() => {
-    if (!user?.company_id) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await (supabase.from as any)('own_stock_articles')
-        .select('id, name')
-        .eq('company_id', user.company_id)
-        .order('name');
-      if (!cancelled) setOwnArticles((data || []).map((r: any) => ({ id: r.id, name: r.name })));
-    })();
-    return () => { cancelled = true; };
-  }, [user?.company_id, showPalletsModal]);
-  const companyFirstName = (user as any)?.company_name?.split(/\s+/)[0] || 'Fábrica';
+  const companyFirstName = 'Fábrica';
 
   // Modal de Atrelar OFs
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -175,7 +162,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id')
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled) { setPalletsLoading(false); return; }
@@ -193,8 +180,6 @@ const BillingOrders = () => {
         machine_id: r.machine_id ?? null,
         alt_client_id: r.alt_client_id ?? null,
         alt_article_id: r.alt_article_id ?? null,
-        own_article_id: r.own_article_id ?? null,
-        own_stock_movement_id: r.own_stock_movement_id ?? null,
       })));
       setPalletsLoading(false);
     })();
