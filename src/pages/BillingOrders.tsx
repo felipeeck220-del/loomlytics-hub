@@ -103,7 +103,6 @@ const BillingOrders = () => {
   const [conflictInfo, setConflictInfo] = useState<{ action: string; ofNumber: string; currentStatus?: string; actor?: { name: string; code: string } | null } | null>(null);
   const [editForm, setEditForm] = useState<any>({
     of_number: '', client_id: '', article_id: '', machine_id: '',
-    multiplier: '',
     pieces_expected: '', weight_expected: '', dyehouse: '',
     order_type: 'pieces', edit_note: '', piece_weight_target: ''
   });
@@ -243,7 +242,6 @@ const BillingOrders = () => {
     client_id: '',
     article_id: '',
     machine_id: '',
-    multiplier: '',
     pieces_expected: '',
     dyehouse: '',
     weight_expected: '',
@@ -477,7 +475,6 @@ const BillingOrders = () => {
     try {
       await createOrder.mutateAsync(payload);
       setShowCreateModal(false);
-      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', multiplier: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces', admin_notes: '' });
       setCreateDupError(null);
     } catch (err: any) {
       if (err?.code === 'DUPLICATE_OF') {
@@ -511,7 +508,6 @@ const BillingOrders = () => {
       client_id: form.client_id,
       article_id: form.article_id,
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-      multiplier: form.multiplier ? parseInt(form.multiplier) : undefined,
       pieces_expected: form.order_type === 'all' ? undefined : (form.pieces_expected ? parseInt(form.pieces_expected) : undefined),
       weight_expected: form.order_type === 'all' ? undefined : (form.weight_expected ? parseFloat(form.weight_expected) : undefined),
       piece_weight_target: form.order_type === 'all' ? null : (form.piece_weight_target ? parseFloat(form.piece_weight_target) : null),
@@ -550,7 +546,6 @@ const BillingOrders = () => {
       client_id: order.client_id || '',
       article_id: order.article_id || '',
       machine_id: order.machine_id || 'none',
-      multiplier: order.multiplier != null ? String(order.multiplier) : '',
       pieces_expected: order.pieces_expected != null ? String(order.pieces_expected) : '',
       weight_expected: order.weight_expected != null ? String(order.weight_expected) : '',
       piece_weight_target: order.piece_weight_target != null ? String(order.piece_weight_target) : '',
@@ -586,7 +581,6 @@ const BillingOrders = () => {
       client_id: editForm.client_id,
       article_id: editForm.article_id,
       machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
-      multiplier: editForm.multiplier ? parseInt(editForm.multiplier) : null,
       pieces_expected: editForm.order_type === 'all' ? null : (editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null),
       weight_expected: editForm.order_type === 'all' ? null : (editForm.weight_expected ? parseFloat(editForm.weight_expected) : null),
       piece_weight_target: editForm.order_type === 'all' ? null : (editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null),
@@ -1705,7 +1699,6 @@ const BillingOrders = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right text-indigo-600 dark:text-indigo-400 font-semibold">
-                Múltiplos <span className="text-[10px] text-muted-foreground font-normal">(opc.)</span>
               </Label>
               <div className="col-span-3 space-y-1">
                 <Input
@@ -1714,7 +1707,6 @@ const BillingOrders = () => {
                   inputMode="numeric"
                   className="border-indigo-300 dark:border-indigo-800 focus-visible:ring-indigo-500"
                   value={form.multiplier}
-                  onChange={e => setForm({ ...form, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
                   placeholder="Ex: 13 (separar em múltiplos de 13 peças)"
                 />
                 <p className="text-[10px] text-muted-foreground">
@@ -2013,14 +2005,12 @@ const BillingOrders = () => {
               <Input type="number" step="0.01" className="col-span-3 h-9" value={editForm.piece_weight_target} onChange={e => setEditForm({...editForm, piece_weight_target: e.target.value})} placeholder="Opcional — ex: 10" />
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
-              <Label className="text-right text-xs text-indigo-600 dark:text-indigo-400 font-semibold">Múltiplos</Label>
               <Input
                 type="number"
                 min={0}
                 inputMode="numeric"
                 className="col-span-3 h-9 border-indigo-300 dark:border-indigo-800 focus-visible:ring-indigo-500"
                 value={editForm.multiplier}
-                onChange={e => setEditForm({ ...editForm, multiplier: e.target.value.replace(/[^0-9]/g, '') })}
                 placeholder="Opcional — ex: 13"
               />
             </div>
@@ -2392,11 +2382,6 @@ const BillingOrders = () => {
             const remainingWeight = targetWeight - totalWeight;
             const orderType = order.order_type || 'pieces';
             const canFinish = pallets.length > 0;
-            const multiplierVal = Number(order.multiplier || 0);
-            const isMultiplierValValid = multiplierVal > 0 ? (totalPieces % multiplierVal === 0) : true;
-            const multiplierDiffVal = multiplierVal > 0 ? (totalPieces % multiplierVal) : 0;
-            const diffUpVal = multiplierVal > 0 ? (multiplierVal - multiplierDiffVal) : 0;
-            const diffDownVal = multiplierVal > 0 ? multiplierDiffVal : 0;
 
             return (
               <div className="space-y-3 py-2">
@@ -2441,37 +2426,29 @@ const BillingOrders = () => {
                   </div>
                 )}
 
-                {multiplierVal > 0 && (
                   <div className={cn(
                     "rounded-md border p-3 flex items-center justify-between transition-colors",
-                    isMultiplierValValid 
                       ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" 
                       : "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-800"
                   )}>
                     <div className="flex flex-col">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Status do Múltiplo ({multiplierVal})</span>
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           "text-lg font-black tracking-tighter",
-                          isMultiplierValValid ? "text-green-600" : "text-indigo-600"
                         )}>
                           {totalPieces} pç
                         </span>
-                        {isMultiplierValValid ? (
                           <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5">OK</Badge>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-white h-5 text-[10px] font-bold">
-                              +{diffUpVal}
                             </Badge>
                             <Badge variant="outline" className="text-amber-600 border-amber-200 bg-white h-5 text-[10px] font-bold">
-                              -{diffDownVal}
                             </Badge>
                           </div>
                         )}
                       </div>
                     </div>
-                    {!isMultiplierValValid && (
                       <span className="text-[10px] text-indigo-700 dark:text-indigo-300 font-medium italic animate-pulse">
                         Ajuste para fechar múltiplo
                       </span>
@@ -3005,11 +2982,9 @@ const BillingOrders = () => {
                   <Button
                     className={cn(
                       "font-bold gap-1.5",
-                      multiplierVal > 0 && !isMultiplierValValid 
                         ? "bg-slate-400 cursor-not-allowed" 
                         : "bg-emerald-600 hover:bg-emerald-700 text-white"
                     )}
-                    disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid)}
                     onClick={() => {
                       const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                       if (totalWeight <= 0) {
@@ -3020,8 +2995,6 @@ const BillingOrders = () => {
                     }}
                   >
                     <CheckCircle2 className="h-4 w-4" /> 
-                    {multiplierVal > 0 && !isMultiplierValValid 
-                      ? `Ajustar Múltiplo (${multiplierVal})` 
                       : `Finalizar com ${pallets.length} palete${pallets.length !== 1 ? 's' : ''}`
                     }
                   </Button>
