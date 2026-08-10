@@ -2667,15 +2667,10 @@ const BillingOrders = () => {
                           const allocations: Alloc[] = [];
                           if (isNoMachine) {
                             const [prodRes, mvRes] = await Promise.all([
-                              (supabase.from as any)('productions')
-                                .select('machine_id, rolls_produced, weight_kg')
-                                .eq('company_id', user.company_id)
-                                .eq('article_id', effArticleId),
-                              (supabase.from as any)('stock_movements')
-                                .select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id')
-                                .eq('company_id', user.company_id)
-                                .eq('article_id', effArticleId),
+                              (supabase.from as any)('productions').select('machine_id, rolls_produced, weight_kg').eq('company_id', user.company_id).eq('article_id', effArticleId),
+                              (supabase.from as any)('stock_movements').select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id').eq('company_id', user.company_id).eq('article_id', effArticleId),
                             ]);
+                            
                             const bal = new Map<string, { pieces: number; weight: number }>();
                             for (const p of (prodRes.data || [])) {
                               if (!p.machine_id) continue;
@@ -2684,22 +2679,20 @@ const BillingOrders = () => {
                               cur.weight += Number(p.weight_kg) || 0;
                               bal.set(p.machine_id, cur);
                             }
+                            
                             for (const mv of (mvRes.data || [])) {
-                              if (mv.is_second_quality) continue;
-                              if (!mv.machine_id) continue;
-                              if (!['adjust_in','adjust_out','in','out','reserve','release'].includes(mv.type)) continue;
+                              if (mv.is_second_quality || !mv.machine_id) continue;
                               const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
                               const kg = Number(mv.weight_kg) || 0;
                               const pcs = Number(mv.pieces) || 0;
-                              if (mv.type === 'adjust_in') { cur.pieces += pcs; cur.weight += kg; }
-                              else if (mv.type === 'adjust_out') { cur.pieces -= pcs; cur.weight -= kg; }
-                              else if (mv.type === 'in') {
-                                if (mv.billing_order_id) { /* estorno afeta entregue, não estoque produzido */ }
-                                else { cur.pieces += pcs; cur.weight += kg; }
+                              
+                              if (mv.type === 'adjust_in' || mv.type === 'release') {
+                                cur.pieces += pcs; cur.weight += kg;
+                              } else if (mv.type === 'adjust_out' || mv.type === 'out' || mv.type === 'reserve') {
+                                cur.pieces -= pcs; cur.weight -= kg;
+                              } else if (mv.type === 'in' && !mv.billing_order_id) {
+                                cur.pieces += pcs; cur.weight += kg;
                               }
-                              else if (mv.type === 'out') { cur.pieces -= pcs; cur.weight -= kg; }
-                              else if (mv.type === 'reserve') { cur.pieces -= pcs; cur.weight -= kg; }
-                              else if (mv.type === 'release') { cur.pieces += pcs; cur.weight += kg; }
                               bal.set(mv.machine_id, cur);
                             }
                             // Ordena por peças disponíveis decrescente (prioridade do usuário)
@@ -2735,19 +2728,14 @@ const BillingOrders = () => {
 
                             // Se ainda sobrou algo (estoque total insuficiente), alocamos o restante na máquina com mais saldo ou principal
                             if (remPc > 0) {
-                              const allMachines = getMachines();
-                              const fallbackMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || allMachines[0]?.id);
-                              if (!fallbackMid) {
-                                toast({ title: 'Erro de integridade', description: 'Nenhuma máquina encontrada para alocação.', variant: 'destructive' });
-                                setPalletBusy(false);
-                                return;
-                              }
-                              const existing = allocations.find(a => a.machine_id === fallbackMid);
+                              const fbMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || getMachines()[0]?.id);
+                              if (!fbMid) throw new Error('Nenhuma máquina encontrada para alocação.');
+                              const existing = allocations.find(a => a.machine_id === fbMid);
                               if (existing) {
                                 existing.pieces += remPc;
                                 existing.weight_kg = Number((existing.weight_kg + remKg).toFixed(3));
                               } else {
-                                allocations.push({ machine_id: fallbackMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
+                                allocations.push({ machine_id: fbMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
                               }
                             }
 
@@ -2927,8 +2915,9 @@ const BillingOrders = () => {
                                         
                                         if (qErr) throw qErr;
 
-                                        // Filtrar duplicatas locais: agrupamos por máquina para inserir uma única linha de estorno total por máquina
-                                        const groupedReserves = (reservas || []).reduce((acc: any, curr: any) => {
+                                        // 3. Inserir lançamentos de estorno (liberação)
+                                        // Agrupamos por máquina para garantir que não haja duplicatas
+                                        const groupedReleases = (reservas || []).reduce((acc: any, curr: any) => {
                                           const mid = curr.machine_id || 'null';
                                           if (!acc[mid]) {
                                             acc[mid] = { ...curr, pieces: 0, weight_kg: 0 };
@@ -2938,7 +2927,7 @@ const BillingOrders = () => {
                                           return acc;
                                         }, {});
 
-                                        const releases = Object.values(groupedReserves).map((r: any) => ({
+                                        const releasesToInsert = Object.values(groupedReleases).map((r: any) => ({
                                           company_id: user.company_id,
                                           article_id: r.article_id,
                                           client_id: r.client_id,
@@ -2947,14 +2936,15 @@ const BillingOrders = () => {
                                           type: 'release',
                                           pieces: Number(r.pieces) || 0,
                                           weight_kg: Number(r.weight_kg) || 0,
-                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
+                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (estorno reserva)`,
                                           created_by: profile?.id ?? null,
                                         }));
 
-                                        if (releases.length > 0) {
-                                          const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
+                                        if (releasesToInsert.length > 0) {
+                                          const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releasesToInsert);
                                           if (relErr) throw relErr;
                                         }
+
 
                                       }
                                     // 2. Apaga palete
