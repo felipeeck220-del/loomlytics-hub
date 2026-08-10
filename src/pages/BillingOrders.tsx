@@ -2897,35 +2897,49 @@ const BillingOrders = () => {
                                         created_by: profile?.id ?? null,
                                       });
                                       if (ownErr) throw ownErr;
-                                    } else {
-                                      // Reservas baseadas no histórico de razão (para OFs com ou sem máquina)
-                                      const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
-                                        .select('id, machine_id, pieces, weight_kg, article_id, client_id')
-                                        .eq('company_id', user.company_id)
-                                        .eq('billing_order_id', order.id)
-                                        .eq('type', 'reserve')
-                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} %`);
-                                      
-                                      if (qErr) throw qErr;
+                                      } else {
+                                        // Reservas baseadas no histórico de razão (para OFs com ou sem máquina)
+                                        // A liberação aqui é delegada ao TRIGGER do banco para evitar duplicatas,
+                                        // mas precisamos garantir que o estoque manual não receba 2 estornos.
+                                        
+                                        const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
+                                          .select('id, machine_id, pieces, weight_kg, article_id, client_id')
+                                          .eq('company_id', user.company_id)
+                                          .eq('billing_order_id', order.id)
+                                          .eq('type', 'reserve')
+                                          .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} %`);
+                                        
+                                        if (qErr) throw qErr;
 
-                                      const releases = (reservas || []).map((r: any) => ({
-                                        company_id: user.company_id,
-                                        article_id: r.article_id,
-                                        client_id: r.client_id,
-                                        billing_order_id: order.id,
-                                        machine_id: r.machine_id,
-                                        type: 'release',
-                                        pieces: Number(r.pieces) || 0,
-                                        weight_kg: Number(r.weight_kg) || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
-                                        created_by: profile?.id ?? null,
-                                      }));
+                                        // Filtrar duplicatas locais: agrupamos por máquina para inserir uma única linha de estorno total por máquina
+                                        const groupedReserves = (reservas || []).reduce((acc: any, curr: any) => {
+                                          const key = curr.machine_id || 'null';
+                                          if (!acc[key]) {
+                                            acc[key] = { ...curr, pieces: 0, weight_kg: 0 };
+                                          }
+                                          acc[key].pieces += Number(curr.pieces) || 0;
+                                          acc[key].weight_kg += Number(curr.weight_kg) || 0;
+                                          return acc;
+                                        }, {});
 
-                                      if (releases.length > 0) {
-                                        const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
-                                        if (relErr) throw relErr;
+                                        const releases = Object.values(groupedReserves).map((r: any) => ({
+                                          company_id: user.company_id,
+                                          article_id: r.article_id,
+                                          client_id: r.client_id,
+                                          billing_order_id: order.id,
+                                          machine_id: r.machine_id,
+                                          type: 'release',
+                                          pieces: Number(r.pieces) || 0,
+                                          weight_kg: Number(r.weight_kg) || 0,
+                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
+                                          created_by: profile?.id ?? null,
+                                        }));
+
+                                        if (releases.length > 0) {
+                                          const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
+                                          if (relErr) throw relErr;
+                                        }
                                       }
-                                    }
                                     // 2. Apaga palete
                                     const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
                                     if (delErr) throw delErr;
