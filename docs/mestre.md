@@ -3,7 +3,13 @@
     - O cálculo de saldo em tempo real no frontend foi sincronizado com as regras do banco: `Produção + Entradas (adjust_in/release/in sem OF) - Saídas (adjust_out/out/reserve)`.
     - Corrigido erro de estorno duplicado na exclusão de paletes "SEM MÁQUINA". Agora, as reservas vinculadas a um palete são agrupadas por máquina antes da inserção da linha de liberação (`release`), garantindo integridade no **Estoque Malha (Manual)**.
     - Implementada trava de segurança no modal de finalização de OF: o sistema impede o envio para o status "PRONTO" se a contagem de peças não respeitar o múltiplo configurado, exibindo alertas detalhados sobre a diferença.
+- **10/08/2026 (Brasília) — Correção de Estorno de Peso no Estoque Manual:**
+    - Ajustada a lógica de estorno (`release`) em `src/pages/BillingOrders.tsx` para garantir que o peso (kg) reservado não seja indevidamente somado ao saldo disponível ao cancelar um palete que não tinha registro de peso manual.
+    - Implementada vinculação estrita via `Pallet ID` no campo `reason` das movimentações para garantir que o rollback de estoque seja 100% fiel à origem da reserva, mesmo em alocações distribuídas.
+    - Refinada a RPC `get_manual_stock_estoque` para tratar peças e kg como entidades independentes na linha do tempo de saldo, evitando que a falta de um (ex: peso 0 em entrada manual) afete o cálculo do outro durante a liberação de reservas.
+
 - **10/08/2026 (Brasília) — Correção de Reserva e Estorno "SEM MÁQUINA" em OF:**
+
 
 - **10/08/2026 (Brasília) — Reset Total e Rebuild do Estoque Malha (Manual):**
     - **Reset de Dados:** Executado `TRUNCATE` na tabela `manual_stock_movements` para zerar saldos inconsistentes e históricos antigos, permitindo um recomeço limpo conforme solicitado.
