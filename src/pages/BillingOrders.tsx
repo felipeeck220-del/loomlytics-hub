@@ -2005,16 +2005,6 @@ const BillingOrders = () => {
               <Input type="number" step="0.01" className="col-span-3 h-9" value={editForm.piece_weight_target} onChange={e => setEditForm({...editForm, piece_weight_target: e.target.value})} placeholder="Opcional — ex: 10" />
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
-              <Input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                className="col-span-3 h-9 border-indigo-300 dark:border-indigo-800 focus-visible:ring-indigo-500"
-                value={editForm.multiplier}
-                placeholder="Opcional — ex: 13"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs">Máquina</Label>
               <div className="col-span-3">
                 <SearchableSelect
