@@ -2728,19 +2728,14 @@ const BillingOrders = () => {
 
                             // Se ainda sobrou algo (estoque total insuficiente), alocamos o restante na máquina com mais saldo ou principal
                             if (remPc > 0) {
-                              const allMachines = getMachines();
-                              const fallbackMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || allMachines[0]?.id);
-                              if (!fallbackMid) {
-                                toast({ title: 'Erro de integridade', description: 'Nenhuma máquina encontrada para alocação.', variant: 'destructive' });
-                                setPalletBusy(false);
-                                return;
-                              }
-                              const existing = allocations.find(a => a.machine_id === fallbackMid);
+                              const fbMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || getMachines()[0]?.id);
+                              if (!fbMid) throw new Error('Nenhuma máquina encontrada para alocação.');
+                              const existing = allocations.find(a => a.machine_id === fbMid);
                               if (existing) {
                                 existing.pieces += remPc;
                                 existing.weight_kg = Number((existing.weight_kg + remKg).toFixed(3));
                               } else {
-                                allocations.push({ machine_id: fallbackMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
+                                allocations.push({ machine_id: fbMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
                               }
                             }
 
