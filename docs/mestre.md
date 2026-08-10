@@ -1,7 +1,10 @@
+- **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
+    - Corrigida falha na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde o sistema falhava em identificar máquinas com saldo positivo (ex: TEAR 36 vs TEAR 19) e gerava reservas em máquinas zeradas. A nova lógica prioriza "Perfect Match" (uma máquina supre tudo) ou distribuição "Greedy" (proporcional ao saldo disponível).
+    - O cálculo de saldo em tempo real no frontend foi sincronizado com as regras do banco: `Produção + Entradas (adjust_in/release/in sem OF) - Saídas (adjust_out/out/reserve)`.
+    - Corrigido erro de estorno duplicado na exclusão de paletes "SEM MÁQUINA". Agora, as reservas vinculadas a um palete são agrupadas por máquina antes da inserção da linha de liberação (`release`), garantindo integridade no **Estoque Malha (Manual)**.
+    - Implementada trava de segurança no modal de finalização de OF: o sistema impede o envio para o status "PRONTO" se a contagem de peças não respeitar o múltiplo configurado, exibindo alertas detalhados sobre a diferença.
 - **10/08/2026 (Brasília) — Correção de Reserva e Estorno "SEM MÁQUINA" em OF:**
-    - Corrigido bug na exclusão de paletes no modal de separação da OF onde o estoque não era liberado se o palete tivesse sido registrado como "SEM MÁQUINA".
-    - Padronizada a identificação de reservas via `reason` (razão do movimento) para garantir que a liberação (`release`) encontre todas as reservas parciais distribuídas entre máquinas.
-    - Otimizada a lógica de remoção de paletes para unificar o fluxo de liberação de estoque, tratando de forma idêntica paletes com ou sem máquina através da busca por padrão de texto no histórico.
+
 - **10/08/2026 (Brasília) — Reset Total e Rebuild do Estoque Malha (Manual):**
     - **Reset de Dados:** Executado `TRUNCATE` na tabela `manual_stock_movements` para zerar saldos inconsistentes e históricos antigos, permitindo um recomeço limpo conforme solicitado.
     - **Reconstrução de Lógica:** Refatoradas as RPCs e triggers de espelhamento para garantir que o saldo "Disponível" seja calculado de forma robusta: `(Expedição - Reservas Ativas) + Em Máquina`.
