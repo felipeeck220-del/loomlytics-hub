@@ -1,30 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
 import { useBillingOrders } from '@/hooks/useBillingOrders';
-import { useToast } from '@/hooks/use-toast';
-import { Boxes, Play, CheckCircle2, Truck, Plus, Trash2, Loader2, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import SearchableSelect from '@/components/SearchableSelect';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import { Play, Loader2 } from 'lucide-react';
 
 const BillingOrders = () => {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const { orders, isLoading, createOrder, updateStatus } = useBillingOrders();
+  const { orders, isLoading, updateStatus } = useBillingOrders();
   const [activeTab, setActiveTab] = useState('open');
 
   return (
-    <AppLayout title="Ordens de Faturamento (OF)">
+    <AppLayout>
       <div className="p-4 space-y-4">
+        <h1 className="text-2xl font-bold text-indigo-700">Ordens de Faturamento (OF)</h1>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-5 gap-1">
             <TabsTrigger value="open">Aberto</TabsTrigger>
@@ -58,7 +47,6 @@ const BillingOrders = () => {
               </div>
             )}
           </TabsContent>
-          {/* Other tabs would go here, restored as needed */}
         </Tabs>
       </div>
     </AppLayout>
