@@ -2609,6 +2609,7 @@ const BillingOrders = () => {
                           const palletMachineId = useOwn ? null : (isNoMachine ? null : palletInput.machine_id);
                           const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
                           const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
+                          const reasonSuffix = `OF #${order.of_number} · Palete ${nextNumber}`;
 
                           // ============ MODO ESTOQUE PRÓPRIO ============
                           // Baixa direto do own_stock (sem passar por stock_movements/reserve)
@@ -2749,7 +2750,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: a.pieces,
                                 weight_kg: a.weight_kg,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
+                                reason: `${reasonSuffix} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }))
                             : [{
@@ -2761,7 +2762,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: pc || 0,
                                 weight_kg: wt || 0,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${useAlt ? ' · outro artigo' : ''})`,
+                                reason: `${reasonSuffix} (reserva${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }];
                           const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
@@ -2896,42 +2897,30 @@ const BillingOrders = () => {
                                         created_by: profile?.id ?? null,
                                       });
                                       if (ownErr) throw ownErr;
-                                    } else if (p.machine_id) {
-                                      // Palete com máquina: uma reserva → uma liberação
-                                      const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
-                                        company_id: user.company_id,
-                                        article_id: p.alt_article_id || order.article_id,
-                                        client_id: p.alt_client_id || order.client_id,
-                                        billing_order_id: order.id,
-                                        machine_id: p.machine_id,
-                                        type: 'release',
-                                        pieces: p.pieces || 0,
-                                        weight_kg: p.weight || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
-                                        created_by: profile?.id ?? null,
-                                      });
-                                      if (relErr) throw relErr;
                                     } else {
-                                      // SEM MÁQUINA: busca todas as reservas deste palete e libera uma por máquina
+                                      // Reservas baseadas no histórico de razão (para OFs com ou sem máquina)
                                       const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
                                         .select('id, machine_id, pieces, weight_kg, article_id, client_id')
                                         .eq('company_id', user.company_id)
                                         .eq('billing_order_id', order.id)
                                         .eq('type', 'reserve')
-                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina%`);
+                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} %`);
+                                      
                                       if (qErr) throw qErr;
+
                                       const releases = (reservas || []).map((r: any) => ({
                                         company_id: user.company_id,
-                                        article_id: r.article_id || p.alt_article_id || order.article_id,
-                                        client_id: r.client_id || p.alt_client_id || order.client_id,
+                                        article_id: r.article_id,
+                                        client_id: r.client_id,
                                         billing_order_id: order.id,
                                         machine_id: r.machine_id,
                                         type: 'release',
                                         pieces: Number(r.pieces) || 0,
                                         weight_kg: Number(r.weight_kg) || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva · sem máquina${p.alt_article_id ? ' · outro artigo' : ''})`,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
                                         created_by: profile?.id ?? null,
                                       }));
+
                                       if (releases.length > 0) {
                                         const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
                                         if (relErr) throw relErr;
