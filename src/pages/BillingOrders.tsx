@@ -2360,11 +2360,6 @@ const BillingOrders = () => {
               <div className="space-y-3 py-2">
                 {/* Resumo do pedido */}
                 <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1 relative overflow-hidden">
-                  {order.multiplier && (
-                    <div className="absolute top-0 right-0 bg-indigo-600 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-bl-md shadow-sm">
-                      Múltiplo: {order.multiplier}
-                    </div>
-                  )}
                   <div><span className="text-muted-foreground">Cliente:</span> <strong>{order.client?.name}</strong></div>
                   <div><span className="text-muted-foreground">Artigo:</span> <strong>{order.article?.name}</strong></div>
                   <div className="flex flex-wrap gap-3 pt-1">
@@ -2375,22 +2370,6 @@ const BillingOrders = () => {
                   </div>
                 </div>
 
-                {order.multiplier && (
-                  <div className="rounded-md border border-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 p-3 flex items-center justify-between gap-3 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-indigo-600 text-white p-1.5 rounded-md">
-                        <Boxes className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300">Regra de Múltiplo Ativa</div>
-                        <div className="text-sm font-black text-indigo-900 dark:text-indigo-100 italic">Separar em pacotes de {order.multiplier} peças</div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-indigo-900 border-2 border-indigo-600 rounded-full h-10 w-10 flex items-center justify-center shadow-inner">
-                      <span className="text-lg font-black text-indigo-600 dark:text-indigo-200">{order.multiplier}</span>
-                    </div>
-                  </div>
-                )}
 
                 {(order as any).admin_notes && (
                   <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs space-y-1">
@@ -3285,22 +3264,11 @@ const BillingOrders = () => {
                   </div>
                   <div className="pt-1 mt-1 border-t text-[10px] text-muted-foreground">
                     <div>Criado: {order.creator?.name} #{order.creator?.code} · {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
-                    {(order as any).separation_started_by ? (
-                      <div>Sepa. inic.: {(order as any).separation_starter?.name || order.separator?.name} #{(order as any).separation_starter?.code ?? order.separator?.code}
-                        {(order as any).separation_started_at && <> · {format(new Date((order as any).separation_started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
-                      </div>
-                    ) : order.separated_by ? (
+                    {order.separated_by ? (
                       <div>Separado: {order.separator?.name} #{order.separator?.code}</div>
                     ) : null}
-                    {(order as any).separation_finished_by && (
-                      <div>Sepa. fina.: {(order as any).separation_finisher?.name} #{(order as any).separation_finisher?.code}
-                        {(order as any).separation_finished_at && <> · {format(new Date((order as any).separation_finished_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
-                      </div>
-                    )}
                     {order.collected_by && (
-                      <div>Coletado: {order.collector?.name} #{order.collector?.code}
-                        {(order as any).collected_at && <> · {format(new Date((order as any).collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
-                      </div>
+                      <div>Coletado: {order.collector?.name} #{order.collector?.code}</div>
                     )}
                   </div>
                 </div>
