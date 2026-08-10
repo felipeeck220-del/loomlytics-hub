@@ -46,7 +46,6 @@ export interface BillingOrder {
   delivery_doc_number?: string | null;
   delivery_doc_set_by?: string | null;
   delivery_doc_set_at?: string | null;
-  multiplier?: number | null;
   // Joins
   client?: { name: string };
   article?: { name: string };
@@ -193,7 +192,6 @@ export function useBillingOrders() {
         dyehouse: newOrder.dyehouse,
         order_type: orderType,
         admin_notes: (newOrder as any).admin_notes ?? null,
-        multiplier: newOrder.multiplier ?? null,
       };
       const { data, error } = await (supabase as any).rpc('create_billing_order', {
         p_company_id: user?.company_id,
