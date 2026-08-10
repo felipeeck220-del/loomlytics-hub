@@ -301,6 +301,19 @@ function ManualEntryModal({
               </div>
             )
           )}
+          <div className="space-y-2">
+            <Label className="text-xs">Destino do lançamento</Label>
+            <RadioGroup value={dest} onValueChange={(v: any) => setDest(v)} className="flex gap-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="expedicao" id="dest-exp" />
+                <Label htmlFor="dest-exp" className="text-xs cursor-pointer">Expedição</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="maquina" id="dest-maq" />
+                <Label htmlFor="dest-maq" className="text-xs cursor-pointer">Palete na máquina</Label>
+              </div>
+            </RadioGroup>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-xs">Peças</Label>
