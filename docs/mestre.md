@@ -1,3 +1,7 @@
+- **10/08/2026 (Brasília) — Correção de Reserva e Estorno "SEM MÁQUINA" em OF:**
+    - Corrigido bug na exclusão de paletes no modal de separação da OF onde o estoque não era liberado se o palete tivesse sido registrado como "SEM MÁQUINA".
+    - Padronizada a identificação de reservas via `reason` (razão do movimento) para garantir que a liberação (`release`) encontre todas as reservas parciais distribuídas entre máquinas.
+    - Otimizada a lógica de remoção de paletes para unificar o fluxo de liberação de estoque, tratando de forma idêntica paletes com ou sem máquina através da busca por padrão de texto no histórico.
 - **10/08/2026 (Brasília) — Reset Total e Rebuild do Estoque Malha (Manual):**
     - **Reset de Dados:** Executado `TRUNCATE` na tabela `manual_stock_movements` para zerar saldos inconsistentes e históricos antigos, permitindo um recomeço limpo conforme solicitado.
     - **Reconstrução de Lógica:** Refatoradas as RPCs e triggers de espelhamento para garantir que o saldo "Disponível" seja calculado de forma robusta: `(Expedição - Reservas Ativas) + Em Máquina`.
