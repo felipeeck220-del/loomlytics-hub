@@ -1,5 +1,6 @@
-- **10/08/2026 (Brasília) — Pente Fino e Estabilização Estoque Malha (Manual):**
-    - **Backfill Completo:** Realizada sincronização massiva de 3.315 movimentos históricos (`out`, `reserve`, `release`) da base de estoque global para o Estoque Manual, garantindo que a linha do tempo cronológica tenha todos os dados para o cálculo de saldo.
+- **10/08/2026 (Brasília) — Limpeza de Duplicidade e Estabilização Estoque Malha (Manual):**
+    - **Limpeza de Duplicatas:** Realizada remoção técnica de 135 lançamentos manuais redundantes (motivos 'entrada' e 'Lançamento manual') feitos entre 01/08 e 10/08. Estes registros estavam duplicando o saldo real após a sincronização do histórico global. O saldo do artigo MALHA EXCLUSIVE foi restaurado para os valores reais.
+    - **Backfill Completo:** Confirmada a integridade da sincronização massiva de 3.315 movimentos históricos (`out`, `reserve`, `release`) da base de estoque global para o Estoque Manual.
     - **Paginação e Filtros:** Refatorada a RPC `get_manual_stock_movements` para incluir desempate por ID (estabilizando a troca de páginas) e unificar o fallback de cliente via artigo, garantindo consistência visual entre as abas Estoque e Movimentações.
     - **Integridade de Saldo:** Confirmada a eficácia da trava em zero na RPC `get_manual_stock_estoque` mesmo com o histórico agora completo, protegendo contra saldos negativos visuais causados por inconsistências em períodos sem registro manual.
 - **10/08/2026 (Brasília) — Correção de Baixa "SEM MÁQUINA" no Estoque Manual: **
