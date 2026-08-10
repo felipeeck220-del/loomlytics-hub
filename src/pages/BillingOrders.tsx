@@ -3110,10 +3110,26 @@ const BillingOrders = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmFinalizePallets(false)}>Cancelar</Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              className={cn(
+                "gap-1.5",
+                !isMultiplierValValid 
+                  ? "bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse" 
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              )}
               disabled={updateStatus.isPending}
               onClick={async () => {
                 if (!showPalletsModal) return;
+                
+                // Trava de múltiplos
+                if (multiplierVal > 0 && !isMultiplierValValid) {
+                  toast({
+                    title: "Separação incompleta",
+                    description: `Esta OF exige múltiplos de ${multiplierVal} peças. Faltam ${diffUpVal} pç ou sobram ${diffDownVal} pç para fechar a conta.`,
+                    variant: "destructive"
+                  });
+                  return;
+                }
+
                 const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
                 const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                 const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
@@ -3139,7 +3155,15 @@ const BillingOrders = () => {
                 }
               }}
             >
-              <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
+              {!isMultiplierValValid ? (
+                <>
+                  <AlertTriangle className="h-4 w-4" /> Finalizar com erro de múltiplos
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
