@@ -2667,15 +2667,10 @@ const BillingOrders = () => {
                           const allocations: Alloc[] = [];
                           if (isNoMachine) {
                             const [prodRes, mvRes] = await Promise.all([
-                              (supabase.from as any)('productions')
-                                .select('machine_id, rolls_produced, weight_kg')
-                                .eq('company_id', user.company_id)
-                                .eq('article_id', effArticleId),
-                              (supabase.from as any)('stock_movements')
-                                .select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id')
-                                .eq('company_id', user.company_id)
-                                .eq('article_id', effArticleId),
+                              (supabase.from as any)('productions').select('machine_id, rolls_produced, weight_kg').eq('company_id', user.company_id).eq('article_id', effArticleId),
+                              (supabase.from as any)('stock_movements').select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id').eq('company_id', user.company_id).eq('article_id', effArticleId),
                             ]);
+                            
                             const bal = new Map<string, { pieces: number; weight: number }>();
                             for (const p of (prodRes.data || [])) {
                               if (!p.machine_id) continue;
@@ -2684,22 +2679,20 @@ const BillingOrders = () => {
                               cur.weight += Number(p.weight_kg) || 0;
                               bal.set(p.machine_id, cur);
                             }
+                            
                             for (const mv of (mvRes.data || [])) {
-                              if (mv.is_second_quality) continue;
-                              if (!mv.machine_id) continue;
-                              if (!['adjust_in','adjust_out','in','out','reserve','release'].includes(mv.type)) continue;
+                              if (mv.is_second_quality || !mv.machine_id) continue;
                               const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
                               const kg = Number(mv.weight_kg) || 0;
                               const pcs = Number(mv.pieces) || 0;
-                              if (mv.type === 'adjust_in') { cur.pieces += pcs; cur.weight += kg; }
-                              else if (mv.type === 'adjust_out') { cur.pieces -= pcs; cur.weight -= kg; }
-                              else if (mv.type === 'in') {
-                                if (mv.billing_order_id) { /* estorno afeta entregue, não estoque produzido */ }
-                                else { cur.pieces += pcs; cur.weight += kg; }
+                              
+                              if (mv.type === 'adjust_in' || mv.type === 'release') {
+                                cur.pieces += pcs; cur.weight += kg;
+                              } else if (mv.type === 'adjust_out' || mv.type === 'out' || mv.type === 'reserve') {
+                                cur.pieces -= pcs; cur.weight -= kg;
+                              } else if (mv.type === 'in' && !mv.billing_order_id) {
+                                cur.pieces += pcs; cur.weight += kg;
                               }
-                              else if (mv.type === 'out') { cur.pieces -= pcs; cur.weight -= kg; }
-                              else if (mv.type === 'reserve') { cur.pieces -= pcs; cur.weight -= kg; }
-                              else if (mv.type === 'release') { cur.pieces += pcs; cur.weight += kg; }
                               bal.set(mv.machine_id, cur);
                             }
                             // Ordena por peças disponíveis decrescente (prioridade do usuário)
