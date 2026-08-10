@@ -1,11 +1,10 @@
-- **10/08/2026 (Brasília) — Melhorias Visuais e Pente Fino:**
-    - **Mecânica (OM/OC/OE):** Destaque visual na descrição dos problemas no card de listagem (fundo colorido e borda esquerda).
-    - **Mecânica (OM/OC/OE):** Campo de descrição agora é obrigatório e rotulado em destaque nos modais de criação/edição.
-    - **Mecânica (OC/OE):** Habilitada a captura de fotos (até 2) no modal de finalização de Ordens Corretivas, similar às Elétricas.
+- **10/08/2026 (Brasília) — Estabilização de Estoque e Pente Fino Visual:**
+    - **Estoque Malha (Manual):** Refatorada a RPC `get_manual_stock_estoque` para realizar somas diretas com trava final em zero, resolvendo o problema de "estoque zerado" causado por desalinhamento cronológico entre entradas manuais e saídas retroativas de OF.
+    - **Estoque Malha (Manual):** Corrigido bug de visualização onde o histórico de movimentações exibia "Nenhuma movimentação" devido a filtros de data/tipo excessivamente restritivos na carga inicial.
+    - **Mecânica (OM/OC/OE):** Destaque visual na descrição dos problemas no card de listagem (fundo colorido e borda esquerda) e obrigatoriedade do campo para garantir qualidade nos registros.
+    - **Mecânica (OC/OE):** Habilitada a captura de fotos (até 2) no modal de finalização de Ordens Corretivas.
     - **Estoque Malha (Manual):** Modal de lançamento manual agora preserva as seleções de Cliente, Artigo e Máquina para facilitar lançamentos em sequência (limpa apenas peças/peso ao salvar).
     - **Estoque Malha (Manual):** Ajustada a largura dos indicadores de saldo no cabeçalho do cliente para evitar quebra de linha em telas pequenas (labels abreviadas: Res, Maq, Disp).
-    - **Estoque Malha (Manual):** Corrigido vazamento de texto em descrições longas no histórico de movimentações mobile (`break-words`).
-    - **Terceirizado (Fretes):** Corrigido vazamento de texto em observações longas no mobile e adicionado destaque visual.
     - **PWA/Mobile:** Todos os modais de lançamento manual e mecânica configurados para ocuparem a tela cheia no mobile (`100dvh`), prevenindo zoom no iOS e otimizando teclados numéricos.
     - **Segurança:** Removidas as colunas residuais `own_article_id` e metadata de auditoria de separação (`separation_started_by`, etc) do hook `useBillingOrders.ts` para alinhar com a reversão do sistema de estoque próprio.
 - **09/08/2026 (Brasília) — Pente Fino Técnico e Consistência:**
