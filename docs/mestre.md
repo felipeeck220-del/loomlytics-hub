@@ -1,4 +1,8 @@
-- **10/08/2026 (Brasília) — Correção de Baixa "SEM MÁQUINA" no Estoque Manual:**
+- **10/08/2026 (Brasília) — Pente Fino e Estabilização Estoque Malha (Manual):**
+    - **Backfill Completo:** Realizada sincronização massiva de 3.315 movimentos históricos (`out`, `reserve`, `release`) da base de estoque global para o Estoque Manual, garantindo que a linha do tempo cronológica tenha todos os dados para o cálculo de saldo.
+    - **Paginação e Filtros:** Refatorada a RPC `get_manual_stock_movements` para incluir desempate por ID (estabilizando a troca de páginas) e unificar o fallback de cliente via artigo, garantindo consistência visual entre as abas Estoque e Movimentações.
+    - **Integridade de Saldo:** Confirmada a eficácia da trava em zero na RPC `get_manual_stock_estoque` mesmo com o histórico agora completo, protegendo contra saldos negativos visuais causados por inconsistências em períodos sem registro manual.
+- **10/08/2026 (Brasília) — Correção de Baixa "SEM MÁQUINA" no Estoque Manual: **
     - Corrigido bug onde a coleta de Ordens de Faturamento (OF) marcadas como "SEM MÁQUINA" não descontava o saldo no módulo de **Estoque Malha (Manual)**.
     - O trigger `mirror_of_to_manual_stock` foi ajustado para processar corretamente movimentos com `machine_id` nulo e garantir o fallback de cliente via artigo.
     - Realizado backfill automático para sincronizar movimentos de saída ('out') que haviam ficado órfãos no histórico manual.
