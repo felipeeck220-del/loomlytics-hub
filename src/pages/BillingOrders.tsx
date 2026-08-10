@@ -2702,25 +2702,39 @@ const BillingOrders = () => {
                               else if (mv.type === 'release') { cur.pieces += pcs; cur.weight += kg; }
                               bal.set(mv.machine_id, cur);
                             }
-                            // Ordena por peso disponível decrescente
+                            // Ordena por peças disponíveis decrescente (prioridade do usuário)
                             const sorted = Array.from(bal.entries())
-                              .filter(([, v]) => v.weight > 0.0001 || v.pieces > 0)
-                              .sort((a, b) => b[1].weight - a[1].weight);
+                              .filter(([, v]) => v.pieces >= 1)
+                              .sort((a, b) => b[1].pieces - a[1].pieces);
+                            
                             let remPc = pc || 0;
                             let remKg = wt || 0;
-                            for (const [mid, v] of sorted) {
-                              if (remKg <= 0.0001 && remPc <= 0) break;
-                              const takePc = Math.min(Math.max(v.pieces, 0), remPc);
-                              const takeKg = Math.min(Math.max(v.weight, 0), remKg);
-                              if (takePc <= 0 && takeKg <= 0.0001) continue;
-                              allocations.push({ machine_id: mid, pieces: takePc, weight_kg: Number(takeKg.toFixed(3)) });
-                              remPc -= takePc;
-                              remKg -= takeKg;
+
+                            // 1. Tentar encontrar uma única máquina que supra tudo (ex: preciso 50, tenho uma com 85)
+                            const perfectMatch = sorted.find(([, v]) => v.pieces >= remPc);
+                            if (perfectMatch) {
+                              const [mid] = perfectMatch;
+                              allocations.push({ machine_id: mid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
+                              remPc = 0;
+                              remKg = 0;
+                            } else {
+                              // 2. Distribuir entre as máquinas com saldo (ex: preciso 50, tenho duas com 25)
+                              for (const [mid, v] of sorted) {
+                                if (remPc <= 0) break;
+                                const takePc = Math.min(v.pieces, remPc);
+                                // Proporção do peso baseado nas peças tomadas (ou o restante se for a última)
+                                const takeKg = remPc > takePc 
+                                  ? (remKg * (takePc / remPc))
+                                  : remKg;
+                                
+                                allocations.push({ machine_id: mid, pieces: takePc, weight_kg: Number(takeKg.toFixed(3)) });
+                                remPc -= takePc;
+                                remKg -= takeKg;
+                              }
                             }
-                            // Se ainda sobrou algo (estoque insuficiente ou negativo),
-                            // distribuímos o restante na primeira máquina da lista (maior saldo)
-                            // ou na máquina principal do artigo para garantir o desconto total solicitado.
-                            if (remKg > 0.0001 || remPc > 0) {
+
+                            // Se ainda sobrou algo (estoque total insuficiente), alocamos o restante na máquina com mais saldo ou principal
+                            if (remPc > 0) {
                               const allMachines = getMachines();
                               const fallbackMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || allMachines[0]?.id);
                               if (!fallbackMid) {
