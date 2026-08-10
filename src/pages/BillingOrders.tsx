@@ -2921,7 +2921,7 @@ const BillingOrders = () => {
                                           .eq('company_id', user.company_id)
                                           .eq('billing_order_id', order.id)
                                           .eq('type', 'reserve')
-                                          .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} %`);
+                                          .or(`reason.like.OF #${order.of_number} · Palete ${p.pallet_number} %,reason.like.% (Pallet ID: ${p.id})`);
                                         
                                         if (qErr) throw qErr;
 
