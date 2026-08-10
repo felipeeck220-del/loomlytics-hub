@@ -490,7 +490,6 @@ export interface BillingOrdersListRow {
     machine_name: string | null;
     alt_client_id?: string | null;
     alt_article_id?: string | null;
-    own_article_id?: string | null;
   }>;
   link_group_size: number;
 }
