@@ -2929,12 +2929,12 @@ const BillingOrders = () => {
 
                                         // Filtrar duplicatas locais: agrupamos por máquina para inserir uma única linha de estorno total por máquina
                                         const groupedReserves = (reservas || []).reduce((acc: any, curr: any) => {
-                                          const key = curr.machine_id || 'null';
-                                          if (!acc[key]) {
-                                            acc[key] = { ...curr, pieces: 0, weight_kg: 0 };
+                                          const mid = curr.machine_id || 'null';
+                                          if (!acc[mid]) {
+                                            acc[mid] = { ...curr, pieces: 0, weight_kg: 0 };
                                           }
-                                          acc[key].pieces += Number(curr.pieces) || 0;
-                                          acc[key].weight_kg += Number(curr.weight_kg) || 0;
+                                          acc[mid].pieces += Number(curr.pieces) || 0;
+                                          acc[mid].weight_kg += Number(curr.weight_kg) || 0;
                                           return acc;
                                         }, {});
 
@@ -2955,6 +2955,7 @@ const BillingOrders = () => {
                                           const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
                                           if (relErr) throw relErr;
                                         }
+
                                       }
                                     // 2. Apaga palete
                                     const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
