@@ -1339,15 +1339,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                               <div className="rounded-md border-2 border-yellow-500/50 bg-yellow-500/10 p-3 flex items-start gap-2 mt-1">
                                 <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
                                 <div className="min-w-0">
-                                  <div className="font-bold uppercase text-[10px] tracking-wide text-indigo-700 dark:text-indigo-400">Descrição / Problema</div>
-                                  <div className="mt-2 text-sm text-foreground font-semibold whitespace-pre-wrap break-words leading-relaxed p-2 bg-indigo-50 dark:bg-indigo-950/20 rounded border-l-2 border-indigo-500">{o.description}</div>
+                                  <div className="font-bold uppercase text-[10px] tracking-wide text-yellow-700 dark:text-yellow-400">Descrição do problema</div>
+                                  <div className="mt-1 text-sm text-foreground font-medium whitespace-pre-wrap break-words">{o.description}</div>
                                 </div>
                               </div>
                             ) : (
-                              <div className="mt-2 p-2 bg-muted/40 border-l-2 border-indigo-500 rounded-r-md">
-                                <div className="text-[9px] uppercase font-bold text-indigo-700 dark:text-indigo-400 mb-0.5">Descrição</div>
-                                <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed line-clamp-3">{o.description}</div>
-                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
                             )
                           )}
 
@@ -1618,18 +1615,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="font-bold text-indigo-700 dark:text-indigo-400">
-                {correctiveMode || form.type === 'manutencao_eletrica' ? 'Descrição do problema *' : 'Descrição / serviço *'}
-              </Label>
+              <Label>{correctiveMode ? 'Descrição do problema' : 'Descrição / serviço'}</Label>
               <Textarea
                 rows={3}
                 value={form.description}
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                placeholder={correctiveMode || form.type === 'manutencao_eletrica' ? 'Descreva detalhadamente o problema' : 'O que precisa ser feito'}
-                className="border-indigo-200 dark:border-indigo-800 focus-visible:ring-indigo-500"
+                placeholder={correctiveMode ? 'Descreva o problema apresentado pela máquina' : 'O que precisa ser feito'}
               />
             </div>
-            {(correctiveMode || form.type === 'manutencao_eletrica') && !editing && (
+            {correctiveMode && !editing && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <Label className="flex items-center gap-1.5">
@@ -1802,7 +1796,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <Textarea rows={8} value={finishNotes} onChange={e => setFinishNotes(e.target.value)} placeholder="Ex.: Realizada troca completa de agulhas. Verificada folga no cilindro — recomenda-se preventiva em 30 dias..." />
               </div>
 
-              {(finishOrder.type === 'manutencao_eletrica' || finishOrder.type === 'manutencao_corretiva') && (
+              {finishOrder.type === 'manutencao_eletrica' && (
                 <div className="border-t pt-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label className="font-semibold flex items-center gap-2">

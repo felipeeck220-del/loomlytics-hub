@@ -676,12 +676,7 @@ import { Badge } from '@/components/ui/badge';
                         <div><div className="text-[10px] text-muted-foreground">Frete/kg</div><div className="tabular-nums">{formatCurrency(f.freight_per_kg)}</div></div>
                         <div><div className="text-[10px] text-muted-foreground">Total</div><div className="tabular-nums font-bold text-blue-600">{formatCurrency(f.total_freight)}</div></div>
                       </div>
-                      <div className="text-[10px] text-muted-foreground break-words">{f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} · {format(new Date(f.created_at), 'dd/MM/yy HH:mm')}</div>
-                      {f.observations && (
-                        <div className="text-[10px] italic text-muted-foreground p-1.5 bg-muted/30 rounded border-l-2 border-muted mt-1 break-words">
-                          {f.observations}
-                        </div>
-                      )}
+                      <div className="text-[10px] text-muted-foreground">{f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} · {format(new Date(f.created_at), 'dd/MM/yy HH:mm')}</div>
                     </div>
                   );
                 })}
