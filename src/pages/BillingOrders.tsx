@@ -2418,18 +2418,13 @@ const BillingOrders = () => {
                           toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
-                        const useOwn = false;
-                        const useAlt = palletInput.source_mode === 'alt';
-                        if (!useOwn && !palletInput.machine_id) {
+                        if (!palletInput.machine_id) {
                           toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA" para descontar do estoque total do artigo.', variant: 'destructive' });
                           return;
                         }
+                        const useAlt = palletInput.source_mode === 'alt';
                         if (useAlt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
                           toast({ title: 'Selecione cliente e artigo alternativos', variant: 'destructive' });
-                          return;
-                        }
-                        if (useOwn && !false) {
-                          toast({ title: `Selecione o artigo em Estoque ${companyFirstName}`, variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
@@ -2448,8 +2443,8 @@ const BillingOrders = () => {
                           const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
                           const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
                           const nextNumber = Math.max(localMax, dbMax) + 1;
-                          const isNoMachine = !useOwn && palletInput.machine_id === '__none__';
-                          const palletMachineId = useOwn ? null : (isNoMachine ? null : palletInput.machine_id);
+                          const isNoMachine = palletInput.machine_id === '__none__';
+                          const palletMachineId = isNoMachine ? null : palletInput.machine_id;
                           const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
                           const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
 
