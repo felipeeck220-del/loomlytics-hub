@@ -85,6 +85,7 @@ function ManualEntryModal({
   const modalQueryClient = useQueryClient();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
   const [dest, setDest] = useState<'expedicao' | 'maquina'>('expedicao');
+  
   const [clientId, setClientId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [machineId, setMachineId] = useState('');
@@ -95,8 +96,10 @@ function ManualEntryModal({
 
   useEffect(() => {
     if (open) {
-      setType('adjust_in'); setDest('expedicao'); setClientId(''); setArticleId(''); setMachineId('');
-      setPieces(''); setWeight(''); setReason('');
+      // Manter cliente, artigo e máquina se já selecionados para facilitar lançamentos sequenciais
+      setPieces(''); 
+      setWeight(''); 
+      setReason('');
     }
   }, [open]);
 
@@ -991,11 +994,11 @@ export default function StockMalhaManual() {
                             <Download className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] md:text-xs text-muted-foreground min-w-0 w-full md:w-auto text-left">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] md:text-xs text-muted-foreground min-w-0 w-full md:w-auto text-left">
                           <span className="whitespace-nowrap">Entradas: <span className="font-semibold text-foreground">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.entradaRolls || 0), 0))} pç</span></span>
-                          <span className="whitespace-nowrap">Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.reservedRolls || 0), 0))} pç</span></span>
-                          <span className="whitespace-nowrap">Em maq.: <span className="font-semibold text-indigo-600 dark:text-indigo-300">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.machineRolls || 0), 0))} pç</span></span>
-                          <span className="whitespace-nowrap">Disponível: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Res: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.reservedRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Maq: <span className="font-semibold text-indigo-600 dark:text-indigo-300">{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.machineRolls || 0), 0))} pç</span></span>
+                          <span className="whitespace-nowrap">Disp: <span className={cn('font-semibold', g.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatNumber((g.articles || []).reduce((s, a) => s + Number(a.availableRolls || 0), 0))} pç</span></span>
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
@@ -1431,7 +1434,7 @@ function MvCardMobile({ row }: { row: any }) {
         <span className="font-semibold">{formatWeight(row.weight_kg || 0)}</span>
       </div>
       {(row.author || row.reason) && (
-        <div className="text-[10px] text-muted-foreground border-t pt-1">
+        <div className="text-[10px] text-muted-foreground border-t pt-1 break-words">
           {row.author ? `${row.author.name}${row.author.code ? ` #${row.author.code}` : ''}` : ''}
           {row.reason ? ` · ${row.reason}` : ''}
         </div>
