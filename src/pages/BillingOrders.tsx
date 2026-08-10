@@ -2494,8 +2494,8 @@ const BillingOrders = () => {
                               machine_id: null,
                               alt_client_id: null,
                               alt_article_id: null,
-                              own_article_id: row.own_article_id ?? null,
-                              own_stock_movement_id: row.own_stock_movement_id ?? null,
+                              
+                              
                             }]);
                             setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '' });
                             refreshStockCaches();
@@ -2638,8 +2638,8 @@ const BillingOrders = () => {
                             machine_id: row.machine_id ?? null,
                             alt_client_id: row.alt_client_id ?? null,
                             alt_article_id: row.alt_article_id ?? null,
-                            own_article_id: row.own_article_id ?? null,
-                            own_stock_movement_id: row.own_stock_movement_id ?? null,
+                            
+                            
                           }]);
                           setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '' });
                           refreshStockCaches();
@@ -2727,9 +2727,6 @@ const BillingOrders = () => {
                       const order = showPalletsModal;
                       setPalletBusy(true);
                       try {
-                        if (false) {
-                                      // Palete de Estoque Próprio: reverte a saída
-                                      const { error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
                                         company_id: user.company_id,
                                         
                                         type: 'in',
