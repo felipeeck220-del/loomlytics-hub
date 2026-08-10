@@ -2609,6 +2609,7 @@ const BillingOrders = () => {
                           const palletMachineId = useOwn ? null : (isNoMachine ? null : palletInput.machine_id);
                           const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
                           const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
+                          const reasonSuffix = `OF #${order.of_number} · Palete ${nextNumber}`;
 
                           // ============ MODO ESTOQUE PRÓPRIO ============
                           // Baixa direto do own_stock (sem passar por stock_movements/reserve)
@@ -2749,7 +2750,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: a.pieces,
                                 weight_kg: a.weight_kg,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
+                                reason: `${reasonSuffix} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }))
                             : [{
@@ -2761,7 +2762,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: pc || 0,
                                 weight_kg: wt || 0,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${useAlt ? ' · outro artigo' : ''})`,
+                                reason: `${reasonSuffix} (reserva${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }];
                           const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
@@ -2918,7 +2919,7 @@ const BillingOrders = () => {
                                         .eq('company_id', user.company_id)
                                         .eq('billing_order_id', order.id)
                                         .eq('type', 'reserve')
-                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina%`);
+                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} %`);
                                       if (qErr) throw qErr;
                                       const releases = (reservas || []).map((r: any) => ({
                                         company_id: user.company_id,
