@@ -1,3 +1,7 @@
+- **10/08/2026 (Brasília) — Correção de Erro de Tipo em Edição de OF:**
+    - Corrigido erro `CASE types billing_order_status and text cannot be matched` na RPC `edit_billing_order`.
+    - Implementada conversão explícita de tipos (cast) para `text` na verificação de status e para `billing_order_status` na atualização de status ao reverter para aberto.
+    - Reforçado o isolamento de tenant e permissões de execução na RPC.
 - **10/08/2026 (Brasília) — Limpeza de Duplicidade e Estabilização Estoque Malha (Manual):**
     - **Limpeza de Duplicatas:** Realizada remoção técnica de 135 lançamentos manuais redundantes (motivos 'entrada' e 'Lançamento manual') feitos entre 01/08 e 10/08. Estes registros estavam duplicando o saldo real após a sincronização do histórico global. O saldo do artigo MALHA EXCLUSIVE foi restaurado para os valores reais.
     - **Backfill Completo:** Confirmada a integridade da sincronização massiva de 3.315 movimentos históricos (`out`, `reserve`, `release`) da base de estoque global para o Estoque Manual.
