@@ -144,7 +144,7 @@ BEGIN
           'articleId', pa.article_id,
           'articleName', COALESCE(art.name, 'Desconhecido'),
           'entradaKg', pa.ent_kg, 'entradaRolls', pa.ent_pc,
-          'deliveredKg', pa.delivered_kg, 'deliveredRolls', pa.delivered_pc,
+          'deliveredKg', pa.del_kg, 'deliveredRolls', pa.del_pc,
           'reservedKg', pa.reserved_kg, 'reservedRolls', pa.reserved_pc,
           'stockKg', pa.stock_kg, 'stockRolls', pa.stock_pc,
           'machineKg', pa.machine_kg, 'machineRolls', pa.machine_pc,
