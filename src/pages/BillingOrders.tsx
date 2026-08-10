@@ -2927,8 +2927,9 @@ const BillingOrders = () => {
                                         
                                         if (qErr) throw qErr;
 
-                                        // Filtrar duplicatas locais: agrupamos por máquina para inserir uma única linha de estorno total por máquina
-                                        const groupedReserves = (reservas || []).reduce((acc: any, curr: any) => {
+                                        // 3. Inserir lançamentos de estorno (liberação)
+                                        // Agrupamos por máquina para garantir que não haja duplicatas
+                                        const groupedReleases = (reservas || []).reduce((acc: any, curr: any) => {
                                           const mid = curr.machine_id || 'null';
                                           if (!acc[mid]) {
                                             acc[mid] = { ...curr, pieces: 0, weight_kg: 0 };
@@ -2938,7 +2939,7 @@ const BillingOrders = () => {
                                           return acc;
                                         }, {});
 
-                                        const releases = Object.values(groupedReserves).map((r: any) => ({
+                                        const releasesToInsert = Object.values(groupedReleases).map((r: any) => ({
                                           company_id: user.company_id,
                                           article_id: r.article_id,
                                           client_id: r.client_id,
@@ -2947,14 +2948,15 @@ const BillingOrders = () => {
                                           type: 'release',
                                           pieces: Number(r.pieces) || 0,
                                           weight_kg: Number(r.weight_kg) || 0,
-                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
+                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (estorno reserva)`,
                                           created_by: profile?.id ?? null,
                                         }));
 
-                                        if (releases.length > 0) {
-                                          const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
+                                        if (releasesToInsert.length > 0) {
+                                          const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releasesToInsert);
                                           if (relErr) throw relErr;
                                         }
+
 
                                       }
                                     // 2. Apaga palete
