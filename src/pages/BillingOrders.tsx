@@ -3069,6 +3069,14 @@ const BillingOrders = () => {
             const refSource = orderPieceTarget > 0 ? 'OF' : 'artigo';
             const diffPct = refWeight > 0 && avg > 0 ? ((avg - refWeight) / refWeight) * 100 : 0;
             const outOfRange = refWeight > 0 && avg > 0 && Math.abs(diffPct) > 10;
+            
+            // Constantes para trava de múltiplos
+            const multiplierVal = Number(showPalletsModal.multiplier || 0);
+            const isMultiplierValValid = multiplierVal > 0 ? (totalPieces % multiplierVal === 0) : true;
+            const multiplierDiffVal = multiplierVal > 0 ? (totalPieces % multiplierVal) : 0;
+            const diffUpVal = multiplierVal > 0 ? (multiplierVal - multiplierDiffVal) : 0;
+            const diffDownVal = multiplierVal > 0 ? multiplierDiffVal : 0;
+
             return (
               <div className="py-3 space-y-3 text-sm">
                 <p>
