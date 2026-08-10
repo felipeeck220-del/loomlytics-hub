@@ -1339,12 +1339,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                               <div className="rounded-md border-2 border-yellow-500/50 bg-yellow-500/10 p-3 flex items-start gap-2 mt-1">
                                 <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
                                 <div className="min-w-0">
-                                  <div className="font-bold uppercase text-[10px] tracking-wide text-yellow-700 dark:text-yellow-400">Descrição do problema</div>
-                                  <div className="mt-1 text-sm text-foreground font-medium whitespace-pre-wrap break-words">{o.description}</div>
+                                  <div className="font-bold uppercase text-[10px] tracking-wide text-indigo-700 dark:text-indigo-400">Descrição / Problema</div>
+                                  <div className="mt-2 text-sm text-foreground font-semibold whitespace-pre-wrap break-words leading-relaxed p-2 bg-indigo-50 dark:bg-indigo-950/20 rounded border-l-2 border-indigo-500">{o.description}</div>
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
+                              <div className="mt-2 p-2 bg-muted/40 border-l-2 border-indigo-500 rounded-r-md">
+                                <div className="text-[9px] uppercase font-bold text-indigo-700 dark:text-indigo-400 mb-0.5">Descrição</div>
+                                <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed line-clamp-3">{o.description}</div>
+                              </div>
                             )
                           )}
 
