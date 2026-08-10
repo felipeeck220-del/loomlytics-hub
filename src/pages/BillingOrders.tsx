@@ -1513,7 +1513,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '' });
                               setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
@@ -2309,7 +2309,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '' }); } }}>
         <DialogContent
           className="sm:max-w-[560px] w-screen h-screen max-w-none rounded-none p-4 sm:w-auto sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6 [&>button.absolute]:hidden overflow-y-auto"
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -2428,7 +2428,7 @@ const BillingOrders = () => {
                           toast({ title: 'Selecione cliente e artigo alternativos', variant: 'destructive' });
                           return;
                         }
-                        if (useOwn && !palletInput.own_article_id) {
+                        if (useOwn && !false) {
                           toast({ title: `Selecione o artigo em Estoque ${companyFirstName}`, variant: 'destructive' });
                           return;
                         }
@@ -2458,7 +2458,7 @@ const BillingOrders = () => {
                           if (useOwn) {
                             const { data: ownMv, error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
                               company_id: user.company_id,
-                              own_article_id: palletInput.own_article_id,
+                              
                               type: 'out',
                               pieces: pc || 0,
                               weight_kg: wt || 0,
@@ -2476,7 +2476,7 @@ const BillingOrders = () => {
                               machine_id: null,
                               alt_client_id: null,
                               alt_article_id: null,
-                              own_article_id: palletInput.own_article_id,
+                              
                               own_stock_movement_id: ownMv?.id ?? null,
                               created_by: profile?.id ?? null,
                             }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
@@ -2497,7 +2497,7 @@ const BillingOrders = () => {
                               own_article_id: row.own_article_id ?? null,
                               own_stock_movement_id: row.own_stock_movement_id ?? null,
                             }]);
-                            setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                            setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '' });
                             refreshStockCaches();
                             toast({ title: `Palete ${nextNumber} salvo (Estoque ${companyFirstName})` });
                             setPalletBusy(false);
@@ -2641,7 +2641,7 @@ const BillingOrders = () => {
                             own_article_id: row.own_article_id ?? null,
                             own_stock_movement_id: row.own_stock_movement_id ?? null,
                           }]);
-                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '' });
                           refreshStockCaches();
                           toast({
                             title: `Palete ${nextNumber} salvo e reservado no estoque`,
@@ -2727,11 +2727,11 @@ const BillingOrders = () => {
                       const order = showPalletsModal;
                       setPalletBusy(true);
                       try {
-                        if (p.own_article_id) {
+                        if (false) {
                                       // Palete de Estoque Próprio: reverte a saída
                                       const { error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
                                         company_id: user.company_id,
-                                        own_article_id: p.own_article_id,
+                                        
                                         type: 'in',
                                         pieces: p.pieces || 0,
                                         weight_kg: p.weight || 0,
@@ -2844,7 +2844,7 @@ const BillingOrders = () => {
                   </div>
                 </div>
                 <DialogFooter className="mt-4 pt-4 border-t px-0">
-                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
+                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '' }); }}>Fechar</Button>
                   <Button
                     className="font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={() => {
@@ -2945,7 +2945,7 @@ const BillingOrders = () => {
                   setConfirmFinalizePallets(false);
                   setShowPalletsModal(null);
                   setPallets([]);
-                  setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                  setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
                     setConfirmFinalizePallets(false);
