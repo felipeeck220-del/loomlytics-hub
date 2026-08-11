@@ -1,3 +1,7 @@
+- **11/08/2026 (Brasília) — Pente Fino e Estabilização Final do Módulo de Faturamento (OF):**
+    - Corrigidas e padronizadas 4 RPCs críticas (`collect_billing_order`, `link_billing_orders`, `unlink_billing_order_group`, `get_billing_orders_bootstrap`) para garantir sincronia de auditoria (6 argumentos em `_of_audit`) e stats precisos por aba.
+    - Reforçada a lógica de reset de página ao alternar abas em `src/pages/BillingOrders.tsx`, evitando estados visuais inconsistentes.
+    - Validada a integridade do bootstrap de Mecânica para carregamento consolidado de máquinas e inventários.
 - **12/08/2026 (Brasília) — Correção de Dados Zerados na Coleta de OF:**
     - Corrigida a trigger `handle_billing_order_status_change` para consolidar o total de peças e peso dos paletes no cabeçalho da OF antes de deletá-los.
     - Realizado backfill (recuperação) de dados para as OFs #558 e #566, extraindo os valores das movimentações de estoque históricas.
@@ -18,6 +22,7 @@
     - Corrigida a chamada da função `_of_audit` nas RPCs `link_billing_orders`, `unlink_billing_order_group` e `remove_from_billing_order_group`, que ainda utilizavam a assinatura obsoleta de 5 argumentos.
     - Sincronizada a auditoria de 6 argumentos em todo o fluxo de agrupamento de OFs, garantindo que a funcionalidade "Atrelar OFs" opere sem erros de banco de dados.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
+
     - Corrigida ambiguidade na RPC `cancel_billing_order` (erro "Could not choose the best candidate function") através da remoção de versões duplicadas e consolidação em uma única assinatura com tipos de argumentos flexíveis (`text`).
     - Realizado um pente fino completo no módulo de faturamento (OF), validando a integridade das RPCs e a sincronização entre frontend e backend.
     - Confirmado que todas as RPCs operacionais (`create`, `edit`, `collect`, `cancel`, `ready`, `separation`) utilizam `SECURITY DEFINER`, `search_path = public` e bloqueio de linha `FOR UPDATE`.
