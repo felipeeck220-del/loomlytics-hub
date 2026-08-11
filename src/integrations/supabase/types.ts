@@ -6243,6 +6243,7 @@ export type Database = {
         | "ready"
         | "collected"
         | "cancelled"
+      billing_order_type: "standard" | "express"
       client_invoice_type: "entrada" | "saida"
       freight_order_status:
         | "open"
@@ -6412,6 +6413,7 @@ export const Constants = {
         "collected",
         "cancelled",
       ],
+      billing_order_type: ["standard", "express"],
       client_invoice_type: ["entrada", "saida"],
       freight_order_status: [
         "open",

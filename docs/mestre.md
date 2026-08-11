@@ -1,8 +1,11 @@
+- **11/08/2026 (Brasília) — Correção de Erro de Tipo em Edição de OF:**
+    - Corrigido o erro `type "biling_order_type" does not exist` na RPC `edit_billing_order`.
+    - Garantida a existência do tipo `billing_order_type` (standard, express) no banco de dados com permissões adequadas.
+    - Sincronizada a auditoria de 6 argumentos em todos os fluxos de edição de OF.
 - **11/08/2026 (Brasília) — Pente Fino e Sincronização de Auditoria em OF:**
     - Corrigidas todas as RPCs de Ordem de Faturamento (`collect`, `separation`, `ready`, `priority`, `edit`) para usar a nova assinatura de 6 argumentos da função `_of_audit`, evitando falhas de execução.
     - Sincronizada a injeção do `target_id` no log de auditoria via JSONB em todos os fluxos operacionais.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização das Ordens de Faturamento (OF):**
-- **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
     - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
     - Recriada a função `cancel_billing_order` com `SECURITY DEFINER` e `search_path` fixo para garantir execução mesmo sob RLS restritivo.
