@@ -5217,7 +5217,6 @@ export type Database = {
         }
         Returns: Json
       }
-      debug_manual_stock: { Args: { p_company_id: string }; Returns: Json }
       delete_client_invoice: {
         Args: { p_author_code: string; p_author_name: string; p_id: string }
         Returns: Json
@@ -5568,10 +5567,6 @@ export type Database = {
             }
             Returns: Json
           }
-      get_manual_stock_bootstrap: {
-        Args: { p_company_id: string }
-        Returns: Json
-      }
       get_manual_stock_estoque: {
         Args: {
           p_article_id?: string

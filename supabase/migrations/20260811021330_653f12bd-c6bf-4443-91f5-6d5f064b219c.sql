@@ -1,0 +1,11 @@
+DROP TRIGGER IF EXISTS trg_mirror_of_delete_to_manual_stock ON stock_movements;
+DROP TRIGGER IF EXISTS trg_mirror_of_update_to_manual_stock ON stock_movements;
+DROP FUNCTION IF EXISTS public.debug_manual_stock(uuid);
+DROP FUNCTION IF EXISTS public.get_manual_stock_bootstrap(uuid);
+DROP FUNCTION IF EXISTS public.get_manual_stock_estoque(uuid, uuid, uuid, timestamp with time zone, timestamp with time zone, boolean);
+DROP FUNCTION IF EXISTS public.get_manual_stock_movements(uuid, uuid, uuid, timestamp with time zone, timestamp with time zone, int, int);
+DROP FUNCTION IF EXISTS public.mirror_of_delete_to_manual_stock();
+DROP FUNCTION IF EXISTS public.mirror_of_to_manual_stock();
+DROP FUNCTION IF EXISTS public.mirror_of_update_to_manual_stock();
+DROP FUNCTION IF EXISTS public.save_manual_stock_machine_adjust(uuid, uuid, uuid, uuid, int, numeric, text, text);
+DROP FUNCTION IF EXISTS public.save_manual_stock_manual_entry(uuid, uuid, uuid, uuid, int, numeric, text, text, text);
