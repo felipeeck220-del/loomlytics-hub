@@ -1,4 +1,5 @@
-- **11/08/2026 (Brasília) — Estabilização Final do Cancelamento de OF:**
+- **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
+    - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
     - Refatorada a RPC `cancel_billing_order` para corrigir incompatibilidade de assinatura na função de auditoria e garantir a liberação correta de estoque.
     - Implementado redirecionamento automático para a aba "Canceladas" após o sucesso da ação no frontend.
     - Garantidas as permissões de execução (GRANT) para usuários autenticados na função de cancelamento.
