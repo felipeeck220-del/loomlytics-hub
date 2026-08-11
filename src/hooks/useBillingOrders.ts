@@ -292,13 +292,17 @@ export function useBillingOrders() {
         throw new Error(res.error || 'Erro na operação do banco de dados');
       }
     },
-    onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
-      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
-      queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
-      queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
-      queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
+    onSuccess: async (_d, vars) => {
+      // Invalidação imediata e aguardada
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] }),
+        queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
+        queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] })
+      ]);
+      
       const labels: Record<string, string> = {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
         collected: 'OF marcada como coletada', cancelled: 'OF cancelada', priority: 'Prioridade adicionada'
