@@ -396,8 +396,18 @@ const BillingOrders = () => {
   const stats = useMemo(() => {
     return {
       open: orders.filter(o => o.status === 'open' && !o.priority).length,
+      priority: orders.filter(o => o.status === 'open' && o.priority).length,
       separating: orders.filter(o => o.status === 'separating').length,
-      ready: orders.filter(o => o.status === 'ready').length,
+      readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
+      readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
+      delayed: isAdmin ? orders.filter(o => {
+        if (o.status !== 'ready' || !(o as any).delivery_doc_number || !(o as any).separation_finished_at) return false;
+        const finishedAt = new Date((o as any).separation_finished_at);
+        const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays > 7;
+      }).length : 0
+    };
+  }, [orders, isAdmin]);
       readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
       readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
       delayed: orders.filter(o => {
