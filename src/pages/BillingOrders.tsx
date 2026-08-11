@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -70,6 +71,7 @@ const MonthPicker = ({ onPick }: { onPick: (d: Date) => void }) => {
 
 const BillingOrders = () => {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
