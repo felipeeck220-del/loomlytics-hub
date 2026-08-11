@@ -5151,6 +5151,7 @@ export type Database = {
           p_author_name: string
           p_company_id: string
           p_details: Json
+          p_target_id: string
         }
         Returns: undefined
       }
