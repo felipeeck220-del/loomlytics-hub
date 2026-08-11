@@ -4,6 +4,9 @@
     - Implementada trava de idempotência no hook `usePushNotifications.ts` para evitar registros duplicados de dispositivos.
     - Otimizada a UI de Mecânica com skeletons de carregamento em listagens paginadas.
 - **11/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
+    - Corrigida falha onde a OF permanecia na aba "Pronto para coleta" após ser marcada como coletada.
+    - Implementada invalidação agressiva e refetch imediato (`refetchQueries`) no hook `useBillingOrders.ts` para garantir que o estado `collected` seja refletido instantaneamente na UI.
+    - Adicionada verificação de status em tempo real (prevenção de conflito) com feedback visual de carregamento (`Loader2`) no botão de coleta.
 - **11/08/2026 (Brasília) — Correção de Erro ao Registrar NF/Romaneio (OF):**
     - Corrigida a chamada da função `_of_audit` na RPC `set_billing_order_delivery_doc`, que estava utilizando uma assinatura obsoleta de 5 argumentos, causando erro ao adicionar documentos na aba "Aguardando NF/ROM".
 - **11/08/2026 (Brasília) — Ajuste Visual na Aba Canceladas (OF):**
