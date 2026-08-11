@@ -282,7 +282,6 @@ export function useBillingOrders() {
         throw new Error(`Status não suportado: ${status}`);
       }
 
-      const res = data as any;
       if (res?.ok === false) {
         if (res?.error === 'conflict') {
           const err: any = new Error('OF foi alterada por outro usuário — recarregue a página.');
