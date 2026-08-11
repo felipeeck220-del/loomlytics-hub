@@ -655,6 +655,11 @@ const BillingOrders = () => {
       setActiveTab('cancelled');
     } catch (err: any) {
       console.error("Erro ao cancelar OF:", err);
+      toast({ 
+        title: isReversal ? 'Erro no estorno' : 'Erro ao cancelar', 
+        description: err.message || 'Verifique sua conexão ou permissões.', 
+        variant: 'destructive' 
+      });
       if (err?.code === 'CONFLICT') {
         setShowCancelModal(null);
         setCancelReason('');

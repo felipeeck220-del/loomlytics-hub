@@ -1,8 +1,10 @@
+- **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
+    - Corrigida a RPC `cancel_billing_order` para incluir validação de multi-tenant (`p_company_id`) baseada no perfil do usuário, evitando falhas de permissão ao operar via interface.
+    - Otimizada a lógica de bloqueio de linha (`FOR UPDATE`) e tratamento de exceções na base de dados.
+    - Adicionado feedback visual de erro no frontend (`BillingOrders.tsx`) para facilitar o diagnóstico de falhas de rede ou permissão.
+    - Confirmado o funcionamento do botão "Confirmar Cancelamento" para usuários administradores.
 - **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
     - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
-    - Refatorada a RPC `cancel_billing_order` para corrigir incompatibilidade de assinatura na função de auditoria e garantir a liberação correta de estoque.
-    - Implementado redirecionamento automático para a aba "Canceladas" após o sucesso da ação no frontend.
-    - Garantidas as permissões de execução (GRANT) para usuários autenticados na função de cancelamento.
 - **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
     - Removido integralmente o módulo de **Estoque Malha (Manual)** do projeto, incluindo a página `StockMalhaManual.tsx`, rotas e itens de menu.
     - Eliminadas as referências e integrações com o módulo no hook `useBillingOrders` e na página `BillingOrders.tsx`.
