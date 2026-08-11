@@ -2218,6 +2218,12 @@ const BillingOrders = () => {
               {isCancelling ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'
+              )}
+            </Button>
                   {showCancelModal?.status === 'collected' ? 'Estornando...' : 'Cancelando...'}
                 </>
               ) : (
