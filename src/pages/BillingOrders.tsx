@@ -630,7 +630,7 @@ const BillingOrders = () => {
   };
 
   const handleCancel = async () => {
-    if (!showCancelModal) return;
+    if (!showCancelModal || isCancelling) return;
     const isReversal = showCancelModal.status === 'collected';
     const reason = cancelReason.trim();
     if (!reason) {
@@ -641,6 +641,7 @@ const BillingOrders = () => {
       toast({ title: 'Motivo do estorno muito curto', description: 'Descreva com pelo menos 5 caracteres.', variant: 'destructive' });
       return;
     }
+    setIsCancelling(true);
     try {
       await updateStatus.mutateAsync({
         id: showCancelModal.id,
@@ -653,8 +654,6 @@ const BillingOrders = () => {
       setCancelReason('');
       setReversalQuality('first');
       toast({ title: isReversal ? 'Estorno realizado com sucesso' : 'OF cancelada com sucesso' });
-      // Keep user in current tab as requested by the user
-      // setActiveTab('cancelled');
     } catch (err: any) {
       console.error("Erro ao cancelar OF:", err);
       toast({ 
@@ -667,6 +666,8 @@ const BillingOrders = () => {
         setCancelReason('');
         setConflictInfo({ action: isReversal ? 'estornar' : 'cancelar', ofNumber: showCancelModal.of_number, currentStatus: err.currentStatus, actor: err.actor });
       }
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -2197,15 +2198,15 @@ const BillingOrders = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelModal(null)}>Voltar</Button>
+            <Button variant="outline" onClick={() => setShowCancelModal(null)} disabled={isCancelling}>Voltar</Button>
             <Button
               className={showCancelModal?.status === 'collected'
                 ? 'bg-red-700 hover:bg-red-800 text-white'
                 : 'bg-zinc-700 hover:bg-zinc-800 text-white'}
               onClick={handleCancel}
-              disabled={updateStatus.isPending}
+              disabled={isCancelling}
             >
-              {updateStatus.isPending ? (
+              {isCancelling ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {showCancelModal?.status === 'collected' ? 'Estornando...' : 'Cancelando...'}
