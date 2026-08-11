@@ -1,6 +1,8 @@
-- **11/08/2026 (Brasília) — Correção na Coleta de OF (Pronto → Coletada):**
-    - Corrigido bug onde a OF permanecia na aba "Pronto para coleta" mesmo após confirmação bem-sucedida no mobile/desktop.
-    - Implementada invalidação forçada e síncrona de cache no `OfCollectPhotosModal` dentro de `BillingOrders.tsx` para garantir que o estado do React Query seja sincronizado e os filtros de aba reavaliados imediatamente após a mutação.
+- **11/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
+    - Corrigido bug onde a OF permanecia na aba "Pronto para coleta" mesmo após confirmação bem-sucedida, causado por atraso na sincronização de cache e falta de invalidação do bootstrap.
+    - Implementada proteção contra cliques duplos e verificação prévia de status (conflito) antes de abrir o modal de coleta.
+    - Sincronizada a invalidação agressiva do `billing_orders_bootstrap` em todos os fluxos de mudança de status (NF/Romaneio, Finalizar Separação, Coleta), garantindo contadores de abas sempre precisos.
+    - Corrigido bug visual no badge de "Pronto para coleta" que poderia exibir valores negativos.
 - **11/08/2026 (Brasília) — Correção de Erro ao Registrar NF/Romaneio (OF):**
     - Corrigida a chamada da função `_of_audit` na RPC `set_billing_order_delivery_doc`, que estava utilizando uma assinatura obsoleta de 5 argumentos, causando erro ao adicionar documentos na aba "Aguardando NF/ROM".
 - **11/08/2026 (Brasília) — Ajuste Visual na Aba Canceladas (OF):**

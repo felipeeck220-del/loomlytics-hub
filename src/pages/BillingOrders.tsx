@@ -27,6 +27,7 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { OfCollectPhotosModal, type OfPhoto } from '@/components/billing/OfCollectPhotosModal';
 import { OfPhotosViewerModal } from '@/components/billing/OfPhotosViewerModal';
+import { useQueryClient as useQueryClientTanstack } from '@tanstack/react-query';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -90,6 +91,7 @@ const BillingOrders = () => {
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCollecting, setIsCollecting] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [reversalQuality, setReversalQuality] = useState<'first' | 'second'>('first');
 
@@ -1162,7 +1164,7 @@ const BillingOrders = () => {
             value="ready"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
+            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{Math.max(0, stats.readyWithDoc - (isAdmin ? stats.delayed : 0))}</Badge>
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger 
@@ -1609,8 +1611,36 @@ const BillingOrders = () => {
                         {order.status === 'ready' && !!(order as any).delivery_doc_number && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
-                            className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-white"
-                            onClick={() => setShowCollectConfirm(order)}
+                            disabled={isCollecting}
+                            onClick={async () => {
+                              if (isCollecting) return;
+                              setIsCollecting(true);
+                              try {
+                                // Se a OF já foi coletada por outro usuário (conflito)
+                                const actor = await (supabase.from as any)('billing_orders')
+                                  .select('status')
+                                  .eq('id', order.id)
+                                  .maybeSingle();
+                                
+                                if (actor.data?.status === 'collected') {
+                                  setConflictInfo({ 
+                                    action: 'marcar coleta', 
+                                    ofNumber: order.of_number, 
+                                    currentStatus: 'collected' 
+                                  });
+                                  // Invalida caches para refletir o estado real
+                                  queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+                                  queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                  setIsCollecting(false);
+                                  return;
+                                }
+                                setShowCollectConfirm(order);
+                              } catch (e) {
+                                console.error(e);
+                              } finally {
+                                setIsCollecting(false);
+                              }
+                            }}
                           >
                             <Truck className="h-4 w-4" /> Marcar Coleta
                           </Button>
@@ -2317,6 +2347,8 @@ const BillingOrders = () => {
               onClick={async () => {
                 try {
                   await setDeliveryDoc({ id: showDocModal.id, type: docForm.type, number: docForm.number });
+                  // Invalida o bootstrap que contém os contadores das abas
+                  queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
                   setShowDocModal(null);
                 } catch (err: any) {
                   toast({ title: 'Erro ao registrar documento', description: err?.message, variant: 'destructive' });
@@ -3122,7 +3154,7 @@ const BillingOrders = () => {
                         ? "bg-slate-400 cursor-not-allowed" 
                         : "bg-emerald-600 hover:bg-emerald-700 text-white"
                     )}
-                    disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid)}
+                    disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid) || isCollecting}
                     onClick={() => {
                       const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                       if (totalWeight <= 0) {
@@ -3229,7 +3261,7 @@ const BillingOrders = () => {
                       ? "bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse" 
                       : "bg-emerald-600 hover:bg-emerald-700 text-white"
                   )}
-                  disabled={updateStatus.isPending}
+                  disabled={updateStatus.isPending || isCollecting}
                   onClick={async () => {
                     if (!showPalletsModal) return;
                     
@@ -3254,6 +3286,8 @@ const BillingOrders = () => {
                         data: { pieces_real: totalPiecesVal, weight_real: totalWeightVal, weight_avg: avgVal },
                         expectedStatus: 'separating',
                       });
+                      // Invalida o bootstrap que contém os contadores das abas
+                      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
                       setConfirmFinalizePallets(false);
                       setShowPalletsModal(null);
                       setPallets([]);
