@@ -2673,7 +2673,7 @@ const BillingOrders = () => {
                             
                             const bal = new Map<string, { pieces: number; weight: number }>();
                             
-                            // 1. Considerar o saldo físico da expedição vindo do estoque global (apenas se houver produções, caso contrário o estoque manual manda)
+                            // 1. Considerar o saldo físico da expedição vindo do estoque global (apenas se houver produções)
                             for (const p of (prodRes.data || [])) {
                               if (!p.machine_id) continue;
                               const cur = bal.get(p.machine_id) || { pieces: 0, weight: 0 };
@@ -2684,11 +2684,6 @@ const BillingOrders = () => {
                             
                             // 2. Considerar TODOS os movimentos do estoque global para espelhar o saldo real da expedição global
                             // (Necessário para subtrair reservas/saídas que já ocorreram na base global)
-                            const gloMvRes = await (supabase.from as any)('stock_movements')
-                              .select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id')
-                              .eq('company_id', user.company_id)
-                              .eq('article_id', effArticleId);
-
                             for (const mv of (gloMvRes.data || [])) {
                               if (mv.is_second_quality || !mv.machine_id) continue;
                               const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
@@ -2720,7 +2715,6 @@ const BillingOrders = () => {
                               cur.weight += Number(mv.weight_kg) || 0;
                               bal.set(mv.machine_id, cur);
                             }
-
                             
                             // Busca movimentos no estoque manual para calcular o disponível real da expedição (Estornos de OF e Saídas)
                             const manMvExpRes = await (supabase.from as any)('manual_stock_movements')
@@ -2753,7 +2747,6 @@ const BillingOrders = () => {
                               .in('type', ['reserve', 'release']);
 
                             if (resMvManRes.data && resMvManRes.data.length > 0) {
-                              // Busca status das OFs para saber se a reserva ainda é ativa
                               const boIds = Array.from(new Set(resMvManRes.data.map((m: any) => m.billing_order_id).filter(Boolean)));
                               const { data: boStatus } = await (supabase.from as any)('billing_orders')
                                 .select('id, status')
