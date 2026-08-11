@@ -1629,8 +1629,10 @@ const BillingOrders = () => {
                                     currentStatus: 'collected' 
                                   });
                                   // Invalida caches para refletir o estado real
-                                  queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-                                  queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                  await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+                                  await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                  queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' });
+                                  queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' });
                                   setIsCollecting(false);
                                   return;
                                 }
