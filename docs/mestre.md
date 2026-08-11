@@ -1,7 +1,7 @@
 - **11/08/2026 (Brasília) — Correção de Reserva "SEM MÁQUINA" no Estoque Manual:**
-    - Corrigido erro onde a reserva "SEM MÁQUINA" em Ordens de Faturamento (OF) ignorava as movimentações do **Estoque Malha (Manual)** no cálculo do saldo disponível, causando inconsistência visual entre a reserva e o estoque.
+    - Corrigido erro onde a reserva "SEM MÁQUINA" em Ordens de Faturamento (OF) ignorava as movimentações do **Estoque Malha (Manual)** no cálculo do saldo disponível, ou reservava de máquinas sem saldo real (ex: reservando de máquinas vazias em vez de priorizar as com saldo positivo).
     - Sincronizada a lógica de cálculo de saldo do frontend em `src/pages/BillingOrders.tsx` para refletir fielmente a RPC `get_manual_stock_estoque`: `(Produção + Entradas Manuais + Estornos OF) - (Saídas Manuais + Saídas OF + Reservas Ativas)`.
-    - Garantido que a distribuição "Greedy" de reservas considere apenas máquinas com saldo disponível positivo real no estoque manual.
+    - A lógica agora unifica o histórico global e manual para determinar o saldo disponível real por máquina antes da distribuição "Greedy".
 - **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
     - Corrigida falha na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde o sistema falhava em identificar máquinas com saldo positivo (ex: TEAR 36 vs TEAR 19) e gerava reservas em máquinas zeradas. A nova lógica prioriza "Perfect Match" (uma máquina supre tudo) ou distribuição "Greedy" (proporcional ao saldo disponível).
     - O cálculo de saldo em tempo real no frontend foi sincronizado com as regras do banco: `Produção + Entradas (adjust_in/release/in sem OF) - Saídas (adjust_out/out/reserve)`.
