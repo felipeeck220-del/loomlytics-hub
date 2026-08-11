@@ -1611,26 +1611,35 @@ const BillingOrders = () => {
                         {order.status === 'ready' && !!(order as any).delivery_doc_number && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
-                            className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-white"
+                            disabled={isCollecting}
                             onClick={async () => {
-                              // Se a OF já foi coletada por outro usuário (conflito)
-                              const actor = await (supabase.from as any)('billing_orders')
-                                .select('status')
-                                .eq('id', order.id)
-                                .maybeSingle();
-                              
-                              if (actor.data?.status === 'collected') {
-                                setConflictInfo({ 
-                                  action: 'marcar coleta', 
-                                  ofNumber: order.of_number, 
-                                  currentStatus: 'collected' 
-                                });
-                                // Invalida caches para refletir o estado real
-                                queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-                                queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
-                                return;
+                              if (isCollecting) return;
+                              setIsCollecting(true);
+                              try {
+                                // Se a OF já foi coletada por outro usuário (conflito)
+                                const actor = await (supabase.from as any)('billing_orders')
+                                  .select('status')
+                                  .eq('id', order.id)
+                                  .maybeSingle();
+                                
+                                if (actor.data?.status === 'collected') {
+                                  setConflictInfo({ 
+                                    action: 'marcar coleta', 
+                                    ofNumber: order.of_number, 
+                                    currentStatus: 'collected' 
+                                  });
+                                  // Invalida caches para refletir o estado real
+                                  queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+                                  queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                  setIsCollecting(false);
+                                  return;
+                                }
+                                setShowCollectConfirm(order);
+                              } catch (e) {
+                                console.error(e);
+                              } finally {
+                                setIsCollecting(false);
                               }
-                              setShowCollectConfirm(order);
                             }}
                           >
                             <Truck className="h-4 w-4" /> Marcar Coleta
