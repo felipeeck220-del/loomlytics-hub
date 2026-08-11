@@ -1164,7 +1164,7 @@ const BillingOrders = () => {
             value="ready"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
+            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{Math.max(0, stats.readyWithDoc - (isAdmin ? stats.delayed : 0))}</Badge>
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger 
@@ -3145,7 +3145,7 @@ const BillingOrders = () => {
                         ? "bg-slate-400 cursor-not-allowed" 
                         : "bg-emerald-600 hover:bg-emerald-700 text-white"
                     )}
-                    disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid)}
+                    disabled={pallets.length === 0 || updateStatus.isPending || (multiplierVal > 0 && !isMultiplierValValid) || isCollecting}
                     onClick={() => {
                       const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                       if (totalWeight <= 0) {
@@ -3252,7 +3252,7 @@ const BillingOrders = () => {
                       ? "bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse" 
                       : "bg-emerald-600 hover:bg-emerald-700 text-white"
                   )}
-                  disabled={updateStatus.isPending}
+                  disabled={updateStatus.isPending || isCollecting}
                   onClick={async () => {
                     if (!showPalletsModal) return;
                     
