@@ -1,3 +1,6 @@
+- **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
+    - Removido integralmente o módulo de **Estoque Malha (Manual)** do projeto, incluindo a página `StockMalhaManual.tsx`, rotas e itens de menu.
+    - Eliminadas as referências e integrações com o módulo no hook `useBillingOrders` e na página `BillingOrders.tsx`.
 - **11/08/2026 (Brasília) — Correção da RPC de Cancelamento de OF:**
     - Ajustada a RPC `cancel_billing_order` para contornar falha de validação de `user_active_company` que impedia o cancelamento de ordens em contextos onde o RLS do PostgREST não injetava corretamente o ID da empresa.
     - Otimizada a identificação do autor da ação via `author_code`.
