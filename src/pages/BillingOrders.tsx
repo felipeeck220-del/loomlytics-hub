@@ -1313,7 +1313,7 @@ const BillingOrders = () => {
                       {isAdmin && order.status === 'ready' && (order as any).separation_finished_at && (() => {
                         const finishedAt = new Date((order as any).separation_finished_at);
                         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-                        if (diffDays > 7) {
+                        if (diffDays >= 7) {
                           return (
                             <div className="flex items-center gap-2 mt-1">
                               <Badge className="bg-orange-600 text-white border-orange-700 gap-1 py-0 px-2 h-5 animate-bounce shadow-sm">
