@@ -1,3 +1,6 @@
+- **12/08/2026 (Brasília) — Correção de Dados Zerados na Coleta de OF:**
+    - Corrigida a trigger `handle_billing_order_status_change` para consolidar o total de peças e peso dos paletes no cabeçalho da OF antes de deletá-los.
+    - Realizado backfill (recuperação) de dados para as OFs #558 e #566, extraindo os valores das movimentações de estoque históricas.
 - **12/08/2026 (Brasília) — Movimentação Manual OF #558 e Estabilização da Coleta:**
     - Movida manualmente a OF #558 para "Coletadas" via script SQL para contornar falha pontual de interface.
     - Refatorada a chamada da RPC `collect_billing_order` no `useBillingOrders.ts` para garantir o mapeamento correto de todos os parâmetros exigidos pela assinatura canônica de 4 argumentos.
