@@ -1,3 +1,6 @@
+- **12/08/2026 (Brasília) — Estabilização Definitiva do Filtro de Coleta:**
+    - Corrigido vazamento visual onde OFs recém-coletadas continuavam aparecendo na aba "Pronto para coleta" devido ao filtro de status estrito (`order.status !== activeTab`).
+    - Ajustada a lógica do `useMemo` de filtragem para garantir que, ao mudar o status para `collected`, a OF saia imediatamente das abas de operação (`ready`, `delayed_collection`) mesmo antes do refetch do banco.
 - **12/08/2026 (Brasília) — Estabilização Final da Coleta de OF (Cache Fuzzy):**
     - Atualizada a estratégia de invalidação para `exact: false`, garantindo que queries com filtros de `company_id` ou outros parâmetros sejam capturadas.
     - Reforçada a sincronização no modal de fotos (`OfCollectPhotosModal`) e no botão "Marcar Coleta" para garantir que a transição de status seja refletida em todas as abas.
