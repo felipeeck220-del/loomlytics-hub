@@ -160,6 +160,9 @@ export function useBillingOrders() {
           queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
           queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
           queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
+          queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
+          queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
+          queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
         }
       )
       .subscribe();

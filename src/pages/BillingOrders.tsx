@@ -315,7 +315,7 @@ const BillingOrders = () => {
         if (order.status !== 'ready') return false;
         if (!(order as any).delivery_doc_number) return false;
         
-        // Se admin, filtra para NÃO mostrar o que está em atraso (> 7 dias da finalização)
+        // Se admin, filtra para NÃO mostrar o que está em atraso (>= 7 dias da finalização)
         if (isAdmin && (order as any).separation_finished_at) {
           const finishedAt = new Date((order as any).separation_finished_at);
           const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
@@ -1146,15 +1146,18 @@ const BillingOrders = () => {
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
           <TabsTrigger 
             value="priority_tab" 
-            className={`gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial ${hasPendingPriority ? 'animate-pulse bg-red-600 text-white data-[state=active]:bg-red-700 data-[state=active]:text-white' : ''}`}
+            className={cn(
+              "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
+              hasPendingPriority && 'animate-pulse bg-red-600 text-white data-[state=active]:bg-red-700 data-[state=active]:text-white'
+            )}
           >
-            Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.priority}</Badge>
+            Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.priority}</Badge>
           </TabsTrigger>
           <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.open}</Badge>
+            Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.open}</Badge>
           </TabsTrigger>
           <TabsTrigger value="separating" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.separating}</Badge>
+            Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.separating}</Badge>
           </TabsTrigger>
           <TabsTrigger
             value="awaiting_doc"
@@ -1166,13 +1169,13 @@ const BillingOrders = () => {
             )}
           >
             <FileText className="h-3 w-3" /> Aguardando NF/ROM
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithoutDoc}</Badge>
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.readyWithoutDoc}</Badge>
           </TabsTrigger>
           <TabsTrigger
             value="ready"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
+            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger 
@@ -1182,14 +1185,14 @@ const BillingOrders = () => {
                 stats.delayed > 0 && "bg-orange-100 text-orange-700 data-[state=active]:bg-orange-600 data-[state=active]:text-white animate-pulse"
               )}
             >
-              <History className="h-3 w-3" /> Atraso na Coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.delayed}</Badge>
+              <History className="h-3 w-3" /> Atraso na Coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.delayed}</Badge>
             </TabsTrigger>
           )}
           <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
           </TabsTrigger>
           <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.cancelled}</Badge>
+            Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.cancelled}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -1313,7 +1316,7 @@ const BillingOrders = () => {
                       {isAdmin && order.status === 'ready' && (order as any).separation_finished_at && (() => {
                         const finishedAt = new Date((order as any).separation_finished_at);
                         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-                        if (diffDays > 7) {
+                        if (diffDays >= 7) {
                           return (
                             <div className="flex items-center gap-2 mt-1">
                               <Badge className="bg-orange-600 text-white border-orange-700 gap-1 py-0 px-2 h-5 animate-bounce shadow-sm">
