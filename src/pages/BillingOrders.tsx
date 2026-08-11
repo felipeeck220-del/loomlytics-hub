@@ -622,13 +622,19 @@ const BillingOrders = () => {
       order_type: editForm.order_type,
       admin_notes: (editForm.admin_notes || '').trim() || null,
     };
+
+    // If changing client/article and already has pallets, force reverting to open to clear stock bindings
+    const hasPallets = detailsPallets.length > 0;
+    const isChangingTarget = showEditModal.client_id !== editForm.client_id || showEditModal.article_id !== editForm.article_id;
+    const shouldForceRevert = revertToOpen || (hasPallets && isChangingTarget);
+
     const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
     try {
       await editOrder.mutateAsync({
         id: showEditModal.id,
         changes,
         note,
-        revertToOpen: wasActive,
+        revertToOpen: shouldForceRevert,
         // Garantia anti-race: se outro usuário mudou o status enquanto este
         // modal estava aberto, o UPDATE não atinge nenhuma linha e cai no
         // catch — evitando que uma reserva já criada nunca seja liberada.
