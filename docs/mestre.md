@@ -1,10 +1,10 @@
+- **11/08/2026 (Brasília) — Correção de Reserva "SEM MÁQUINA" no Estoque Manual:**
+    - Corrigido erro onde a reserva "SEM MÁQUINA" em Ordens de Faturamento (OF) ignorava as movimentações do **Estoque Malha (Manual)** no cálculo do saldo disponível, causando inconsistência visual entre a reserva e o estoque.
+    - Sincronizada a lógica de cálculo de saldo do frontend em `src/pages/BillingOrders.tsx` para refletir fielmente a RPC `get_manual_stock_estoque`: `(Produção + Entradas Manuais + Estornos OF) - (Saídas Manuais + Saídas OF + Reservas Ativas)`.
+    - Garantido que a distribuição "Greedy" de reservas considere apenas máquinas com saldo disponível positivo real no estoque manual.
 - **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
     - Corrigida falha na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde o sistema falhava em identificar máquinas com saldo positivo (ex: TEAR 36 vs TEAR 19) e gerava reservas em máquinas zeradas. A nova lógica prioriza "Perfect Match" (uma máquina supre tudo) ou distribuição "Greedy" (proporcional ao saldo disponível).
     - O cálculo de saldo em tempo real no frontend foi sincronizado com as regras do banco: `Produção + Entradas (adjust_in/release/in sem OF) - Saídas (adjust_out/out/reserve)`.
-    - Corrigido erro de estorno duplicado na exclusão de paletes "SEM MÁQUINA". Agora, as reservas vinculadas a um palete são agrupadas por máquina antes da inserção da linha de liberação (`release`), garantindo integridade no **Estoque Malha (Manual)**.
-    - Implementada trava de segurança no modal de finalização de OF: o sistema impede o envio para o status "PRONTO" se a contagem de peças não respeitar o múltiplo configurado, exibindo alertas detalhados sobre a diferença.
-- **10/08/2026 (Brasília) — Correção de Estorno de Peso no Estoque Manual:**
-    - Ajustada a lógica de estorno (`release`) em `src/pages/BillingOrders.tsx` para garantir que o peso (kg) reservado não seja indevidamente somado ao saldo disponível ao cancelar um palete que não tinha registro de peso manual.
     - Implementada vinculação estrita via `Pallet ID` no campo `reason` das movimentações para garantir que o rollback de estoque seja 100% fiel à origem da reserva, mesmo em alocações distribuídas.
     - Refinada a RPC `get_manual_stock_estoque` para tratar peças e kg como entidades independentes na linha do tempo de saldo, evitando que a falta de um (ex: peso 0 em entrada manual) afete o cálculo do outro durante a liberação de reservas.
 
