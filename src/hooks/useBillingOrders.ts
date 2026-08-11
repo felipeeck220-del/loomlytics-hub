@@ -307,8 +307,11 @@ export function useBillingOrders() {
       await queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
       
       // Força o refetch imediato das queries principais para garantir sincronia na UI
-      queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active' })
+      ]);
       
       const labels: Record<string, string> = {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
