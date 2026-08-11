@@ -87,6 +87,7 @@ const BillingOrders = () => {
   const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [reversalQuality, setReversalQuality] = useState<'first' | 'second'>('first');
 
@@ -652,7 +653,7 @@ const BillingOrders = () => {
       setCancelReason('');
       setReversalQuality('first');
       toast({ title: isReversal ? 'Estorno realizado com sucesso' : 'OF cancelada com sucesso' });
-      // Mantém na aba atual conforme solicitado pelo usuário
+      // Keep user in current tab as requested by the user
       // setActiveTab('cancelled');
     } catch (err: any) {
       console.error("Erro ao cancelar OF:", err);
@@ -2204,7 +2205,14 @@ const BillingOrders = () => {
               onClick={handleCancel}
               disabled={updateStatus.isPending}
             >
-              {showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'}
+              {updateStatus.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {showCancelModal?.status === 'collected' ? 'Estornando...' : 'Cancelando...'}
+                </>
+              ) : (
+                showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
