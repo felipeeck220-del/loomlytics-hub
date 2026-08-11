@@ -64,17 +64,17 @@ import { Badge } from '@/components/ui/badge';
   }: {
     companyName?: string;
     logoUrl?: string | null;
-   freights: OutsourceFreight[];
-   companies: OutsourceCompany[];
-   companyId: string;
-   loading: boolean;
-   filterMonth: string;
-   setFilterMonth: (v: string) => void;
-   filterFrom: Date | undefined;
-   setFilterFrom: (v: Date | undefined) => void;
-   filterTo: Date | undefined;
-   setFilterTo: (v: Date | undefined) => void;
- }) {
+    freights: OutsourceFreight[];
+    companies: OutsourceCompany[];
+    companyId: string;
+    loading: boolean;
+    filterMonth: string;
+    setFilterMonth: (v: string) => void;
+    filterFrom: Date | undefined;
+    setFilterFrom: (v: Date | undefined) => void;
+    filterTo: Date | undefined;
+    setFilterTo: (v: Date | undefined) => void;
+  }) {
    const queryClient = useQueryClient();
     const { userCode, userName, logAction } = useAuditLog();
     const userNameRef = useRef(userName);
@@ -580,53 +580,53 @@ import { Badge } from '@/components/ui/badge';
        </CardHeader>
        <CardContent className="space-y-4">
          {/* Filters same as productions */}
-         <div className="rounded-lg border bg-muted/30 p-3">
-           <div className="flex items-end gap-3 flex-wrap">
-             <div className="space-y-1.5">
-               <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
-               <Select value={filterMonth || '_all'} onValueChange={v => { setFilterMonth(v === '_all' ? '' : v); setFilterFrom(undefined); setFilterTo(undefined); }}>
-                 <SelectTrigger className="w-[160px] h-8 text-xs capitalize">
-                   <SelectValue />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="_all">Todos os meses</SelectItem>
-                   {availableMonths.map(m => {
-                     const [y, mo] = m.split('-');
-                     const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMMM/yyyy', { locale: ptBR });
-                     return <SelectItem key={m} value={m} className="capitalize">{label}</SelectItem>;
-                   })}
-                 </SelectContent>
-               </Select>
-             </div>
-             <div className="space-y-1.5">
-               <Label className="text-xs font-medium text-muted-foreground">Período</Label>
-               <div className="flex items-center gap-2">
-                 <Popover open={fromOpen} onOpenChange={setFromOpen}>
-                   <PopoverTrigger asChild>
-                     <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !filterFrom && "text-muted-foreground")}>
-                       <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                       {filterFrom ? format(filterFrom, 'dd/MM/yy') : 'De'}
-                     </Button>
-                   </PopoverTrigger>
-                   <PopoverContent className="w-auto p-0" align="start">
-                     <Calendar mode="single" selected={filterFrom} onSelect={(d) => { setFilterFrom(d); setFromOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
-                   </PopoverContent>
-                 </Popover>
-                 <span className="text-xs text-muted-foreground">até</span>
-                 <Popover open={toOpen} onOpenChange={setToOpen}>
-                   <PopoverTrigger asChild>
-                     <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !filterTo && "text-muted-foreground")}>
-                       <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                       {filterTo ? format(filterTo, 'dd/MM/yy') : 'Até'}
-                     </Button>
-                   </PopoverTrigger>
-                   <PopoverContent className="w-auto p-0" align="start">
-                     <Calendar mode="single" selected={filterTo} onSelect={(d) => { setFilterTo(d); setToOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
-                   </PopoverContent>
-                 </Popover>
-               </div>
-             </div>
-              <div className="space-y-1.5">
+          <div className="rounded-lg border bg-muted/30 p-3 overflow-hidden">
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="space-y-1.5 w-full sm:w-[160px]">
+                <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+                <Select value={filterMonth || '_all'} onValueChange={v => { setFilterMonth(v === '_all' ? '' : v); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                  <SelectTrigger className="w-full h-8 text-xs capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todos os meses</SelectItem>
+                    {availableMonths.map(m => {
+                      const [y, mo] = m.split('-');
+                      const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMMM/yyyy', { locale: ptBR });
+                      return <SelectItem key={m} value={m} className="capitalize">{label}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 w-full sm:w-auto">
+                <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+                <div className="flex items-center gap-2">
+                  <Popover open={fromOpen} onOpenChange={setFromOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("flex-1 sm:w-[120px] justify-start text-left font-normal h-8 text-xs", !filterFrom && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                        {filterFrom ? format(filterFrom, 'dd/MM/yy') : 'De'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={filterFrom} onSelect={(d) => { setFilterFrom(d); setFromOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-xs text-muted-foreground">até</span>
+                  <Popover open={toOpen} onOpenChange={setToOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("flex-1 sm:w-[120px] justify-start text-left font-normal h-8 text-xs", !filterTo && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                        {filterTo ? format(filterTo, 'dd/MM/yy') : 'Até'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={filterTo} onSelect={(d) => { setFilterTo(d); setToOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              <div className="space-y-1.5 w-full sm:w-[180px]">
                 <Label className="text-xs font-medium text-muted-foreground">Malharia</Label>
                 <SearchableSelect 
                   value={filterCompany === '_all' ? '' : filterCompany} 
@@ -634,15 +634,15 @@ import { Badge } from '@/components/ui/badge';
                   options={[{ value: '_all', label: 'Todas as malharias' }, ...companies.map(c => ({ value: c.id, label: c.name }))]}
                   placeholder="Todas as malharias"
                   searchPlaceholder="Buscar malharia..."
-                  triggerClassName="w-[180px] h-8 text-xs"
+                  triggerClassName="w-full h-8 text-xs"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5" onClick={exportPdf} disabled={filteredFreights.length === 0}>
+              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none text-xs h-8 gap-1.5" onClick={exportPdf} disabled={filteredFreights.length === 0}>
                   <FileText className="h-3.5 w-3.5" /> PDF
                 </Button>
                 {hasActiveFilters && (
-                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); setFilterCompany('_all'); }}>
+                  <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-xs h-8" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); setFilterCompany('_all'); }}>
                     ✕ Limpar
                   </Button>
                 )}

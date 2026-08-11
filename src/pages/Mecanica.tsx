@@ -2245,63 +2245,75 @@ export default function MecanicaPage() {
                           </thead>
                           <tbody>
                             {(() => {
+                              if (logsLoading) {
+                                return Array.from({ length: 5 }).map((_, i) => (
+                                  <tr key={i} className="border-b animate-pulse">
+                                    <td className="p-4"><div className="h-4 w-20 bg-muted rounded" /></td>
+                                    <td className="p-4"><div className="h-4 w-16 bg-muted rounded" /></td>
+                                    <td className="p-4"><div className="h-4 w-32 bg-muted rounded" /></td>
+                                    <td className="p-4"><div className="h-4 w-16 bg-muted rounded" /></td>
+                                    <td className="p-4 text-right"><div className="h-4 w-12 ml-auto bg-muted rounded" /></td>
+                                    <td className="p-4"><div className="h-8 w-24 ml-auto bg-muted rounded" /></td>
+                                  </tr>
+                                ));
+                              }
+
                               const sorted = [...sinkerTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
-                              const totalPages = Math.max(1, Math.ceil(sorted.length / SINKER_HISTORY_PER_PAGE));
                               const start = (sinkerHistoryPage - 1) * SINKER_HISTORY_PER_PAGE;
                               const pageItems = sorted.slice(start, start + SINKER_HISTORY_PER_PAGE);
-                              return (
-                                <>
-                                  {pageItems.map(t => {
-                                    const sinker = sinkers.find(s => s.id === t.sinker_id);
-                                    const machine = machines.find(m => m.id === t.machine_id);
-                                    return (
-                                      <tr key={t.id} className="border-b">
-                                        <td className="p-4 align-top">
-                                          <div className="flex flex-col">
-                                            <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
-                                            {(t.created_by_name || t.created_at) && (
-                                              <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
-                                                {t.created_by_name || '—'} - {'\n'}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </td>
-                                        <td className="p-4">
-                                          <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
-                                            {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_platinas' ? 'Troca' : 'Reposição'}
-                                          </Badge>
-                                        </td>
-                                        <td className="p-4">{sinker?.brand} ({sinker?.reference_code})</td>
-                                        <td className="p-4">{machine?.name || '—'}</td>
-                                        <td className="p-4 text-right font-medium">{t.quantity}</td>
-                                        <td className="p-4 text-right">
-                                          <div className="flex justify-end gap-1">
-                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                              setSinkerEditTxn(t);
-                                              const kind: 'entry' | 'reposicao' | 'troca_platinas' =
-                                                t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_platinas' ? 'troca_platinas' : 'reposicao');
-                                              setSinkerEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
-                                            }}>
-                                              <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning" title="Estornar" onClick={() => setReverseSinkerTxnId(t.id)}>
-                                              <RotateCcw className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteSinkerTxnId(t.id)}>
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                  {sinkerTransactions.length === 0 && (
-                                    <tr>
-                                      <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
-                                    </tr>
-                                  )}
-                                </>
-                              );
+                              
+                              if (sinkerTransactions.length === 0) {
+                                return (
+                                  <tr>
+                                    <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                                  </tr>
+                                );
+                              }
+
+                              return pageItems.map(t => {
+                                const sinker = sinkers.find(s => s.id === t.sinker_id);
+                                const machine = machines.find(m => m.id === t.machine_id);
+                                return (
+                                  <tr key={t.id} className="border-b hover:bg-muted/30 transition-colors">
+                                    <td className="p-4 align-top">
+                                      <div className="flex flex-col">
+                                        <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                        {(t.created_by_name || t.created_at) && (
+                                          <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                                            {t.created_by_name || '—'} - {'\n'}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-4">
+                                      <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
+                                        {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_platinas' ? 'Troca' : 'Reposição'}
+                                      </Badge>
+                                    </td>
+                                    <td className="p-4">{sinker?.brand} ({sinker?.reference_code})</td>
+                                    <td className="p-4">{machine?.name || '—'}</td>
+                                    <td className="p-4 text-right font-medium">{t.quantity}</td>
+                                    <td className="p-4 text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                          setSinkerEditTxn(t);
+                                          const kind: 'entry' | 'reposicao' | 'troca_platinas' =
+                                            t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_platinas' ? 'troca_platinas' : 'reposicao');
+                                          setSinkerEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
+                                        }}>
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning" title="Estornar" onClick={() => setReverseSinkerTxnId(t.id)}>
+                                          <RotateCcw className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteSinkerTxnId(t.id)}>
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              });
                             })()}
                           </tbody>
                         </table>
