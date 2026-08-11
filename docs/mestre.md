@@ -1,6 +1,7 @@
-- **11/08/2026 (Brasília) — Correção de Erro de Tipo em Edição de OF:**
-    - Corrigido o erro `type "biling_order_type" does not exist` na RPC `edit_billing_order`.
-    - Garantida a existência do tipo `billing_order_type` (standard, express) no banco de dados com permissões adequadas.
+- **11/08/2026 (Brasília) — Correção de Erro de Enum em Edição/Criação de OF:**
+    - Resolvido erro `invalid input value for enum billing_order_type` ao criar ou editar OFs com `order_type = 'all'`.
+    - As RPCs `create_billing_order` e `edit_billing_order` foram ajustadas para tratar a coluna `order_type` como `text` em vez de tentar um cast forçado para o enum `billing_order_type`, que agora é usado apenas para prioridade/express (standard, express).
+    - Corrigido erro de sintaxe `placed_at` em migration anterior.
     - Sincronizada a auditoria de 6 argumentos em todos os fluxos de edição de OF.
 - **11/08/2026 (Brasília) — Pente Fino e Sincronização de Auditoria em OF:**
     - Corrigidas todas as RPCs de Ordem de Faturamento (`collect`, `separation`, `ready`, `priority`, `edit`) para usar a nova assinatura de 6 argumentos da função `_of_audit`, evitando falhas de execução.
