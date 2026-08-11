@@ -14,6 +14,10 @@
     - Corrigidas todas as RPCs de Ordem de Faturamento (`collect`, `separation`, `ready`, `priority`, `edit`) para usar a nova assinatura de 6 argumentos da função `_of_audit`, evitando falhas de execução.
     - Sincronizada a injeção do `target_id` no log de auditoria via JSONB em todos os fluxos operacionais.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização das Ordens de Faturamento (OF):**
+    - Corrigida a assinatura da função `_of_audit` na RPC `cancel_billing_order` em `supabase/migrations/20260811001439_6ef6c1e5-816e-4c4d-9c10-de1ba6f93d06.sql` para 6 argumentos, garantindo rastreabilidade total.
+    - Sincronizada a injeção do `target_id` no log de auditoria via JSONB em todos os fluxos operacionais de OF.
+    - Validada a segurança das RPCs com `SECURITY DEFINER` e `search_path = public`.
+    - Reforçada a invalidação de cache no React Query em `src/hooks/useBillingOrders.ts` para refletir mudanças de estado instantaneamente.
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
     - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
     - Recriada a função `cancel_billing_order` com `SECURITY DEFINER` e `search_path` fixo para garantir execução mesmo sob RLS restritivo.
