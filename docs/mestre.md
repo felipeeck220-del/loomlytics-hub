@@ -1,3 +1,6 @@
+- **11/08/2026 (Brasília) — Exclusão de OF de Teste #566:**
+    - Excluída a OF #566 (teste) e seus paletes associados do banco de dados conforme solicitação do usuário.
+    - Registrada a ação nos logs de auditoria da plataforma.
 - **11/08/2026 (Brasília) — Pente Fino e Estabilização Final do Módulo de Faturamento (OF):**
     - Corrigidas e padronizadas 4 RPCs críticas (`collect_billing_order`, `link_billing_orders`, `unlink_billing_order_group`, `get_billing_orders_bootstrap`) para garantir sincronia de auditoria (6 argumentos em `_of_audit`) e stats precisos por aba.
     - Reforçada a lógica de reset de página ao alternar abas em `src/pages/BillingOrders.tsx`, evitando estados visuais inconsistentes.
