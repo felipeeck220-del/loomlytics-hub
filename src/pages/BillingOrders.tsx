@@ -2680,20 +2680,58 @@ const BillingOrders = () => {
                               bal.set(p.machine_id, cur);
                             }
                             
-                            for (const mv of (mvRes.data || [])) {
-                              if (mv.is_second_quality || !mv.machine_id) continue;
+                            // Busca movimentos no estoque manual para calcular o disponível real da expedição
+                            const manMvRes = await (supabase.from as any)('manual_stock_movements')
+                              .select('machine_id, type, pieces, weight_kg, billing_order_id, on_machine')
+                              .eq('company_id', user.company_id)
+                              .eq('article_id', effArticleId);
+
+                            for (const mv of (manMvRes.data || [])) {
+                              if (!mv.machine_id) continue;
                               const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
                               const kg = Number(mv.weight_kg) || 0;
                               const pcs = Number(mv.pieces) || 0;
                               
-                              if (mv.type === 'adjust_in' || mv.type === 'release') {
+                              // Lógica espelhada da RPC get_manual_stock_estoque
+                              if (mv.type === 'adjust_in' && !mv.on_machine) {
                                 cur.pieces += pcs; cur.weight += kg;
-                              } else if (mv.type === 'adjust_out' || mv.type === 'out' || mv.type === 'reserve') {
+                              } else if (mv.type === 'in' && mv.billing_order_id) {
+                                cur.pieces += pcs; cur.weight += kg;
+                              } else if (mv.type === 'adjust_out' && !mv.on_machine) {
                                 cur.pieces -= pcs; cur.weight -= kg;
-                              } else if (mv.type === 'in' && !mv.billing_order_id) {
-                                cur.pieces += pcs; cur.weight += kg;
+                              } else if (mv.type === 'out') {
+                                cur.pieces -= pcs; cur.weight -= kg;
                               }
                               bal.set(mv.machine_id, cur);
+                            }
+                            
+                            // Descontar reservas ativas de OFs não coletadas/canceladas
+                            const resMvRes = await (supabase.from as any)('manual_stock_movements')
+                              .select('machine_id, type, pieces, weight_kg, billing_order_id')
+                              .eq('company_id', user.company_id)
+                              .eq('article_id', effArticleId)
+                              .in('type', ['reserve', 'release']);
+
+                            if (resMvRes.data && resMvRes.data.length > 0) {
+                              // Busca status das OFs para saber se a reserva ainda é ativa
+                              const boIds = Array.from(new Set(resMvRes.data.map((m: any) => m.billing_order_id).filter(Boolean)));
+                              const { data: boStatus } = await (supabase.from as any)('billing_orders')
+                                .select('id, status')
+                                .in('id', boIds);
+                              const activeBoIds = new Set((boStatus || []).filter((b: any) => !['collected', 'cancelled'].includes(b.status)).map((b: any) => b.id));
+
+                              for (const mv of resMvRes.data) {
+                                if (!mv.machine_id || !activeBoIds.has(mv.billing_order_id)) continue;
+                                const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
+                                const kg = Number(mv.weight_kg) || 0;
+                                const pcs = Number(mv.pieces) || 0;
+                                if (mv.type === 'reserve') {
+                                  cur.pieces -= pcs; cur.weight -= kg;
+                                } else if (mv.type === 'release') {
+                                  cur.pieces += pcs; cur.weight += kg;
+                                }
+                                bal.set(mv.machine_id, cur);
+                              }
                             }
                             // Ordena por peças disponíveis decrescente (prioridade do usuário)
                             const sorted = Array.from(bal.entries())
