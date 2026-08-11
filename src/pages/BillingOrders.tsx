@@ -2198,15 +2198,15 @@ const BillingOrders = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelModal(null)}>Voltar</Button>
+            <Button variant="outline" onClick={() => setShowCancelModal(null)} disabled={isCancelling}>Voltar</Button>
             <Button
               className={showCancelModal?.status === 'collected'
                 ? 'bg-red-700 hover:bg-red-800 text-white'
                 : 'bg-zinc-700 hover:bg-zinc-800 text-white'}
               onClick={handleCancel}
-              disabled={updateStatus.isPending}
+              disabled={isCancelling}
             >
-              {updateStatus.isPending ? (
+              {isCancelling ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {showCancelModal?.status === 'collected' ? 'Estornando...' : 'Cancelando...'}
