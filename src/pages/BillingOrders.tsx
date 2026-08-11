@@ -2224,12 +2224,6 @@ const BillingOrders = () => {
                 showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'
               )}
             </Button>
-                  {showCancelModal?.status === 'collected' ? 'Estornando...' : 'Cancelando...'}
-                </>
-              ) : (
-                showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'
-              )}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
