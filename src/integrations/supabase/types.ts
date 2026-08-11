@@ -5184,7 +5184,7 @@ export type Database = {
           p_author_code?: string
           p_author_name?: string
           p_company_id: string
-          p_expected_status?: string
+          p_expected_status?: Database["public"]["Enums"]["billing_order_status"]
           p_id: string
           p_reason: string
           p_reversal_quality?: string
