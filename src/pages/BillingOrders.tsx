@@ -650,22 +650,13 @@ const BillingOrders = () => {
       });
       setShowCancelModal(null);
       setCancelReason('');
-    } catch (err: any) {
-      if (err?.code === 'CONFLICT') {
-        setShowCancelModal(null);
-        setConflictInfo({ action: isReversal ? 'estornar' : 'cancelar', ofNumber: showCancelModal.of_number, currentStatus: err.currentStatus, actor: err.actor });
-      }
-    }
-  };
-      setShowCancelModal(null);
-      setCancelReason('');
       setReversalQuality('first');
       toast({ title: isReversal ? 'Estorno realizado com sucesso' : 'OF cancelada com sucesso' });
     } catch (err: any) {
       if (err?.code === 'CONFLICT') {
         setShowCancelModal(null);
         setCancelReason('');
-        setConflictInfo({ action: 'cancelar', ofNumber: showCancelModal.of_number, currentStatus: err.currentStatus, actor: err.actor });
+        setConflictInfo({ action: isReversal ? 'estornar' : 'cancelar', ofNumber: showCancelModal.of_number, currentStatus: err.currentStatus, actor: err.actor });
       }
     }
   };
