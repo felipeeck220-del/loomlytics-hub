@@ -1,8 +1,8 @@
-- **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
-    - Corrigida a RPC `cancel_billing_order` para incluir validação de multi-tenant (`p_company_id`) baseada no perfil do usuário, evitando falhas de permissão ao operar via interface.
-    - Otimizada a lógica de bloqueio de linha (`FOR UPDATE`) e tratamento de exceções na base de dados.
-    - Adicionado feedback visual de erro no frontend (`BillingOrders.tsx`) para facilitar o diagnóstico de falhas de rede ou permissão.
-    - Confirmado o funcionamento do botão "Confirmar Cancelamento" para usuários administradores.
+- **11/08/2026 (Brasília) — Pente Fino e Correção Definitiva de OF:**
+    - Corrigida a RPC `cancel_billing_order` (migration: `Fix cancel_billing_order argument mismatch and multi-tenant issues`). O erro ocorria devido a um descasamento entre o número de argumentos chamados no frontend (7) e o definido no banco (9), além de reforçar o isolamento multi-tenant via `profiles`.
+    - Validado o fluxo de cancelamento de OFs no frontend, garantindo que o status seja atualizado e a aba mude para 'Canceladas' com feedback via toast.
+    - Removidos resíduos de lógica do antigo estoque manual em triggers de OF.
+    - Confirmada a integridade das auditorias em `audit_logs` para ações de cancelamento e estorno.
 - **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
     - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
 - **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
