@@ -3247,15 +3247,9 @@ const BillingOrders = () => {
                     }
                   }}
                 >
-                  {!isMultiplierValValid ? (
-                    <>
-                      <AlertTriangle className="h-4 w-4" /> Finalizar com erro de múltiplos
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
-                    </>
-                  )}
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
+                  </>
                 </Button>
               );
             })()}
