@@ -674,6 +674,7 @@ const BillingOrders = () => {
         expectedStatus: showCancelModal.status,
         reversalQuality: showCancelModal.status === 'collected' ? reversalQuality : undefined,
       });
+      setActiveTab('cancelled');
       setShowCancelModal(null);
       setCancelReason('');
       setReversalQuality('first');
