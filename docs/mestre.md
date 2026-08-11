@@ -5,6 +5,10 @@
     - Validada a exibição de auditoria de separação (`separation_started_at`/`separation_finished_at`) e média por palete no frontend e PDF.
     - Removidos resíduos de lógica de estoque manual em todo o fluxo de status de OF.
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
+    - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
+    - Recriada a função `cancel_billing_order` com `SECURITY DEFINER` e `search_path` fixo para garantir execução mesmo sob RLS restritivo.
+    - Refatorado o modal de cancelamento em `BillingOrders.tsx` para usar `mutateAsync` e exibir estados de carregamento e erros detalhados.
+    - Corrigido o tratamento de erros da RPC no hook `useBillingOrders.ts` para capturar falhas de banco de dados (`rpcErr`).
 - **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
     - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
 - **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
