@@ -64,17 +64,17 @@ import { Badge } from '@/components/ui/badge';
   }: {
     companyName?: string;
     logoUrl?: string | null;
-   freights: OutsourceFreight[];
-   companies: OutsourceCompany[];
-   companyId: string;
-   loading: boolean;
-   filterMonth: string;
-   setFilterMonth: (v: string) => void;
-   filterFrom: Date | undefined;
-   setFilterFrom: (v: Date | undefined) => void;
-   filterTo: Date | undefined;
-   setFilterTo: (v: Date | undefined) => void;
- }) {
+    freights: OutsourceFreight[];
+    companies: OutsourceCompany[];
+    companyId: string;
+    loading: boolean;
+    filterMonth: string;
+    setFilterMonth: (v: string) => void;
+    filterFrom: Date | undefined;
+    setFilterFrom: (v: Date | undefined) => void;
+    filterTo: Date | undefined;
+    setFilterTo: (v: Date | undefined) => void;
+  }) {
    const queryClient = useQueryClient();
     const { userCode, userName, logAction } = useAuditLog();
     const userNameRef = useRef(userName);

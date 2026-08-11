@@ -1,8 +1,9 @@
+- **12/08/2026 (Brasília) — Pente Fino, Estabilização e Auditoria (OF):**
+    - Refatoradas as RPCs `cancel_billing_order` e `collect_billing_order` para garantir estorno de estoque preciso (respeitando 2ª qualidade) e limpeza total de reservas órfãs.
+    - Sincronizada a assinatura da função `_of_audit` para 6 argumentos em todo o backend operacional de faturamento.
+    - Implementada trava de idempotência no hook `usePushNotifications.ts` para evitar registros duplicados de dispositivos.
+    - Otimizada a UI de Mecânica com skeletons de carregamento em listagens paginadas.
 - **11/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
-    - Corrigido bug onde a OF permanecia na aba "Pronto para coleta" mesmo após confirmação bem-sucedida, causado por atraso na sincronização de cache e falta de invalidação do bootstrap.
-    - Implementada proteção contra cliques duplos e verificação prévia de status (conflito) antes de abrir o modal de coleta.
-    - Sincronizada a invalidação agressiva do `billing_orders_bootstrap` em todos os fluxos de mudança de status (NF/Romaneio, Finalizar Separação, Coleta), garantindo contadores de abas sempre precisos.
-    - Corrigido bug visual no badge de "Pronto para coleta" que poderia exibir valores negativos.
 - **11/08/2026 (Brasília) — Correção de Erro ao Registrar NF/Romaneio (OF):**
     - Corrigida a chamada da função `_of_audit` na RPC `set_billing_order_delivery_doc`, que estava utilizando uma assinatura obsoleta de 5 argumentos, causando erro ao adicionar documentos na aba "Aguardando NF/ROM".
 - **11/08/2026 (Brasília) — Ajuste Visual na Aba Canceladas (OF):**
