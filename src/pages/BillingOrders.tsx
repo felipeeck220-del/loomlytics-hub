@@ -87,6 +87,7 @@ const BillingOrders = () => {
   const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [reversalQuality, setReversalQuality] = useState<'first' | 'second'>('first');
 

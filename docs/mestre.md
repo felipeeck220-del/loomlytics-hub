@@ -1,7 +1,7 @@
-- **11/08/2026 (Brasília) — Ajuste de UX no Cancelamento de OF:**
-    - Modificado o fluxo de cancelamento em `BillingOrders.tsx` para manter o usuário na aba atual após a ação, em vez de redirecionar automaticamente para a aba 'Canceladas'.
-    - Verificada a ausência de resíduos do módulo **Estoque Malha (Manual)** no frontend e backend; as RPCs de cancelamento agora operam exclusivamente sobre o estoque global e reservas padrão.
-    - Confirmada a estabilidade da RPC `cancel_billing_order` com isolamento multi-tenant e tratamento de auditoria.
+- **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
+    - Refatorado o fluxo de cancelamento em `BillingOrders.tsx` para garantir que a OF seja movida para 'cancelled' no backend enquanto o usuário permanece na aba atual, melhorando a fluidez da operação.
+    - Adicionado estado de carregamento (`isCancelling`) e desativação de botões durante a execução da RPC para prevenir cliques duplos e garantir feedback visual.
+    - Confirmado que a RPC `cancel_billing_order` (7 argumentos) está devidamente sincronizada com as permissões de execução.
 - **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
     - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
 - **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
