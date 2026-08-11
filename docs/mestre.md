@@ -1,3 +1,5 @@
+- **11/08/2026 (Brasília) — Correção de Erro ao Registrar NF/Romaneio (OF):**
+    - Corrigida a chamada da função `_of_audit` na RPC `set_billing_order_delivery_doc`, que estava utilizando uma assinatura obsoleta de 5 argumentos, causando erro ao adicionar documentos na aba "Aguardando NF/ROM".
 - **11/08/2026 (Brasília) — Ajuste Visual na Aba Canceladas (OF):**
     - Removido o badge numérico da aba "Canceladas" na página de Ordens de Faturamento para reduzir a poluição visual, mantendo apenas o texto conforme solicitado.
 - **11/08/2026 (Brasília) — Correção de Erro de Enum em Edição/Criação de OF:**
