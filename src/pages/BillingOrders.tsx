@@ -319,7 +319,7 @@ const BillingOrders = () => {
         if (isAdmin && (order as any).separation_finished_at) {
           const finishedAt = new Date((order as any).separation_finished_at);
           const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays > 7) return false;
+          if (diffDays >= 7) return false;
         }
 
         if (!matchesSearch) return false;
@@ -334,7 +334,7 @@ const BillingOrders = () => {
         
         const finishedAt = new Date((order as any).separation_finished_at);
         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 7) return false;
+        if (diffDays < 7) return false;
 
         if (!matchesSearch) return false;
         return true;
@@ -399,7 +399,7 @@ const BillingOrders = () => {
         if (o.status !== 'ready' || !(o as any).delivery_doc_number || !(o as any).separation_finished_at) return false;
         const finishedAt = new Date((o as any).separation_finished_at);
         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays > 7;
+        return diffDays >= 7;
       }).length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
@@ -913,7 +913,7 @@ const BillingOrders = () => {
       pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
       pdf.text(sanitizePdfText(st.label), margin + badgeW / 2 - pdf.getTextWidth(st.label) / 2, y + 6.2);
 
-      if (order.priority && order.status !== 'collected') {
+      if (order.priority && (order.status === 'open' || order.status === 'separating')) {
         pdf.setFillColor(220, 38, 38);
         pdf.roundedRect(margin + 55, y, 40, 9, 1.5, 1.5, 'F');
         pdf.setTextColor(255, 255, 255);
@@ -1073,7 +1073,7 @@ const BillingOrders = () => {
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
   const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean) => {
-    if (isPriority && status !== 'collected') {
+    if (isPriority && (status === 'open' || status === 'separating')) {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
     switch (status) {
@@ -2528,7 +2528,7 @@ const BillingOrders = () => {
                           {totalPieces} pç
                         </span>
                         {isMultiplierValValid ? (
-                          <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5">OK</Badge>
+                          <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5 border-0">OK</Badge>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-white h-5 text-[10px] font-bold">
@@ -2845,14 +2845,14 @@ const BillingOrders = () => {
                             }
                             // Ordena por peças disponíveis decrescente (prioridade do usuário)
                             const sorted = Array.from(bal.entries())
-                              .filter(([, v]) => v.pieces >= 1)
+                              .filter(([, v]) => v.pieces >= 1 || v.weight >= 0.01)
                               .sort((a, b) => b[1].pieces - a[1].pieces);
                             
                             let remPc = pc || 0;
                             let remKg = wt || 0;
 
-                            // 1. Tentar encontrar uma única máquina que supra tudo (ex: preciso 50, tenho uma com 85)
-                            const perfectMatch = sorted.find(([, v]) => v.pieces >= remPc);
+                            // 1. Tentar encontrar uma única máquina que supra tudo
+                            const perfectMatch = sorted.find(([, v]) => (pc > 0 ? v.pieces >= remPc : true) && (wt > 0 ? v.weight >= remKg : true));
                             if (perfectMatch) {
                               const [mid] = perfectMatch;
                               allocations.push({ machine_id: mid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
