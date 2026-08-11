@@ -396,21 +396,20 @@ const BillingOrders = () => {
   const stats = useMemo(() => {
     return {
       open: orders.filter(o => o.status === 'open' && !o.priority).length,
+      priority: orders.filter(o => o.status === 'open' && o.priority).length,
       separating: orders.filter(o => o.status === 'separating').length,
-      ready: orders.filter(o => o.status === 'ready').length,
       readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
       readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
-      delayed: orders.filter(o => {
+      delayed: isAdmin ? orders.filter(o => {
         if (o.status !== 'ready' || !(o as any).delivery_doc_number || !(o as any).separation_finished_at) return false;
         const finishedAt = new Date((o as any).separation_finished_at);
         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
         return diffDays > 7;
-      }).length,
+      }).length : 0,
       collected: orders.filter(o => o.status === 'collected').length,
-      priority: orders.filter(o => o.priority && o.status === 'open').length,
       cancelled: orders.filter(o => o.status === 'cancelled').length,
     };
-  }, [orders]);
+  }, [orders, isAdmin]);
 
   const hasPendingPriority = stats.priority > 0;
 
@@ -1629,8 +1628,10 @@ const BillingOrders = () => {
                                     currentStatus: 'collected' 
                                   });
                                   // Invalida caches para refletir o estado real
-                                  queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-                                  queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                  await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+                                  await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                  queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' });
+                                  queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' });
                                   setIsCollecting(false);
                                   return;
                                 }
@@ -1642,7 +1643,7 @@ const BillingOrders = () => {
                               }
                             }}
                           >
-                            <Truck className="h-4 w-4" /> Marcar Coleta
+                            {isCollecting && showCollectConfirm?.id === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />} Marcar Coleta
                           </Button>
                         )}
                       </div>
