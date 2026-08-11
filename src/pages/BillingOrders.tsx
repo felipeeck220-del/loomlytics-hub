@@ -315,7 +315,7 @@ const BillingOrders = () => {
         if (order.status !== 'ready') return false;
         if (!(order as any).delivery_doc_number) return false;
         
-        // Se admin, filtra para NÃO mostrar o que está em atraso (> 7 dias da finalização)
+        // Se admin, filtra para NÃO mostrar o que está em atraso (>= 7 dias da finalização)
         if (isAdmin && (order as any).separation_finished_at) {
           const finishedAt = new Date((order as any).separation_finished_at);
           const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
