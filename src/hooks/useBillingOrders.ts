@@ -254,9 +254,14 @@ export function useBillingOrders() {
           p_author_name: a.name, p_author_code: a.code,
         }));
       } else if (status === 'collected') {
-        ({ data: res } = await (supabase as any).rpc('collect_billing_order', {
-          p_company_id: user?.company_id, p_id: id, p_author_name: a.name, p_author_code: a.code,
-        }));
+        const payload = {
+          p_company_id: user?.company_id,
+          p_id: id,
+          p_author_name: a.name,
+          p_author_code: a.code
+        };
+        console.log("Calling collect_billing_order with:", payload);
+        ({ data: res } = await (supabase as any).rpc('collect_billing_order', payload));
       } else if (status === 'cancelled') {
         const { data: resData, error: rpcErr } = await (supabase as any).rpc('cancel_billing_order', {
           p_company_id: user?.company_id,

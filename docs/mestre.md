@@ -1,3 +1,6 @@
+- **12/08/2026 (Brasília) — Movimentação Manual OF #558 e Estabilização da Coleta:**
+    - Movida manualmente a OF #558 para "Coletadas" via script SQL para contornar falha pontual de interface.
+    - Refatorada a chamada da RPC `collect_billing_order` no `useBillingOrders.ts` para garantir o mapeamento correto de todos os parâmetros exigidos pela assinatura canônica de 4 argumentos.
 - **12/08/2026 (Brasília) — Estabilização Definitiva do Filtro de Coleta:**
     - Corrigido vazamento visual onde OFs recém-coletadas continuavam aparecendo na aba "Pronto para coleta" devido ao filtro de status estrito (`order.status !== activeTab`).
     - Ajustada a lógica do `useMemo` de filtragem para garantir que, ao mudar o status para `collected`, a OF saia imediatamente das abas de operação (`ready`, `delayed_collection`) mesmo antes do refetch do banco.
