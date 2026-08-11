@@ -1,3 +1,6 @@
+- **11/08/2026 (Brasília) — Ajuste no Fluxo de Cancelamento/Estorno de OF:**
+    - Corrigido bug onde o cancelamento de OF não disparava feedback visual correto.
+    - Removido o redirecionamento automático para a aba "Canceladas" após o cancelamento; o usuário agora permanece na aba atual.
 - **11/08/2026 (Brasília) — Sincronização de Reservas (Estoque Manual):**
     - Corrigida discrepância entre o total reservado no Estoque Manual (3.633 pç) e as OFs ativas.
     - Executada migration de limpeza que removeu reservas órfãs de OFs coletadas/canceladas e sincronizou o saldo manual com as reservas globais (Source of Truth).

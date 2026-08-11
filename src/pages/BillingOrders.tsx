@@ -671,6 +671,7 @@ const BillingOrders = () => {
       setShowCancelModal(null);
       setCancelReason('');
       setReversalQuality('first');
+      toast({ title: isReversal ? 'Estorno realizado com sucesso' : 'OF cancelada com sucesso' });
     } catch (err: any) {
       if (err?.code === 'CONFLICT') {
         setShowCancelModal(null);

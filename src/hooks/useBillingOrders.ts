@@ -297,7 +297,9 @@ export function useBillingOrders() {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
         collected: 'OF marcada como coletada', cancelled: 'OF cancelada', priority: 'Prioridade adicionada'
       };
-      toast({ title: labels[vars.status] || 'Status atualizado' });
+      if (vars.status !== 'cancelled') {
+        toast({ title: labels[vars.status] || 'Status atualizado' });
+      }
     },
     onError: (error: any) => {
       if (error?.code === 'CONFLICT') {
