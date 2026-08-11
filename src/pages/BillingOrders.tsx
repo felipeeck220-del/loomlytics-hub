@@ -79,7 +79,7 @@ const BillingOrders = () => {
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc' | 'delayed_collection'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
+  
   const [confirmFinalizePallets, setConfirmFinalizePallets] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
@@ -547,28 +547,8 @@ const BillingOrders = () => {
       order_type: form.order_type as 'pieces' | 'weight' | 'all',
       admin_notes: form.admin_notes?.trim() || null,
     };
-    // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo (RPC — Fase 4).
-    try {
-      const reqPieces = payload.pieces_expected || 0;
-      const reqKg = payload.weight_expected || (reqPieces && payload.piece_weight_target ? reqPieces * (payload.piece_weight_target as number) : 0);
-      const warn = await checkNegativeWarning(form.article_id, reqPieces, reqKg);
-      if (warn && (warn.is_already_negative || warn.will_go_negative)) {
-        const article = getArticles().find(a => a.id === form.article_id);
-        setNegativeWarning({
-          currentKg: Number(warn.available_kg) || 0,
-          currentPieces: Number(warn.available_pieces) || 0,
-          requestedKg: Number(warn.requested_kg) || 0,
-          requestedPieces: Number(warn.requested_pieces) || 0,
-          afterKg: Number(warn.after_kg) || 0,
-          afterPieces: Number(warn.after_pieces) || 0,
-          articleName: article?.name || warn.article_name || 'Artigo',
-          payload,
-        });
-        return;
-      }
-    } catch (e) {
-      console.error('[BillingOrders] balance check failed', e);
-    }
+    // Check balance removed as part of Manual Stock removal
+    await submitCreateOrder(payload);
     await submitCreateOrder(payload);
   };
 

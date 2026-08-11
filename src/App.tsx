@@ -38,7 +38,6 @@ import TvPanel from "./pages/TvPanel";
 import Fechamento from "./pages/Fechamento";
 import FaturamentoTotal from "./pages/FaturamentoTotal";
 import StockMalha from "./pages/StockMalha";
-import StockMalhaManual from "./pages/StockMalhaManual";
 import BillingOrders from "./pages/BillingOrders";
 import FreightOrders from "./pages/FreightOrders";
 import NotFound from "./pages/NotFound";
@@ -83,7 +82,6 @@ const App = () => (
                 <Route path="contas-pagar" element={<ProtectedRoute routeKey="contas-pagar"><AccountsPayable /></ProtectedRoute>} />
                 <Route path="residuos" element={<ProtectedRoute routeKey="residuos"><ResidueSales /></ProtectedRoute>} />
                 <Route path="estoque-malha" element={<ProtectedRoute routeKey="estoque-malha"><StockMalha /></ProtectedRoute>} />
-                <Route path="estoque-malha-manual" element={<ProtectedRoute routeKey="estoque-malha-manual"><StockMalhaManual /></ProtectedRoute>} />
                 <Route path="billing-orders" element={<ProtectedRoute routeKey="billing-orders"><BillingOrders /></ProtectedRoute>} />
                 <Route path="freight-orders" element={<ProtectedRoute routeKey="freight-orders"><FreightOrders /></ProtectedRoute>} />
                 <Route path="invoices" element={<ProtectedRoute routeKey="invoices"><Invoices /></ProtectedRoute>} />
