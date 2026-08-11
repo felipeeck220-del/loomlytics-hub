@@ -1,3 +1,7 @@
+- **11/08/2026 (Brasília) — Pente Fino e Estabilização de OF e Estoque Manual:**
+    - Corrigida tipagem e mapeamento do `multiplier` e datas de auditoria no hook `useBillingOrdersList` para garantir exibição correta em listagens paginadas.
+    - Refinada validação de saldo no `ManualEntryModal`: agora exibe a quantidade exata disponível na expedição em caso de erro de estoque insuficiente.
+    - Sincronizados tipos de KPIs de peças e kg no frontend do Estoque Manual para refletir a nova lógica de linha do tempo.
 - **11/08/2026 (Brasília) — Nova Aba de Atraso na Coleta (OF):**
     - Implementada aba "Atraso na Coleta" exclusiva para administradores.
     - OFs prontas com NF/Romaneio há mais de 7 dias (baseado em `separation_finished_at`) são movidas automaticamente para esta aba.

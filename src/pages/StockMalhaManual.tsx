@@ -32,8 +32,8 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 type EstoqueKPIs = {
   entradaKg: number; deliveredKg: number;
   stockKg: number; stockRolls: number;
-  reservedKg: number; reservedRolls?: number;
-  availableKg: number; availableRolls?: number;
+  reservedKg: number; reservedRolls: number;
+  availableKg: number; availableRolls: number;
   machineKg?: number; machineRolls?: number;
 };
 type MachineNode = {
@@ -124,6 +124,7 @@ function ManualEntryModal({
         rolls: Number(m?.machineRolls || 0),
         kg: Number(m?.machineKg || 0),
         stockRolls: Number(m?.stockRolls || 0),
+        availableRolls: Number(m?.availableRolls || 0),
       };
     },
     enabled: open && !!user?.company_id && !!clientId && !!articleId && !!machineId,
@@ -187,9 +188,9 @@ function ManualEntryModal({
       toast.error(
         msg.includes('insufficient_machine_stock')
           ? 'Quantidade maior que o saldo do palete nessa máquina'
-          : msg.includes('insufficient_stock')
-            ? 'Quantidade maior que o saldo disponível na expedição desse artigo/máquina'
-            : getFriendlyErrorMessage(err)
+            : msg.includes('insufficient_stock')
+              ? `Quantidade maior que o saldo disponível na expedição (${formatNumber(machinePallet?.availableRolls || 0)} pç) desse artigo/máquina`
+              : getFriendlyErrorMessage(err)
       );
     } finally {
       setSaving(false);

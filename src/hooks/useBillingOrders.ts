@@ -490,6 +490,9 @@ export interface BillingOrdersListRow {
   machine_name?: string | null;
   created_by_name?: string | null;
   created_by_code?: number | null;
+  multiplier?: number | null;
+  separation_started_at?: string | null;
+  separation_finished_at?: string | null;
   separated_by_name?: string | null;
   collected_by_name?: string | null;
   pallets: Array<{
