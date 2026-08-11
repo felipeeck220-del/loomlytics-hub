@@ -2754,72 +2754,10 @@ const BillingOrders = () => {
                               bal.set(mv.machine_id, cur);
                             }
 
-                            // 3. Busca movimentos no estoque manual para somar as entradas manuais que NÃO existem no global
-                            const manMvRes = await (supabase.from as any)('manual_stock_movements')
-                              .select('machine_id, type, pieces, weight_kg, on_machine')
-                              .eq('company_id', user.company_id)
-                              .eq('article_id', effArticleId)
-                              .eq('type', 'adjust_in')
-                              .eq('on_machine', false);
+                            // O módulo de Estoque Manual foi removido. 
+                            // O saldo agora é calculado exclusivamente com base nos movimentos globais (stock_movements)
+                            // processados no passo 2 acima.
 
-                            for (const mv of (manMvRes.data || [])) {
-                              if (!mv.machine_id) continue;
-                              const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
-                              cur.pieces += Number(mv.pieces) || 0;
-                              cur.weight += Number(mv.weight_kg) || 0;
-                              bal.set(mv.machine_id, cur);
-                            }
-                            
-                            // Busca movimentos no estoque manual para calcular o disponível real da expedição (Estornos de OF e Saídas)
-                            const manMvExpRes = await (supabase.from as any)('manual_stock_movements')
-                              .select('machine_id, type, pieces, weight_kg, billing_order_id, on_machine')
-                              .eq('company_id', user.company_id)
-                              .eq('article_id', effArticleId)
-                              .in('type', ['in', 'adjust_out', 'out']);
-
-                            for (const mv of (manMvExpRes.data || [])) {
-                              if (!mv.machine_id) continue;
-                              const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
-                              const kg = Number(mv.weight_kg) || 0;
-                              const pcs = Number(mv.pieces) || 0;
-                              
-                              if (mv.type === 'in' && mv.billing_order_id) {
-                                cur.pieces += pcs; cur.weight += kg;
-                              } else if (mv.type === 'adjust_out' && !mv.on_machine) {
-                                cur.pieces -= pcs; cur.weight -= kg;
-                              } else if (mv.type === 'out') {
-                                cur.pieces -= pcs; cur.weight -= kg;
-                              }
-                              bal.set(mv.machine_id, cur);
-                            }
-                            
-                            // Descontar reservas ativas de OFs não coletadas/canceladas do estoque manual
-                            const resMvManRes = await (supabase.from as any)('manual_stock_movements')
-                              .select('machine_id, type, pieces, weight_kg, billing_order_id')
-                              .eq('company_id', user.company_id)
-                              .eq('article_id', effArticleId)
-                              .in('type', ['reserve', 'release']);
-
-                            if (resMvManRes.data && resMvManRes.data.length > 0) {
-                              const boIds = Array.from(new Set(resMvManRes.data.map((m: any) => m.billing_order_id).filter(Boolean)));
-                              const { data: boStatus } = await (supabase.from as any)('billing_orders')
-                                .select('id, status')
-                                .in('id', boIds);
-                              const activeBoIds = new Set((boStatus || []).filter((b: any) => !['collected', 'cancelled'].includes(b.status)).map((b: any) => b.id));
-
-                              for (const mv of resMvManRes.data) {
-                                if (!mv.machine_id || !activeBoIds.has(mv.billing_order_id)) continue;
-                                const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
-                                const kg = Number(mv.weight_kg) || 0;
-                                const pcs = Number(mv.pieces) || 0;
-                                if (mv.type === 'reserve') {
-                                  cur.pieces -= pcs; cur.weight -= kg;
-                                } else if (mv.type === 'release') {
-                                  cur.pieces += pcs; cur.weight += kg;
-                                }
-                                bal.set(mv.machine_id, cur);
-                              }
-                            }
                             // Ordena por peças disponíveis decrescente (prioridade do usuário)
                             const sorted = Array.from(bal.entries())
                               .filter(([, v]) => v.pieces >= 1)
