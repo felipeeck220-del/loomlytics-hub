@@ -2684,7 +2684,7 @@ const BillingOrders = () => {
                             
                             // 2. Considerar TODOS os movimentos do estoque global para espelhar o saldo real da expedição global
                             // (Necessário para subtrair reservas/saídas que já ocorreram na base global)
-                            for (const mv of (gloMvRes.data || [])) {
+                            for (const mv of (mvRes.data || [])) {
                               if (mv.is_second_quality || !mv.machine_id) continue;
                               const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
                               const kg = Number(mv.weight_kg) || 0;
