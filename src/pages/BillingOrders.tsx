@@ -2840,6 +2840,9 @@ const BillingOrders = () => {
                                 reason: `${reasonSuffix} (reserva${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }];
+                          
+                          // Registramos os movimentos de reserva. A RPC cancel_billing_order agora agrupa esses movimentos
+                          // ao estornar, garantindo integridade no estoque manual sem duplicidade.
                           const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
                           if (mvErr) throw mvErr;
                           const firstMvId = (mvRows && mvRows[0]?.id) || null;
@@ -2984,8 +2987,8 @@ const BillingOrders = () => {
                                       if (ownErr) throw ownErr;
                                       } else {
                                         // Reservas baseadas no histórico de razão (para OFs com ou sem máquina)
-                                        // A liberação aqui é delegada ao TRIGGER do banco para evitar duplicatas,
-                                        // mas precisamos garantir que o estoque manual não receba 2 estornos.
+                                        // A liberação agora é delegada a inserções agrupadas de 'release' para
+                                        // evitar que o trigger do estoque manual duplique o saldo disponível.
                                         
                                         const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
                                           .select('id, machine_id, pieces, weight_kg, article_id, client_id')
@@ -2997,7 +3000,7 @@ const BillingOrders = () => {
                                         if (qErr) throw qErr;
 
                                         // 3. Inserir lançamentos de estorno (liberação)
-                                        // Agrupamos por máquina para garantir que não haja duplicatas
+                                        // Agrupamos por máquina para garantir que não haja duplicatas no estoque manual
                                         const groupedReleases = (reservas || []).reduce((acc: any, curr: any) => {
                                           const mid = curr.machine_id || 'null';
                                           if (!acc[mid]) {
@@ -3017,7 +3020,7 @@ const BillingOrders = () => {
                                           type: 'release',
                                           pieces: Number(r.pieces) || 0,
                                           weight_kg: Number(r.weight_kg) || 0,
-                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (estorno reserva)`,
+                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (estorno reserva agrupada)`,
                                           created_by: profile?.id ?? null,
                                         }));
 
@@ -3025,8 +3028,6 @@ const BillingOrders = () => {
                                           const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releasesToInsert);
                                           if (relErr) throw relErr;
                                         }
-
-
                                       }
                                     // 2. Apaga palete
                                     const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);

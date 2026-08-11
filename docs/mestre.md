@@ -1,5 +1,6 @@
-- **11/08/2026 (Brasília) — Correção de Reserva "SEM MÁQUINA" no Estoque Manual:**
-    - Corrigido erro onde a reserva "SEM MÁQUINA" em Ordens de Faturamento (OF) ignorava as movimentações do **Estoque Malha (Manual)** no cálculo do saldo disponível, ou reservava de máquinas sem saldo real (ex: reservando de máquinas vazias em vez de priorizar as com saldo positivo).
+- **11/08/2026 (Brasília) — Auditoria e Estabilidade de Reservas (OF e Estoque Manual):**
+    - Corrigido erro de estorno duplicado no **Estoque Malha (Manual)** ao cancelar OFs ou excluir paletes; a lógica de liberação agora agrupa movimentos por máquina (`GROUP BY article_id, client_id, machine_id`) antes de inserir o movimento `release`.
+    - Refatorada a RPC `cancel_billing_order` para processar estornos de reserva de forma consolidada, garantindo que o saldo disponível retorne corretamente mesmo em alocações distribuídas ("SEM MÁQUINA").
     - Sincronizada a lógica de cálculo de saldo do frontend em `src/pages/BillingOrders.tsx` para refletir fielmente a RPC `get_manual_stock_estoque`: `(Produção + Entradas Manuais + Estornos OF) - (Saídas Manuais + Saídas OF + Reservas Ativas)`.
     - A lógica agora unifica o histórico global e manual para determinar o saldo disponível real por máquina antes da distribuição "Greedy".
 - **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
