@@ -297,14 +297,15 @@ export function useBillingOrders() {
       }
     },
     onSuccess: async (_d, vars) => {
-      // Invalidação imediata e aguardada
+      // Invalidação imediata e aguardada de todos os caches relacionados
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
         queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] }),
         queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
         queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] }),
         queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] })
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit_logs'] })
       ]);
       
       const labels: Record<string, string> = {
