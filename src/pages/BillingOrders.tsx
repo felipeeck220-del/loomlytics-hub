@@ -1985,9 +1985,14 @@ const BillingOrders = () => {
           try {
             await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
             // Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
-            queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-            queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
-            queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
+              queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
+              queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] }),
+              queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' }),
+              queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' }),
+              queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active' })
+            ]);
 
             if (photos.length > 0) {
               await (supabase.from as any)('billing_orders')
