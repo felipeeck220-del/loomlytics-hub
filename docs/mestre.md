@@ -1,6 +1,7 @@
+- **11/08/2026 (Brasília) — Correção da RPC de Cancelamento de OF:**
+    - Ajustada a RPC `cancel_billing_order` para contornar falha de validação de `user_active_company` que impedia o cancelamento de ordens em contextos onde o RLS do PostgREST não injetava corretamente o ID da empresa.
+    - Otimizada a identificação do autor da ação via `author_code`.
 - **11/08/2026 (Brasília) — Ajuste no Fluxo de Cancelamento/Estorno de OF:**
-    - Corrigido bug onde o cancelamento de OF não disparava feedback visual correto.
-    - Removido o redirecionamento automático para a aba "Canceladas" após o cancelamento; o usuário agora permanece na aba atual.
 - **11/08/2026 (Brasília) — Sincronização de Reservas (Estoque Manual):**
     - Corrigida discrepância entre o total reservado no Estoque Manual (3.633 pç) e as OFs ativas.
     - Executada migration de limpeza que removeu reservas órfãs de OFs coletadas/canceladas e sincronizou o saldo manual com as reservas globais (Source of Truth).
