@@ -1,4 +1,5 @@
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
+    - Corrigida ambiguidade na RPC `cancel_billing_order` (erro "Could not choose the best candidate function") através da remoção de versões duplicadas e consolidação em uma única assinatura com tipos de argumentos flexíveis (`text`).
     - Realizado um pente fino completo no módulo de faturamento (OF), validando a integridade das RPCs e a sincronização entre frontend e backend.
     - Confirmado que todas as RPCs operacionais (`create`, `edit`, `collect`, `cancel`, `ready`, `separation`) utilizam `SECURITY DEFINER`, `search_path = public` e bloqueio de linha `FOR UPDATE`.
     - Padronizada a auditoria centralizada em `_of_audit` com 6 argumentos em todo o fluxo de faturamento.
