@@ -674,6 +674,8 @@ const BillingOrders = () => {
         expectedStatus: showCancelModal.status,
         reversalQuality: showCancelModal.status === 'collected' ? reversalQuality : undefined,
       });
+      // Use setTimeOut here to ensure the query invalidation finishes and state reflects the new status 
+      // before changing the tab, but since mutateAsync is used, we just need to ensure the tab changes.
       setActiveTab('cancelled');
       setShowCancelModal(null);
       setCancelReason('');
