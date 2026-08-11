@@ -1,7 +1,7 @@
-- **11/08/2026 (Brasília) — Estabilização da Alocação "SEM MÁQUINA" em OF:**
-    - Corrigido bug na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde a reserva de paletes considerava indevidamente os movimentos de reserva da própria OF no cálculo de saldo disponível, resultando em descontos duplicados ou alocações em máquinas erradas.
-    - Sincronizada a lógica de remoção de paletes para garantir que o estorno de reserva no estoque manual não gere duplicidade, reforçando o uso do `Pallet ID` no campo `reason`.
-    - Mantida a trava rígida de múltiplos na finalização da separação, impedindo o envio para "PRONTO" caso o total de peças não seja válido.
+- **11/08/2026 (Brasília) — Reset e Estabilização Final do Estoque Malha (Manual):**
+    - Executado reset total da tabela `manual_stock_movements` para eliminar inconsistências acumuladas.
+    - Restauradas apenas as reservas de OFs ativas (status `separating` e `ready`) a partir do estoque global para garantir que o saldo reservado seja fiel às ordens em andamento.
+    - Sincronizada a lógica de alocação "SEM MÁQUINA" e estorno para evitar duplicações de saldo.
 - **11/08/2026 (Brasília) — Auditoria e Estabilidade de Reservas (OF e Estoque Manual):**
     - Corrigido erro de estorno duplicado no **Estoque Malha (Manual)** ao cancelar OFs ou excluir paletes; a lógica de liberação agora agrupa movimentos por máquina (`GROUP BY article_id, client_id, machine_id`) antes de inserir o movimento `release`.
 - **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
