@@ -315,11 +315,11 @@ const BillingOrders = () => {
         if (order.status !== 'ready') return false;
         if (!(order as any).delivery_doc_number) return false;
         
-        // Se admin, filtra para NÃO mostrar o que está em atraso (>= 7 dias da finalização)
+        // Se admin, filtra para NÃO mostrar o que está em atraso (> 7 dias da finalização)
         if (isAdmin && (order as any).separation_finished_at) {
           const finishedAt = new Date((order as any).separation_finished_at);
           const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays >= 7) return false;
+          if (diffDays > 7) return false;
         }
 
         if (!matchesSearch) return false;
@@ -334,7 +334,7 @@ const BillingOrders = () => {
         
         const finishedAt = new Date((order as any).separation_finished_at);
         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays < 7) return false;
+        if (diffDays <= 7) return false;
 
         if (!matchesSearch) return false;
         return true;
@@ -399,7 +399,7 @@ const BillingOrders = () => {
         if (o.status !== 'ready' || !(o as any).delivery_doc_number || !(o as any).separation_finished_at) return false;
         const finishedAt = new Date((o as any).separation_finished_at);
         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays >= 7;
+        return diffDays > 7;
       }).length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
@@ -622,19 +622,13 @@ const BillingOrders = () => {
       order_type: editForm.order_type,
       admin_notes: (editForm.admin_notes || '').trim() || null,
     };
-
-    // If changing client/article and already has pallets, force reverting to open to clear stock bindings
-    const hasPallets = detailsPallets.length > 0;
-    const isChangingTarget = showEditModal.client_id !== editForm.client_id || showEditModal.article_id !== editForm.article_id;
-    const shouldForceRevert = wasActive || (hasPallets && isChangingTarget);
-
     const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
     try {
       await editOrder.mutateAsync({
         id: showEditModal.id,
         changes,
         note,
-        revertToOpen: shouldForceRevert,
+        revertToOpen: wasActive,
         // Garantia anti-race: se outro usuário mudou o status enquanto este
         // modal estava aberto, o UPDATE não atinge nenhuma linha e cai no
         // catch — evitando que uma reserva já criada nunca seja liberada.
@@ -674,9 +668,6 @@ const BillingOrders = () => {
         expectedStatus: showCancelModal.status,
         reversalQuality: showCancelModal.status === 'collected' ? reversalQuality : undefined,
       });
-      // Use setTimeOut here to ensure the query invalidation finishes and state reflects the new status 
-      // before changing the tab, but since mutateAsync is used, we just need to ensure the tab changes.
-      setActiveTab('cancelled');
       setShowCancelModal(null);
       setCancelReason('');
       setReversalQuality('first');
@@ -916,7 +907,7 @@ const BillingOrders = () => {
       pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
       pdf.text(sanitizePdfText(st.label), margin + badgeW / 2 - pdf.getTextWidth(st.label) / 2, y + 6.2);
 
-      if (order.priority && (order.status === 'open' || order.status === 'separating')) {
+      if (order.priority && order.status !== 'collected') {
         pdf.setFillColor(220, 38, 38);
         pdf.roundedRect(margin + 55, y, 40, 9, 1.5, 1.5, 'F');
         pdf.setTextColor(255, 255, 255);
@@ -1076,7 +1067,7 @@ const BillingOrders = () => {
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
   const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean) => {
-    if (isPriority && (status === 'open' || status === 'separating')) {
+    if (isPriority && status !== 'collected') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
     switch (status) {
@@ -1146,18 +1137,15 @@ const BillingOrders = () => {
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
           <TabsTrigger 
             value="priority_tab" 
-            className={cn(
-              "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
-              hasPendingPriority && 'animate-pulse bg-red-600 text-white data-[state=active]:bg-red-700 data-[state=active]:text-white'
-            )}
+            className={`gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial ${hasPendingPriority ? 'animate-pulse bg-red-600 text-white data-[state=active]:bg-red-700 data-[state=active]:text-white' : ''}`}
           >
-            Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.priority}</Badge>
+            Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.priority}</Badge>
           </TabsTrigger>
           <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.open}</Badge>
+            Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.open}</Badge>
           </TabsTrigger>
           <TabsTrigger value="separating" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.separating}</Badge>
+            Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.separating}</Badge>
           </TabsTrigger>
           <TabsTrigger
             value="awaiting_doc"
@@ -1169,13 +1157,13 @@ const BillingOrders = () => {
             )}
           >
             <FileText className="h-3 w-3" /> Aguardando NF/ROM
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.readyWithoutDoc}</Badge>
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithoutDoc}</Badge>
           </TabsTrigger>
           <TabsTrigger
             value="ready"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
+            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger 
@@ -1185,14 +1173,14 @@ const BillingOrders = () => {
                 stats.delayed > 0 && "bg-orange-100 text-orange-700 data-[state=active]:bg-orange-600 data-[state=active]:text-white animate-pulse"
               )}
             >
-              <History className="h-3 w-3" /> Atraso na Coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.delayed}</Badge>
+              <History className="h-3 w-3" /> Atraso na Coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.delayed}</Badge>
             </TabsTrigger>
           )}
           <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
           </TabsTrigger>
           <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4 border-none">{stats.cancelled}</Badge>
+            Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.cancelled}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -1316,7 +1304,7 @@ const BillingOrders = () => {
                       {isAdmin && order.status === 'ready' && (order as any).separation_finished_at && (() => {
                         const finishedAt = new Date((order as any).separation_finished_at);
                         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-                        if (diffDays >= 7) {
+                        if (diffDays > 7) {
                           return (
                             <div className="flex items-center gap-2 mt-1">
                               <Badge className="bg-orange-600 text-white border-orange-700 gap-1 py-0 px-2 h-5 animate-bounce shadow-sm">
@@ -2534,7 +2522,7 @@ const BillingOrders = () => {
                           {totalPieces} pç
                         </span>
                         {isMultiplierValValid ? (
-                          <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5 border-0">OK</Badge>
+                          <Badge className="bg-green-600 hover:bg-green-600 h-5 text-[10px] px-1.5">OK</Badge>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-white h-5 text-[10px] font-bold">
@@ -2851,14 +2839,14 @@ const BillingOrders = () => {
                             }
                             // Ordena por peças disponíveis decrescente (prioridade do usuário)
                             const sorted = Array.from(bal.entries())
-                              .filter(([, v]) => v.pieces >= 1 || v.weight >= 0.01)
+                              .filter(([, v]) => v.pieces >= 1)
                               .sort((a, b) => b[1].pieces - a[1].pieces);
                             
                             let remPc = pc || 0;
                             let remKg = wt || 0;
 
-                            // 1. Tentar encontrar uma única máquina que supra tudo
-                            const perfectMatch = sorted.find(([, v]) => (pc > 0 ? v.pieces >= remPc : true) && (wt > 0 ? v.weight >= remKg : true));
+                            // 1. Tentar encontrar uma única máquina que supra tudo (ex: preciso 50, tenho uma com 85)
+                            const perfectMatch = sorted.find(([, v]) => v.pieces >= remPc);
                             if (perfectMatch) {
                               const [mid] = perfectMatch;
                               allocations.push({ machine_id: mid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });

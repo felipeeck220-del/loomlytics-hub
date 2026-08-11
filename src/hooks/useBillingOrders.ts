@@ -156,12 +156,9 @@ export function useBillingOrders() {
           filter: `company_id=eq.${user.company_id}`
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-          queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
-          queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
-          queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
-          queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
-          queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
+          queryClient.invalidateQueries({ queryKey: ['billing_orders', user.company_id] });
+          queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap', user.company_id] });
+          queryClient.invalidateQueries({ queryKey: ['billing_orders_list', user.company_id] });
           queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
         }
       )

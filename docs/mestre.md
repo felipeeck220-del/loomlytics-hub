@@ -1,9 +1,7 @@
-- **11/08/2026 (Brasília) — Auditoria e Estabilização Final do Estoque Manual:**
-    - Refinada a fórmula de saldo disponível na RPC `get_manual_stock_estoque`: `Em_Maq + GREATEST(0, Expedicao - Reservas)`, garantindo que reservas de faturamento não consumam o saldo físico que ainda está nos paletes das máquinas.
-    - Otimizado o trigger `mirror_of_to_manual_stock` para garantir o espelhamento de reservas globais (`reserve`/`release`) mesmo quando o `machine_id` não está definido (casos de "SEM MÁQUINA" na OF).
-    - Validada a integridade de estornos em cancelamentos de OF, com agrupamento por máquina para evitar duplicidade de movimentos no razão manual.
-    - Sincronizados KPIs de peças e peso no frontend para refletir a nova lógica de linha do tempo e travas cronológicas.
-
+- **11/08/2026 (Brasília) — Sincronização de Reservas (Estoque Manual):**
+    - Corrigida discrepância entre o total reservado no Estoque Manual (3.633 pç) e as OFs ativas.
+    - Executada migration de limpeza que removeu reservas órfãs de OFs coletadas/canceladas e sincronizou o saldo manual com as reservas globais (Source of Truth).
+    - Agora o "Reservado (OFs Pronto)" no Estoque Manual reflete exatamente as peças/kg das ordens em status `separating` ou `ready`.
 
 - **11/08/2026 (Brasília) — Pente Fino e Estabilização de OF e Estoque Manual:**
     - Corrigida tipagem e mapeamento do `multiplier` e datas de auditoria no hook `useBillingOrdersList` para garantir exibição correta em listagens paginadas.
