@@ -405,22 +405,11 @@ const BillingOrders = () => {
         const finishedAt = new Date((o as any).separation_finished_at);
         const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
         return diffDays > 7;
-      }).length : 0
-    };
-  }, [orders, isAdmin]);
-      readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
-      readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
-      delayed: orders.filter(o => {
-        if (o.status !== 'ready' || !(o as any).delivery_doc_number || !(o as any).separation_finished_at) return false;
-        const finishedAt = new Date((o as any).separation_finished_at);
-        const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays > 7;
-      }).length,
+      }).length : 0,
       collected: orders.filter(o => o.status === 'collected').length,
-      priority: orders.filter(o => o.priority && o.status === 'open').length,
       cancelled: orders.filter(o => o.status === 'cancelled').length,
     };
-  }, [orders]);
+  }, [orders, isAdmin]);
 
   const hasPendingPriority = stats.priority > 0;
 
