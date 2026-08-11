@@ -2672,6 +2672,8 @@ const BillingOrders = () => {
                             ]);
                             
                             const bal = new Map<string, { pieces: number; weight: number }>();
+                            
+                            // 1. Considerar o saldo físico da expedição vindo do estoque global (apenas se houver produções, caso contrário o estoque manual manda)
                             for (const p of (prodRes.data || [])) {
                               if (!p.machine_id) continue;
                               const cur = bal.get(p.machine_id) || { pieces: 0, weight: 0 };
@@ -2679,6 +2681,46 @@ const BillingOrders = () => {
                               cur.weight += Number(p.weight_kg) || 0;
                               bal.set(p.machine_id, cur);
                             }
+                            
+                            // 2. Considerar TODOS os movimentos do estoque global para espelhar o saldo real da expedição global
+                            // (Necessário para subtrair reservas/saídas que já ocorreram na base global)
+                            const gloMvRes = await (supabase.from as any)('stock_movements')
+                              .select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id')
+                              .eq('company_id', user.company_id)
+                              .eq('article_id', effArticleId);
+
+                            for (const mv of (gloMvRes.data || [])) {
+                              if (mv.is_second_quality || !mv.machine_id) continue;
+                              const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
+                              const kg = Number(mv.weight_kg) || 0;
+                              const pcs = Number(mv.pieces) || 0;
+                              
+                              if (mv.type === 'adjust_in' || mv.type === 'release') {
+                                cur.pieces += pcs; cur.weight += kg;
+                              } else if (mv.type === 'adjust_out' || mv.type === 'out' || mv.type === 'reserve') {
+                                cur.pieces -= pcs; cur.weight -= kg;
+                              } else if (mv.type === 'in' && !mv.billing_order_id) {
+                                cur.pieces += pcs; cur.weight += kg;
+                              }
+                              bal.set(mv.machine_id, cur);
+                            }
+
+                            // 3. Busca movimentos no estoque manual para somar as entradas manuais que NÃO existem no global
+                            const manMvRes = await (supabase.from as any)('manual_stock_movements')
+                              .select('machine_id, type, pieces, weight_kg, on_machine')
+                              .eq('company_id', user.company_id)
+                              .eq('article_id', effArticleId)
+                              .eq('type', 'adjust_in')
+                              .eq('on_machine', false);
+
+                            for (const mv of (manMvRes.data || [])) {
+                              if (!mv.machine_id) continue;
+                              const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
+                              cur.pieces += Number(mv.pieces) || 0;
+                              cur.weight += Number(mv.weight_kg) || 0;
+                              bal.set(mv.machine_id, cur);
+                            }
+
                             
                             // Busca movimentos no estoque manual para calcular o disponível real da expedição
                             const manMvRes = await (supabase.from as any)('manual_stock_movements')
