@@ -1,10 +1,8 @@
+- **12/08/2026 (Brasília) — Correção de Dados em OF Coletadas:**
+    - Identificada e corrigida inconsistência onde OFs coletadas exibiam 0 pç / 0 kg devido a falha na persistência de `pieces_real`/`weight_real` no momento da transição de status.
+    - Executada migração no banco de dados para restaurar os valores reais a partir do somatório dos paletes vinculados a cada ordem.
+    - Sincronizada a visualização na aba "Coletadas" para garantir que os dados de entrega sejam exibidos corretamente.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
-    - Realizada auditoria técnica profunda no módulo de **Ordem de Faturamento (OF)**.
-    - Confirmada a integridade da RPC `cancel_billing_order` (7 argumentos) com suporte multi-tenant e reversão de estoque global.
-    - Sincronizada a interface em `BillingOrders.tsx` para garantir que o cancelamento remova a ordem da aba ativa através de invalidação de cache forçada.
-    - Validada a exibição de auditoria de separação (`separation_started_at`/`separation_finished_at`) e média por palete no frontend e PDF.
-    - Removidos resíduos de lógica de estoque manual em todo o fluxo de status de OF.
-    - Corrigido tratamento de erros e feedbacks visuais no hook `useBillingOrders.ts`.
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
     - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
     - Recriada a função `cancel_billing_order` com `SECURITY DEFINER` e `search_path` fixo para garantir execução mesmo sob RLS restritivo.
