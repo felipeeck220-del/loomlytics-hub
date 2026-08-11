@@ -1553,9 +1553,10 @@ const BillingOrders = () => {
                             size="sm"
                             variant="outline"
                             className="gap-1.5 text-zinc-700 border-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                            disabled={isCancelling && showCancelModal?.id === order.id}
                             onClick={() => { setCancelReason(''); setShowCancelModal(order); }}
                           >
-                            <Ban className="h-4 w-4" /> Cancelar
+                            {isCancelling && showCancelModal?.id === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />} Cancelar
                           </Button>
                         )}
 
