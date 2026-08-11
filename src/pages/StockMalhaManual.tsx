@@ -1216,17 +1216,18 @@ export default function StockMalhaManual() {
                               </div>
                             </TableCell>
                             <TableCell className="text-xs">
-                              <div className="font-medium">{r.client?.name || '—'}</div>
-                              <div className="text-muted-foreground">{r.article?.name || '—'}</div>
+                              <div className="font-medium">{r.client_name || r.client?.name || '—'}</div>
+                              <div className="text-muted-foreground">{r.article_name || r.article?.name || '—'}</div>
                             </TableCell>
-                            <TableCell className="text-xs">{r.machine?.name || '—'}</TableCell>
-                            <TableCell className="text-xs">{r.billing_order?.of_number ? `#${r.billing_order.of_number}` : '—'}</TableCell>
+                            <TableCell className="text-xs">{r.machine_name || r.machine?.name || '—'}</TableCell>
+                            <TableCell className="text-xs">{r.of_number ? `#${r.of_number}` : (r.billing_order?.of_number ? `#${r.billing_order.of_number}` : '—')}</TableCell>
                             <TableCell className="text-right text-xs">{formatNumber(r.pieces || 0)}</TableCell>
                             <TableCell className="text-right text-xs">{formatWeight(r.weight_kg || 0)}</TableCell>
                             <TableCell className="text-xs">
-                              <div>{r.author ? `${r.author.name}${r.author.code ? ` #${r.author.code}` : ''}` : '—'}</div>
+                              <div>{r.creator_name || (r.author ? `${r.author.name}${r.author.code ? ` #${r.author.code}` : ''}` : '—')}</div>
                               {r.reason && <div className="text-muted-foreground text-[10px] italic">{r.reason}</div>}
                             </TableCell>
+
                           </TableRow>
                         ))}
                       </TableBody>
@@ -1422,20 +1423,21 @@ function MvCardMobile({ row }: { row: any }) {
           {new Date(row.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
         </span>
       </div>
-      <div className="text-sm font-medium">{row.client?.name || '—'} · {row.article?.name || '—'}</div>
+      <div className="text-sm font-medium">{row.client_name || row.client?.name || '—'} · {row.article_name || row.article?.name || '—'}</div>
       <div className="text-[11px] text-muted-foreground">
-        Máquina: {row.machine?.name || '—'} {row.billing_order?.of_number ? `· OF #${row.billing_order.of_number}` : ''}
+        Máquina: {row.machine_name || row.machine?.name || '—'} {row.of_number ? `· OF #${row.of_number}` : (row.billing_order?.of_number ? `· OF #${row.billing_order.of_number}` : '')}
       </div>
       <div className="flex justify-between text-xs">
         <span>{formatNumber(row.pieces || 0)} peças</span>
         <span className="font-semibold">{formatWeight(row.weight_kg || 0)}</span>
       </div>
-      {(row.author || row.reason) && (
+      {(row.creator_name || row.author || row.reason) && (
         <div className="text-[10px] text-muted-foreground border-t pt-1">
-          {row.author ? `${row.author.name}${row.author.code ? ` #${row.author.code}` : ''}` : ''}
+          {row.creator_name || (row.author ? `${row.author.name}${row.author.code ? ` #${row.author.code}` : ''}` : '')}
           {row.reason ? ` · ${row.reason}` : ''}
         </div>
       )}
+
     </div>
   );
 }
