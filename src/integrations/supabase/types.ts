@@ -5150,7 +5150,7 @@ export type Database = {
           p_author_code: string
           p_author_name: string
           p_company_id: string
-          p_details: Json
+          p_details?: Json
           p_target_id: string
         }
         Returns: undefined
@@ -6176,6 +6176,17 @@ export type Database = {
           p_doc_number: string
           p_doc_type: string
           p_id: string
+        }
+        Returns: Json
+      }
+      set_billing_order_priority: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_id: string
+          p_priority: boolean
+          p_reason?: string
         }
         Returns: Json
       }
