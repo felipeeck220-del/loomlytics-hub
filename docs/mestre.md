@@ -1,8 +1,8 @@
+- **11/08/2026 (Brasília) — Correção de Assinatura na Auditoria de OF:**
+    - Resolvido erro `function public._of_audit(...) does not exist` ao cancelar OF.
+    - Sincronizada a assinatura da função `_of_audit` para aceitar 6 argumentos, incluindo `p_target_id`, conforme exigido pela RPC `cancel_billing_order`.
+    - Reforçada a segurança com `search_path` fixo e permissões de execução.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização das Ordens de Faturamento (OF):**
-    - **Recuperação de Dados:** Restaurados dados de peças e peso real para 482+ OFs coletadas que estavam zeradas via `stock_movements`.
-    - **Estabilização de Cancelamento:** Recriada a RPC `cancel_billing_order` com limpeza de funções duplicadas e lógica robusta de estorno para estoque global, próprio e reservas órfãs.
-    - **Integridade de Estoque:** Validada a alocação "Greedy" para OFs sem máquina no frontend, garantindo que o saldo seja sempre descontado corretamente do estoque global.
-    - **Auditoria:** Reforçada a captura de autoria (nome/código) em todas as transições de status da OF.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
     - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
