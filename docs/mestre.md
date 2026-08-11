@@ -1,3 +1,5 @@
+- **11/08/2026 (Brasília) — Ajuste Visual na Aba Canceladas (OF):**
+    - Removido o badge numérico da aba "Canceladas" na página de Ordens de Faturamento para reduzir a poluição visual, mantendo apenas o texto conforme solicitado.
 - **11/08/2026 (Brasília) — Correção de Erro de Enum em Edição/Criação de OF:**
     - Resolvido erro `invalid input value for enum billing_order_type` ao criar ou editar OFs com `order_type = 'all'`.
     - As RPCs `create_billing_order` e `edit_billing_order` foram ajustadas para tratar a coluna `order_type` como `text` em vez de tentar um cast forçado para o enum `billing_order_type`, que agora é usado apenas para prioridade/express (standard, express).
