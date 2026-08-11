@@ -1,7 +1,7 @@
 - **11/08/2026 (Brasília) — Estabilização Final do Cancelamento de OF:**
-    - Refatorada a RPC `cancel_billing_order` para garantir execução atômica ignorando restrições de RLS durante o `UPDATE`, resolvendo falhas de permissão ao cancelar ordens.
-    - Captura do `auth.uid()` agora é feita em variável local no início da função para garantir consistência no contexto de execução do Postgres.
-    - Sincronizados os mapeamentos de auditoria e corrigida a limpeza de estados no frontend para evitar travamentos visuais.
+    - Refatorada a RPC `cancel_billing_order` para corrigir incompatibilidade de assinatura na função de auditoria e garantir a liberação correta de estoque.
+    - Implementado redirecionamento automático para a aba "Canceladas" após o sucesso da ação no frontend.
+    - Garantidas as permissões de execução (GRANT) para usuários autenticados na função de cancelamento.
 - **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
     - Removido integralmente o módulo de **Estoque Malha (Manual)** do projeto, incluindo a página `StockMalhaManual.tsx`, rotas e itens de menu.
     - Eliminadas as referências e integrações com o módulo no hook `useBillingOrders` e na página `BillingOrders.tsx`.
