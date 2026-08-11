@@ -1,6 +1,6 @@
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
     - Refatorado o fluxo de cancelamento em `BillingOrders.tsx` para garantir que a OF seja movida para 'cancelled' no backend enquanto o usuário permanece na aba atual, melhorando a fluidez da operação.
-    - Adicionado estado de carregamento (`isCancelling`) e desativação de botões durante a execução da RPC para prevenir cliques duplos e garantir feedback visual.
+    - Adicionado feedback visual de carregamento (spinner) no botão de confirmação do modal de cancelamento/estorno para evitar cliques duplos.
     - Confirmado que a RPC `cancel_billing_order` (7 argumentos) está devidamente sincronizada com as permissões de execução.
 - **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
     - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
