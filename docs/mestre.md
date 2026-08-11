@@ -1,7 +1,10 @@
+- **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
+    - Realizada auditoria técnica no módulo de **Ordem de Faturamento (OF)**.
+    - Confirmada a integridade da RPC `cancel_billing_order` (7 argumentos) com suporte multi-tenant e reversão de estoque global.
+    - Refinado o feedback visual no modal de cancelamento com estado `isCancelling` e bloqueio de cliques duplos.
+    - Validada a exibição de auditoria de separação (`separation_started_at`/`separation_finished_at`) e média por palete no frontend e PDF.
+    - Removidos resíduos de lógica de estoque manual em todo o fluxo de status de OF.
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
-    - Refatorado o fluxo de cancelamento em `BillingOrders.tsx` para garantir que a OF seja movida para 'cancelled' no backend enquanto o usuário permanece na aba atual, melhorando a fluidez da operação.
-    - Adicionado feedback visual de carregamento (spinner) no botão de confirmação do modal de cancelamento/estorno para evitar cliques duplos.
-    - Confirmado que a RPC `cancel_billing_order` (7 argumentos) está devidamente sincronizada com as permissões de execução.
 - **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
     - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
 - **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
