@@ -282,8 +282,9 @@ export function useBillingOrders() {
         throw new Error(`Status não suportado: ${status}`);
       }
 
-      if (res?.ok === false && res?.error === 'conflict') {
-        await throwConflict(res.current_status);
+      if (res?.ok === false) {
+        if (res?.error === 'conflict') await throwConflict(res.current_status);
+        throw new Error(res.error || 'Erro na operação do banco de dados');
       }
     },
     onSuccess: (_d, vars) => {

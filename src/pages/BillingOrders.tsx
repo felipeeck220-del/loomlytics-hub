@@ -654,6 +654,9 @@ const BillingOrders = () => {
       setCancelReason('');
       setReversalQuality('first');
       toast({ title: isReversal ? 'Estorno realizado com sucesso' : 'OF cancelada com sucesso' });
+      // Invalidação forçada após cancelamento
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
     } catch (err: any) {
       console.error("Erro ao cancelar OF:", err);
       toast({ 
