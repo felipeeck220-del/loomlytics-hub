@@ -1,3 +1,8 @@
+- **11/08/2026 (Brasília) — Sincronização de Reservas (Estoque Manual):**
+    - Corrigida discrepância entre o total reservado no Estoque Manual (3.633 pç) e as OFs ativas.
+    - Executada migration de limpeza que removeu reservas órfãs de OFs coletadas/canceladas e sincronizou o saldo manual com as reservas globais (Source of Truth).
+    - Agora o "Reservado (OFs Pronto)" no Estoque Manual reflete exatamente as peças/kg das ordens em status `separating` ou `ready`.
+
 - **11/08/2026 (Brasília) — Pente Fino e Estabilização de OF e Estoque Manual:**
     - Corrigida tipagem e mapeamento do `multiplier` e datas de auditoria no hook `useBillingOrdersList` para garantir exibição correta em listagens paginadas.
     - Refinada validação de saldo no `ManualEntryModal`: agora exibe a quantidade exata disponível na expedição em caso de erro de estoque insuficiente.
