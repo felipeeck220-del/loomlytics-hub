@@ -298,15 +298,17 @@ export function useBillingOrders() {
     },
     onSuccess: async (_d, vars) => {
       // Invalidação imediata e aguardada de todos os caches relacionados
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit_logs'] })
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+      await queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
+      await queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
+      await queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
+      await queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
+      
+      // Força o refetch imediato das queries principais para garantir sincronia na UI
+      queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' });
       
       const labels: Record<string, string> = {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
