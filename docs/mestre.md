@@ -1,7 +1,6 @@
-- **11/08/2026 (Brasília) — Correção de Schema na Auditoria de OF:**
-    - Resolvido erro `column "target_id" of relation "audit_logs" does not exist`.
-    - Ajustada a função `_of_audit` para injetar o `target_id` dentro do campo `details` (JSONB), respeitando a estrutura atual da tabela `audit_logs`.
-    - Garantida a compatibilidade com a assinatura exigida pela RPC `cancel_billing_order`.
+- **11/08/2026 (Brasília) — Pente Fino e Sincronização de Auditoria em OF:**
+    - Corrigidas todas as RPCs de Ordem de Faturamento (`collect`, `separation`, `ready`, `priority`, `edit`) para usar a nova assinatura de 6 argumentos da função `_of_audit`, evitando falhas de execução.
+    - Sincronizada a injeção do `target_id` no log de auditoria via JSONB em todos os fluxos operacionais.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização das Ordens de Faturamento (OF):**
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
