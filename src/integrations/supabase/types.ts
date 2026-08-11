@@ -5211,8 +5211,8 @@ export type Database = {
       }
       create_billing_order: {
         Args: {
-          p_author_code: string
-          p_author_name: string
+          p_author_code?: string
+          p_author_name?: string
           p_company_id: string
           p_payload: Json
         }
@@ -5268,14 +5268,14 @@ export type Database = {
       }
       edit_billing_order: {
         Args: {
-          p_author_code: string
-          p_author_name: string
+          p_author_code?: string
+          p_author_name?: string
           p_company_id: string
-          p_expected_status: string
+          p_expected_status?: Database["public"]["Enums"]["billing_order_status"]
           p_id: string
           p_note: string
           p_payload: Json
-          p_revert_to_open: boolean
+          p_revert_to_open?: boolean
         }
         Returns: Json
       }
@@ -6176,17 +6176,6 @@ export type Database = {
           p_doc_number: string
           p_doc_type: string
           p_id: string
-        }
-        Returns: Json
-      }
-      set_billing_order_priority: {
-        Args: {
-          p_author_code?: string
-          p_author_name?: string
-          p_company_id: string
-          p_id: string
-          p_priority: boolean
-          p_reason?: string
         }
         Returns: Json
       }
