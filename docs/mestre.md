@@ -1,7 +1,7 @@
-- **12/08/2026 (Brasília) — Correção de Dados em OF Coletadas:**
-    - Identificada e corrigida inconsistência onde OFs coletadas exibiam 0 pç / 0 kg devido a falha na persistência de `pieces_real`/`weight_real` no momento da transição de status.
-    - Executada migração no banco de dados para restaurar os valores reais a partir do somatório dos paletes vinculados a cada ordem.
-    - Sincronizada a visualização na aba "Coletadas" para garantir que os dados de entrega sejam exibidos corretamente.
+- **12/08/2026 (Brasília) — Recuperação Crítica de Dados em OF Coletadas:**
+    - Restaurados dados de peças e peso real para 482+ Ordens de Faturamento (OF) que ficaram zeradas após a remoção do módulo de Estoque Manual.
+    - A recuperação foi feita via `stock_movements`, extraindo os valores das baixas (`type = 'out'`) vinculadas a cada OF, garantindo a integridade histórica de entregas.
+    - Sincronizada visualização na aba "Coletadas" e relatórios de faturamento.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
     - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
