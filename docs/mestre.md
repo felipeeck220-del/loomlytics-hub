@@ -1,6 +1,7 @@
+- **12/08/2026 (Brasília) — Estabilização Final da Coleta de OF (Cache Fuzzy):**
+    - Atualizada a estratégia de invalidação para `exact: false`, garantindo que queries com filtros de `company_id` ou outros parâmetros sejam capturadas.
+    - Reforçada a sincronização no modal de fotos (`OfCollectPhotosModal`) e no botão "Marcar Coleta" para garantir que a transição de status seja refletida em todas as abas.
 - **12/08/2026 (Brasília) — Estabilização Final da Coleta de OF:**
-    - Reforçada a sincronização no modal de fotos (`OfCollectPhotosModal`) em `src/pages/BillingOrders.tsx`, garantindo que o `Promise.all` aguarde a invalidação e o `refetch` total dos caches antes de fechar o modal.
-    - Resolvido problema persistente onde a OF permanecia na aba "Pronto para coleta" mesmo após a confirmação.
 - **12/08/2026 (Brasília) — Reforço na Sincronização de Coleta de OF:**
     - Implementado `Promise.all` para aguardar o `refetchQueries` de todas as listagens críticas (`billing_orders`, `bootstrap`, `list`) após a coleta, garantindo que a OF saia da aba "Pronto para coleta" sem atrasos.
     - Validada a persistência da invalidação agressiva no hook `useBillingOrders.ts`.
