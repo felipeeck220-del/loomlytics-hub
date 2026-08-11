@@ -80,6 +80,8 @@ const BillingOrders = () => {
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc' | 'delayed_collection'>('open');
+  // Resetar página ao trocar de aba
+  useEffect(() => { setCollectedPage(1); }, [activeTab]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);

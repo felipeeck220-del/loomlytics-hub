@@ -5198,8 +5198,8 @@ export type Database = {
       }
       collect_billing_order: {
         Args: {
-          p_author_code?: string
-          p_author_name?: string
+          p_author_code: string
+          p_author_name: string
           p_company_id: string
           p_id: string
         }
@@ -6020,8 +6020,8 @@ export type Database = {
       }
       link_billing_orders: {
         Args: {
-          p_author_code?: string
-          p_author_name?: string
+          p_author_code: string
+          p_author_name: string
           p_company_id: string
           p_ids: string[]
         }
@@ -6201,8 +6201,8 @@ export type Database = {
       }
       unlink_billing_order_group: {
         Args: {
-          p_author_code?: string
-          p_author_name?: string
+          p_author_code: string
+          p_author_name: string
           p_company_id: string
           p_group_id: string
         }
