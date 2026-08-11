@@ -1,7 +1,7 @@
-- **11/08/2026 (Brasília) — Correção de Assinatura na Auditoria de OF:**
-    - Resolvido erro `function public._of_audit(...) does not exist` ao cancelar OF.
-    - Sincronizada a assinatura da função `_of_audit` para aceitar 6 argumentos, incluindo `p_target_id`, conforme exigido pela RPC `cancel_billing_order`.
-    - Reforçada a segurança com `search_path` fixo e permissões de execução.
+- **11/08/2026 (Brasília) — Correção de Schema na Auditoria de OF:**
+    - Resolvido erro `column "target_id" of relation "audit_logs" does not exist`.
+    - Ajustada a função `_of_audit` para injetar o `target_id` dentro do campo `details` (JSONB), respeitando a estrutura atual da tabela `audit_logs`.
+    - Garantida a compatibilidade com a assinatura exigida pela RPC `cancel_billing_order`.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização das Ordens de Faturamento (OF):**
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização de OF:**
 - **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
