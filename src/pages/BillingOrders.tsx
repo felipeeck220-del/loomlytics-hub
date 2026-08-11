@@ -626,9 +626,6 @@ const BillingOrders = () => {
     // If changing client/article and already has pallets, force reverting to open to clear stock bindings
     const hasPallets = detailsPallets.length > 0;
     const isChangingTarget = showEditModal.client_id !== editForm.client_id || showEditModal.article_id !== editForm.article_id;
-    const shouldForceRevert = revertToOpen || (hasPallets && isChangingTarget);
-
-    const wasActive = showEditModal.status === 'separating' || showEditModal.status === 'ready';
     const shouldForceRevert = wasActive || (hasPallets && isChangingTarget);
 
     const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
