@@ -1,6 +1,9 @@
-- **12/08/2026 (Brasília) — Pente Fino, Estabilização e Auditoria (OF):**
-    - Refatoradas as RPCs `cancel_billing_order` e `collect_billing_order` para garantir estorno de estoque preciso (respeitando 2ª qualidade) e limpeza total de reservas órfãs.
-    - Sincronizada a assinatura da função `_of_audit` para 6 argumentos em todo o backend operacional de faturamento.
+- **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
+    - Realizado um pente fino completo no módulo de faturamento (OF), validando a integridade das RPCs e a sincronização entre frontend e backend.
+    - Confirmado que todas as RPCs operacionais (`create`, `edit`, `collect`, `cancel`, `ready`, `separation`) utilizam `SECURITY DEFINER`, `search_path = public` e bloqueio de linha `FOR UPDATE`.
+    - Padronizada a auditoria centralizada em `_of_audit` com 6 argumentos em todo o fluxo de faturamento.
+    - Sincronizada a lógica de estorno de estoque em cancelamentos: ordens reservadas retornam para 1ª qualidade (via `release`), enquanto ordens coletadas respeitam a qualidade de estorno selecionada.
+    - Validada a invalidação agressiva de cache no React Query para evitar o "congelamento" de status em abas de faturamento.
     - Implementada trava de idempotência no hook `usePushNotifications.ts` para evitar registros duplicados de dispositivos.
     - Otimizada a UI de Mecânica com skeletons de carregamento em listagens paginadas.
 - **11/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
