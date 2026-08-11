@@ -258,13 +258,17 @@ export function useBillingOrders() {
           p_company_id: user?.company_id, p_id: id, p_author_name: a.name, p_author_code: a.code,
         }));
       } else if (status === 'cancelled') {
-        ({ data: res } = await (supabase as any).rpc('cancel_billing_order', {
-          p_company_id: user?.company_id, p_id: id,
-          p_reason: data?.cancellation_reason ?? null,
-          p_expected_status: expectedStatus ?? null,
-          p_reversal_quality: reversalQuality ?? 'first',
-          p_author_name: a.name, p_author_code: a.code,
-        }));
+        const { data: resData, error: rpcErr } = await (supabase as any).rpc('cancel_billing_order', {
+          p_company_id: user?.company_id,
+          p_id: id,
+          p_reason: data?.cancellation_reason || 'Cancelado pelo usuário',
+          p_expected_status: expectedStatus || null,
+          p_reversal_quality: reversalQuality || 'first',
+          p_author_name: a.name,
+          p_author_code: a.code,
+        });
+        if (rpcErr) throw rpcErr;
+        res = resData;
       } else if (status === 'open') {
         ({ data: res } = await (supabase as any).rpc('revert_billing_order_to_open', {
           p_company_id: user?.company_id, p_id: id,

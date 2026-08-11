@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useBillingOrders, type BillingOrderStatus } from '@/hooks/useBillingOrders';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1553,9 +1553,10 @@ const BillingOrders = () => {
                             size="sm"
                             variant="outline"
                             className="gap-1.5 text-zinc-700 border-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                            disabled={isCancelling && showCancelModal?.id === order.id}
                             onClick={() => { setCancelReason(''); setShowCancelModal(order); }}
                           >
-                            <Ban className="h-4 w-4" /> Cancelar
+                            {isCancelling && showCancelModal?.id === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />} Cancelar
                           </Button>
                         )}
 
@@ -2217,7 +2218,7 @@ const BillingOrders = () => {
               {isCancelling ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {showCancelModal?.status === 'collected' ? 'Estornando...' : 'Cancelando...'}
+                  Processando...
                 </>
               ) : (
                 showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'
