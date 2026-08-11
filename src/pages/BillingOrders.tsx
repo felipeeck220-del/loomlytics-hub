@@ -27,6 +27,7 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { OfCollectPhotosModal, type OfPhoto } from '@/components/billing/OfCollectPhotosModal';
 import { OfPhotosViewerModal } from '@/components/billing/OfPhotosViewerModal';
+import { useQueryClient as useQueryClientTanstack } from '@tanstack/react-query';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -90,6 +91,7 @@ const BillingOrders = () => {
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCollecting, setIsCollecting] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [reversalQuality, setReversalQuality] = useState<'first' | 'second'>('first');
 
@@ -1610,7 +1612,26 @@ const BillingOrders = () => {
                           <Button
                             size="sm"
                             className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-white"
-                            onClick={() => setShowCollectConfirm(order)}
+                            onClick={async () => {
+                              // Se a OF já foi coletada por outro usuário (conflito)
+                              const actor = await (supabase.from as any)('billing_orders')
+                                .select('status')
+                                .eq('id', order.id)
+                                .maybeSingle();
+                              
+                              if (actor.data?.status === 'collected') {
+                                setConflictInfo({ 
+                                  action: 'marcar coleta', 
+                                  ofNumber: order.of_number, 
+                                  currentStatus: 'collected' 
+                                });
+                                // Invalida caches para refletir o estado real
+                                queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+                                queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+                                return;
+                              }
+                              setShowCollectConfirm(order);
+                            }}
                           >
                             <Truck className="h-4 w-4" /> Marcar Coleta
                           </Button>
@@ -2317,6 +2338,8 @@ const BillingOrders = () => {
               onClick={async () => {
                 try {
                   await setDeliveryDoc({ id: showDocModal.id, type: docForm.type, number: docForm.number });
+                  // Invalida o bootstrap que contém os contadores das abas
+                  queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
                   setShowDocModal(null);
                 } catch (err: any) {
                   toast({ title: 'Erro ao registrar documento', description: err?.message, variant: 'destructive' });
@@ -3254,6 +3277,8 @@ const BillingOrders = () => {
                         data: { pieces_real: totalPiecesVal, weight_real: totalWeightVal, weight_avg: avgVal },
                         expectedStatus: 'separating',
                       });
+                      // Invalida o bootstrap que contém os contadores das abas
+                      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
                       setConfirmFinalizePallets(false);
                       setShowPalletsModal(null);
                       setPallets([]);
