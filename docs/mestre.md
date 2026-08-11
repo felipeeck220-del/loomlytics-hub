@@ -1,3 +1,7 @@
+- **11/08/2026 (Brasília) — Nova Aba de Atraso na Coleta (OF):**
+    - Implementada aba "Atraso na Coleta" exclusiva para administradores.
+    - OFs prontas com NF/Romaneio há mais de 7 dias (baseado em `separation_finished_at`) são movidas automaticamente para esta aba.
+    - Adicionado indicador visual "DIAS NO ESTOQUE X" e badge de destaque para facilitar a identificação de faturamentos parados.
 - **11/08/2026 (Brasília) — Reset e Estabilização Final do Estoque Malha (Manual):**
     - Executado reset total da tabela `manual_stock_movements` para eliminar inconsistências acumuladas.
     - Restauradas apenas as reservas de OFs ativas (status `separating` e `ready`) a partir do estoque global para garantir que o saldo reservado seja fiel às ordens em andamento.

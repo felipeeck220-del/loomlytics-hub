@@ -76,7 +76,7 @@ const BillingOrders = () => {
   const { orders, isLoading, bootstrap, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
 
   const isAdmin = role === 'admin';
-  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc'>('open');
+  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc' | 'delayed_collection'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
@@ -314,6 +314,28 @@ const BillingOrders = () => {
       if (activeTab === 'ready') {
         if (order.status !== 'ready') return false;
         if (!(order as any).delivery_doc_number) return false;
+        
+        // Se admin, filtra para NÃO mostrar o que está em atraso (> 7 dias da finalização)
+        if (isAdmin && (order as any).separation_finished_at) {
+          const finishedAt = new Date((order as any).separation_finished_at);
+          const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays > 7) return false;
+        }
+
+        if (!matchesSearch) return false;
+        return true;
+      }
+
+      // "Atraso na Coleta" (Admin only) = Pronto COM NF há mais de 7 dias
+      if (activeTab === 'delayed_collection' && isAdmin) {
+        if (order.status !== 'ready') return false;
+        if (!(order as any).delivery_doc_number) return false;
+        if (!(order as any).separation_finished_at) return false;
+        
+        const finishedAt = new Date((order as any).separation_finished_at);
+        const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 7) return false;
+
         if (!matchesSearch) return false;
         return true;
       }
@@ -373,6 +395,12 @@ const BillingOrders = () => {
       ready: orders.filter(o => o.status === 'ready').length,
       readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
       readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
+      delayed: orders.filter(o => {
+        if (o.status !== 'ready' || !(o as any).delivery_doc_number || !(o as any).separation_finished_at) return false;
+        const finishedAt = new Date((o as any).separation_finished_at);
+        const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays > 7;
+      }).length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
       cancelled: orders.filter(o => o.status === 'cancelled').length,
@@ -1135,8 +1163,19 @@ const BillingOrders = () => {
             value="ready"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc}</Badge>
+            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc - (isAdmin ? stats.delayed : 0)}</Badge>
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger 
+              value="delayed_collection" 
+              className={cn(
+                "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
+                stats.delayed > 0 && "bg-orange-100 text-orange-700 data-[state=active]:bg-orange-600 data-[state=active]:text-white animate-pulse"
+              )}
+            >
+              <History className="h-3 w-3" /> Atraso na Coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.delayed}</Badge>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
           </TabsTrigger>
@@ -1149,6 +1188,15 @@ const BillingOrders = () => {
           <Card className="mt-4 border-dashed bg-violet-500/5 border-violet-400/40">
             <CardContent className="p-3 text-xs text-violet-900 dark:text-violet-200">
               <strong>Aguardando NF/ROM</strong> — OFs já separadas. Lance a <strong>NF</strong> ou o <strong>Romaneio</strong> (apenas admin) para liberar a OF para a aba <strong>Pronto para coleta</strong>.
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'delayed_collection' && isAdmin && (
+          <Card className="mt-4 border-dashed bg-orange-500/5 border-orange-400/40">
+            <CardContent className="p-3 text-xs text-orange-900 dark:text-orange-200 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
+              <span><strong>Atraso na Coleta</strong> — Estas OFs foram finalizadas há mais de 7 dias e ainda não foram coletadas. Verifique com o cliente ou transportadora.</span>
             </CardContent>
           </Card>
         )}
@@ -1252,6 +1300,22 @@ const BillingOrders = () => {
                           </Badge>
                         )}
                       </div>
+
+                      {isAdmin && order.status === 'ready' && (order as any).separation_finished_at && (() => {
+                        const finishedAt = new Date((order as any).separation_finished_at);
+                        const diffDays = Math.floor((new Date().getTime() - finishedAt.getTime()) / (1000 * 60 * 60 * 24));
+                        if (diffDays > 7) {
+                          return (
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge className="bg-orange-600 text-white border-orange-700 gap-1 py-0 px-2 h-5 animate-bounce shadow-sm">
+                                <History className="h-3 w-3" /> DIAS NO ESTOQUE: {diffDays}
+                              </Badge>
+                              <span className="text-[10px] text-orange-700 dark:text-orange-400 font-bold uppercase">Atraso Crítico</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
 
                       {/* Linha 2: Cliente em destaque */}
                       <div className="text-base font-semibold text-foreground flex items-center gap-2 flex-wrap">
