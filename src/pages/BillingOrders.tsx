@@ -1643,7 +1643,7 @@ const BillingOrders = () => {
                               }
                             }}
                           >
-                            <Truck className="h-4 w-4" /> Marcar Coleta
+                            {isCollecting && showCollectConfirm?.id === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />} Marcar Coleta
                           </Button>
                         )}
                       </div>
