@@ -1,5 +1,3 @@
--- Tenta atualizar a função usando o mecanismo de migração do Supabase se possível
--- Ou via psql normal mas validando permissões
 CREATE OR REPLACE FUNCTION public.cancel_billing_order(
   p_company_id uuid, 
   p_id uuid, 
