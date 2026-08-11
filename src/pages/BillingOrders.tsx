@@ -2686,6 +2686,13 @@ const BillingOrders = () => {
                             // (Necessário para subtrair reservas/saídas que já ocorreram na base global)
                             for (const mv of (mvRes.data || [])) {
                               if (mv.is_second_quality || !mv.machine_id) continue;
+                              
+                              // IMPORTANTE: Só consideramos movimentos de saída ('reserve', 'out', 'adjust_out') 
+                              // que NÃO estejam vinculados a esta OF específica. 
+                              // O saldo atual deve ser o total que PODE ser reservado, sem contar 
+                              // o que já está reservado por esta OF no global (que ainda não virou palete).
+                              if (mv.billing_order_id === order.id) continue;
+
                               const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
                               const kg = Number(mv.weight_kg) || 0;
                               const pcs = Number(mv.pieces) || 0;
@@ -3247,15 +3254,9 @@ const BillingOrders = () => {
                     }
                   }}
                 >
-                  {!isMultiplierValValid ? (
-                    <>
-                      <AlertTriangle className="h-4 w-4" /> Finalizar com erro de múltiplos
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
-                    </>
-                  )}
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
+                  </>
                 </Button>
               );
             })()}

@@ -1,8 +1,9 @@
+- **11/08/2026 (Brasília) — Estabilização da Alocação "SEM MÁQUINA" em OF:**
+    - Corrigido bug na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde a reserva de paletes considerava indevidamente os movimentos de reserva da própria OF no cálculo de saldo disponível, resultando em descontos duplicados ou alocações em máquinas erradas.
+    - Sincronizada a lógica de remoção de paletes para garantir que o estorno de reserva no estoque manual não gere duplicidade, reforçando o uso do `Pallet ID` no campo `reason`.
+    - Mantida a trava rígida de múltiplos na finalização da separação, impedindo o envio para "PRONTO" caso o total de peças não seja válido.
 - **11/08/2026 (Brasília) — Auditoria e Estabilidade de Reservas (OF e Estoque Manual):**
     - Corrigido erro de estorno duplicado no **Estoque Malha (Manual)** ao cancelar OFs ou excluir paletes; a lógica de liberação agora agrupa movimentos por máquina (`GROUP BY article_id, client_id, machine_id`) antes de inserir o movimento `release`.
-    - Refatorada a RPC `cancel_billing_order` para processar estornos de reserva de forma consolidada, garantindo que o saldo disponível retorne corretamente mesmo em alocações distribuídas ("SEM MÁQUINA").
-    - Sincronizada a lógica de cálculo de saldo do frontend em `src/pages/BillingOrders.tsx` para refletir fielmente a RPC `get_manual_stock_estoque`: `(Produção + Entradas Manuais + Estornos OF) - (Saídas Manuais + Saídas OF + Reservas Ativas)`.
-    - A lógica agora unifica o histórico global e manual para determinar o saldo disponível real por máquina antes da distribuição "Greedy".
 - **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
     - Corrigida falha na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde o sistema falhava em identificar máquinas com saldo positivo (ex: TEAR 36 vs TEAR 19) e gerava reservas em máquinas zeradas. A nova lógica prioriza "Perfect Match" (uma máquina supre tudo) ou distribuição "Greedy" (proporcional ao saldo disponível).
     - O cálculo de saldo em tempo real no frontend foi sincronizado com as regras do banco: `Produção + Entradas (adjust_in/release/in sem OF) - Saídas (adjust_out/out/reserve)`.
