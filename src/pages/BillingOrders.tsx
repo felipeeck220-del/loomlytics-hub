@@ -652,7 +652,8 @@ const BillingOrders = () => {
       setCancelReason('');
       setReversalQuality('first');
       toast({ title: isReversal ? 'Estorno realizado com sucesso' : 'OF cancelada com sucesso' });
-      setActiveTab('cancelled');
+      // Mantém na aba atual conforme solicitado pelo usuário
+      // setActiveTab('cancelled');
     } catch (err: any) {
       console.error("Erro ao cancelar OF:", err);
       toast({ 
