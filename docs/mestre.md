@@ -1,3 +1,7 @@
+- **12/08/2026 (Brasília) — Movimentação Manual OF #595 e Estabilização da Coleta:**
+    - Movida manualmente a OF #595 para "Coletadas" via comando SQL direto.
+    - Investigada RPC `collect_billing_order`: a função está correta, mas foi adicionado log no frontend para depurar possíveis falhas de execução no cliente.
+    - Confirmada a limpeza de paletes associados após a coleta manual.
 - **12/08/2026 (Brasília) — Movimentação Manual OF #594 e Estabilização da Coleta:**
     - Movida manualmente a OF #594 para "Coletadas" via comando SQL direto para contornar falha de interface reportada.
     - Refatorada a RPC `collect_billing_order` para garantir a assinatura correta de 6 argumentos na auditoria interna, prevenindo erros de "function does not exist".

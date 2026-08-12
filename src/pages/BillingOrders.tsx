@@ -1999,23 +1999,41 @@ const BillingOrders = () => {
         onConfirm={async (photos: OfPhoto[]) => {
           const target = showCollectConfirm;
           try {
+            console.log("Iniciando coleta da OF:", target.of_number);
+            
+            // 1. Executa a RPC de coleta
             await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
-            // Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
+            console.log("RPC collect_billing_order executada com sucesso");
+
+            // 2. Anexa as fotos se houver (operação separada para não travar a coleta)
+            if (photos.length > 0) {
+              console.log("Anexando fotos à OF...");
+              const { error: photoErr } = await supabase
+                .from('billing_orders')
+                .update({ collect_photos: photos as any })
+                .eq('id', target.id);
+              
+              if (photoErr) {
+                console.error("Erro ao anexar fotos:", photoErr);
+                toast({ title: 'Aviso', description: 'OF coletada, mas houve erro ao salvar as fotos.', variant: 'warning' } as any);
+              } else {
+                console.log("Fotos anexadas com sucesso");
+              }
+            }
+
+            // 3. Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
+            console.log("Invalidando caches...");
             await Promise.all([
               queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
               queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
               queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] }),
-              queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active' }),
-              queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active' }),
-              queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active' })
+              queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
+              queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
+              queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false })
             ]);
 
-            if (photos.length > 0) {
-              await (supabase.from as any)('billing_orders')
-                .update({ collect_photos: photos })
-                .eq('id', target.id);
-            }
             setShowCollectConfirm(null);
+            console.log("Fluxo de coleta finalizado");
           } catch (err: any) {
             if (err?.code === 'CONFLICT') {
               setShowCollectConfirm(null);
