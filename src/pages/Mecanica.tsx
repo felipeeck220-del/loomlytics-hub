@@ -250,41 +250,38 @@ export default function MecanicaPage() {
   useEffect(() => {
     if (!user?.company_id || !window.location.pathname.includes('/mecanica')) return;
     const cid = user.company_id;
-  // [rpcmecanica Fase 1] Carrega fornecedores + preços + lotes (agulhas e platinas)
-  // em uma única RPC consolidada `get_mecanica_bootstrap`, substituindo 6 SELECTs.
-  useEffect(() => {
-    if (!user?.company_id || !window.location.pathname.includes('/mecanica')) return;
-    const cid = user.company_id;
     (async () => {
-      const { data, error } = await (supabase.rpc as any)('get_mecanica_bootstrap', { p_company_id: cid });
-      if (error) {
-        console.error('[Mecanica] get_mecanica_bootstrap error:', error);
-        toast.error('Erro ao carregar dados iniciais de mecânica');
-        return;
+      try {
+        const { data, error } = await (supabase.rpc as any)('get_mecanica_bootstrap', { p_company_id: cid });
+        if (error) {
+          console.error('[Mecanica] get_mecanica_bootstrap error:', error);
+          toast.error('Erro ao carregar dados iniciais de mecânica');
+          return;
+        }
+        if (data && (data as any).error === 'Unauthorized') {
+          toast.error('Acesso não autorizado aos dados de mecânica');
+          return;
+        }
+        const payload = (data || {}) as {
+          needle_providers?: NeedleProvider[];
+          needle_provider_prices?: NeedleProviderPrice[];
+          needle_lots?: NeedleLot[];
+          sinker_providers?: SinkerProvider[];
+          sinker_provider_prices?: SinkerProviderPrice[];
+          sinker_lots?: SinkerLot[];
+          machines?: Machine[];
+        };
+        setProviders((payload.needle_providers || []) as NeedleProvider[]);
+        setProviderPrices((payload.needle_provider_prices || []) as NeedleProviderPrice[]);
+        setNeedleLots((payload.needle_lots || []) as NeedleLot[]);
+        setSinkerProviders((payload.sinker_providers || []) as SinkerProvider[]);
+        setSinkerProviderPrices((payload.sinker_provider_prices || []) as SinkerProviderPrice[]);
+        setSinkerLots((payload.sinker_lots || []) as SinkerLot[]);
+        if (payload.machines) setMachinesList(payload.machines);
+      } catch (e) {
+        console.error('[Mecanica] Exception in bootstrap:', e);
       }
-      if (data && (data as any).error === 'Unauthorized') {
-        toast.error('Acesso não autorizado aos dados de mecânica');
-        return;
-      }
-      const payload = (data || {}) as {
-        needle_providers?: NeedleProvider[];
-        needle_provider_prices?: NeedleProviderPrice[];
-        needle_lots?: NeedleLot[];
-        sinker_providers?: SinkerProvider[];
-        sinker_provider_prices?: SinkerProviderPrice[];
-        sinker_lots?: SinkerLot[];
-        machines?: Machine[];
-      };
-      setProviders((payload.needle_providers || []) as NeedleProvider[]);
-      setProviderPrices((payload.needle_provider_prices || []) as NeedleProviderPrice[]);
-      setNeedleLots((payload.needle_lots || []) as NeedleLot[]);
-      setSinkerProviders((payload.sinker_providers || []) as SinkerProvider[]);
-      setSinkerProviderPrices((payload.sinker_provider_prices || []) as SinkerProviderPrice[]);
-      setSinkerLots((payload.sinker_lots || []) as SinkerLot[]);
-      if (payload.machines) setMachinesList(payload.machines);
     })();
-  }, [user?.company_id, providersRefreshKey, sinkerProvidersRefreshKey]);
-
   }, [user?.company_id, providersRefreshKey, sinkerProvidersRefreshKey]);
 
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
