@@ -1,3 +1,6 @@
+- **12/08/2026 (Brasília) — Correção Crítica Mecânica (Tela Cinza):**
+    - Corrigido erro de sintaxe em `src/pages/Mecanica.tsx` onde dois blocos `useEffect` idênticos estavam aninhados de forma inválida, quebrando a renderização para todos os usuários.
+    - Implementado `try-catch` no bootstrap de dados para maior resiliência.
 - **12/08/2026 (Brasília) — Movimentação Manual OF #596 e Correção de Fluxo:**
     - Movida manualmente a OF #596 para "Coletadas" via comando SQL direto.
     - Corrigido o botão "Marcar Coleta" para garantir que a verificação de conflito use o client Supabase corretamente e adicionei logs de depuração.
