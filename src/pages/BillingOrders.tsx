@@ -311,7 +311,7 @@ const BillingOrders = () => {
 
       // "Aguardando NF/ROM" = OF pronta (separada) mas sem NF/Romaneio lançado
       if (activeTab === 'awaiting_doc') {
-        const isReady = order.status === 'ready' || order.status === 'collected';
+        const isReady = order.status === 'ready';
         if (!isReady) return false;
         if (!!(order as any).delivery_doc_number) return false;
         if (!matchesSearch) return false;
@@ -348,7 +348,14 @@ const BillingOrders = () => {
         return true;
       }
 
-      if (activeTab !== 'collected' && activeTab !== 'cancelled' && order.status !== activeTab) return false;
+      // Se for Coletadas ou Canceladas, filtra estritamente pelo status
+      if (activeTab === 'collected' || activeTab === 'cancelled') {
+        if (order.status !== activeTab) return false;
+      } else {
+        // Para outras abas operacionais (separating), filtra pelo status
+        if (order.status !== activeTab) return false;
+      }
+
       if (!matchesSearch) return false;
 
       // Filtros específicos para "Coletadas"
