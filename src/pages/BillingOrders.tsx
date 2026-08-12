@@ -1079,8 +1079,9 @@ const BillingOrders = () => {
   };
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
-  const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean) => {
-    if (isPriority && status !== 'collected') {
+  const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean, currentTab?: string) => {
+    // Se estiver na aba Aguardando NF/ROM, a prioridade visual é da aba (violeta)
+    if (isPriority && status !== 'collected' && currentTab !== 'awaiting_doc') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
     switch (status) {
