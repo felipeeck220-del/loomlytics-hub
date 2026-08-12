@@ -1308,7 +1308,7 @@ const BillingOrders = () => {
                         <Badge variant="outline" className="font-semibold uppercase text-[10px] border-foreground/20 text-foreground">
                           {order.dyehouse}
                         </Badge>
-                        {order.priority && order.status === 'open' && (
+                        {order.priority && (order.status === 'open' || (order.status === 'ready' && activeTab === 'awaiting_doc')) && (
                           <Badge variant="destructive" className="animate-pulse gap-1 text-[10px]">
                             <AlertTriangle className="h-3 w-3" /> PRIORIDADE
                           </Badge>
