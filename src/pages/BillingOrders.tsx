@@ -313,7 +313,8 @@ const BillingOrders = () => {
       if (activeTab === 'awaiting_doc') {
         const isReady = order.status === 'ready';
         if (!isReady) return false;
-        if (order.priority) return false; // Prioridade tem sua própria aba ou fica em Aberto
+        // Prioridade deve aparecer aqui se estiver pronta e sem documento, 
+        // mas o usuário quer que tenha a cor correta (violeta) em vez da cor de prioridade (vermelha) nesta aba.
         if (!!(order as any).delivery_doc_number) return false;
         if (!matchesSearch) return false;
         return true;
