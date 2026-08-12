@@ -1,6 +1,8 @@
-- **12/08/2026 (Brasília) — Correção Definitiva de NF/Romaneio e Filtros OF:**
-    - Corrigido erro de tipagem na RPC `set_billing_order_delivery_doc` onde o cast de `text` para `billing_delivery_doc_type` estava faltando, causando falha ao registrar NF.
-    - Refinada filtragem na aba `Aguardando NF/ROM` para excluir OFs marcadas como prioritárias, mantendo o isolamento solicitado.
+- **12/08/2026 (Brasília) — Correção Definitiva de FK e Registro de NF em OF:**
+    - Resolvido erro `violates foreign key constraint "billing_orders_delivery_doc_set_by_fkey"` na RPC `set_billing_order_delivery_doc`.
+    - Implementada lógica de fallback para identificação do autor via `author_code` quando o contexto JWT do PostgREST falha em injetar `auth.uid()` durante a execução do `SECURITY DEFINER`.
+    - Refinada filtragem na aba `Aguardando NF/ROM` para excluir OFs prioritárias.
+
 - **12/08/2026 (Brasília) — Correção de Filtragem de Abas em OF:**
 
     - Padronizada a assinatura da função `_of_audit` para 6 argumentos em todas as RPCs operacionais (`set_doc`, `priority`, `link`, `unlink`, `collect`, `cancel`).
