@@ -1,3 +1,7 @@
+- **12/08/2026 (Brasília) — Movimentação Manual OF #597 e Estabilização:**
+    - Movida manualmente a OF #597 para "Coletadas" via script SQL direto (chama `collect_billing_order`).
+    - Confirmada a limpeza de paletes e auditoria centralizada de 6 argumentos.
+    - Otimizada a invalidação de cache no hook `useBillingOrders.ts` para garantir sincronia instantânea.
 - **12/08/2026 (Brasília) — Correção Crítica Mecânica (Tela Cinza):**
     - Corrigido erro de sintaxe em `src/pages/Mecanica.tsx` onde dois blocos `useEffect` idênticos estavam aninhados de forma inválida, quebrando a renderização para todos os usuários.
     - Implementado `try-catch` no bootstrap de dados para maior resiliência.
