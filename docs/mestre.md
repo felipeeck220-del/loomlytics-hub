@@ -1,3 +1,7 @@
+- **12/08/2026 (Brasília) — Movimentação Manual OF #596 e Correção de Fluxo:**
+    - Movida manualmente a OF #596 para "Coletadas" via comando SQL direto.
+    - Corrigido o botão "Marcar Coleta" para garantir que a verificação de conflito use o client Supabase corretamente e adicionei logs de depuração.
+    - Alterada a aba padrão do faturamento para "Aberto Prioritário" para melhorar o fluxo de trabalho.
 - **12/08/2026 (Brasília) — Movimentação Manual OF #595 e Estabilização da Coleta:**
     - Movida manualmente a OF #595 para "Coletadas" via comando SQL direto.
     - Investigada RPC `collect_billing_order`: a função está correta, mas foi adicionado log no frontend para depurar possíveis falhas de execução no cliente.

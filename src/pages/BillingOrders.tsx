@@ -79,7 +79,7 @@ const BillingOrders = () => {
   const { orders, isLoading, bootstrap, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
 
   const isAdmin = role === 'admin';
-  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc' | 'delayed_collection'>('open');
+  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc' | 'delayed_collection'>('priority_tab');
   // Resetar página ao trocar de aba
   useEffect(() => { setCollectedPage(1); }, [activeTab]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1629,31 +1629,33 @@ const BillingOrders = () => {
                               if (isCollecting) return;
                               setIsCollecting(true);
                               try {
-                                // Se a OF já foi coletada por outro usuário (conflito)
-                                const actor = await (supabase.from as any)('billing_orders')
-                                  .select('status')
+                                console.log("[OF Coleta] Verificando status atual da OF #", order.of_number);
+                                const { data: current, error: checkErr } = await supabase
+                                  .from('billing_orders')
+                                  .select('status, collector:profiles!billing_orders_collected_by_fkey(name, code)')
                                   .eq('id', order.id)
                                   .maybeSingle();
                                 
-                                if (actor.data?.status === 'collected') {
+                                if (checkErr) throw checkErr;
+
+                                if (current?.status === 'collected') {
+                                  console.warn("[OF Coleta] Conflito detectado: OF já coletada.");
                                   setConflictInfo({ 
                                     action: 'marcar coleta', 
                                     ofNumber: order.of_number, 
-                                    currentStatus: 'collected' 
+                                    currentStatus: 'collected',
+                                    actor: (current as any).collector
                                   });
-                                  // Invalida caches para refletir o estado real
+                                  // Invalidação agressiva
                                   await queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
                                   await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
-                                  await Promise.all([
-                                    queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
-                                    queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false })
-                                  ]);
                                   setIsCollecting(false);
                                   return;
                                 }
                                 setShowCollectConfirm(order);
                               } catch (e) {
-                                console.error(e);
+                                console.error("[OF Coleta] Erro ao abrir modal de confirmação:", e);
+                                toast({ title: 'Erro ao verificar OF', variant: 'destructive' });
                               } finally {
                                 setIsCollecting(false);
                               }
