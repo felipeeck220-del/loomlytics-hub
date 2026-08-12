@@ -2010,7 +2010,7 @@ const BillingOrders = () => {
               console.log("Anexando fotos à OF...");
               const { error: photoErr } = await supabase
                 .from('billing_orders')
-                .update({ collect_photos: photos })
+                .update({ collect_photos: photos as any })
                 .eq('id', target.id);
               
               if (photoErr) {
