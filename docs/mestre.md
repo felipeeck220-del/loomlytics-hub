@@ -1,7 +1,11 @@
+- **12/08/2026 (Brasília) — Localização da OF #567 e Ajuste Visual em Aguardando NF/ROM:**
+    - Corrigida a filtragem na aba `Aguardando NF/ROM` para permitir a exibição de OFs com prioridade que estejam no status `ready` (separadas), mas sem documento. Anteriormente, elas eram excluídas da aba, o que causou o "sumiço" da OF #567.
+    - Implementado ajuste visual no hook `getStatusStyle`: agora as OFs prioritárias exibem a cor violeta (padrão da aba) quando visualizadas na aba `Aguardando NF/ROM`, atendendo ao pedido do usuário de manter o destaque de documento em vez do destaque de prioridade vermelha nesta etapa específica.
+    - Sincronizado o badge de "PRIORIDADE" para que continue visível no card mesmo na aba de documentação, mas sem sobrepor a cor principal da aba.
 - **12/08/2026 (Brasília) — Correção Definitiva de FK e Registro de NF em OF:**
     - Resolvido erro `violates foreign key constraint "billing_orders_delivery_doc_set_by_fkey"` na RPC `set_billing_order_delivery_doc`.
     - Implementada lógica de fallback para identificação do autor via `author_code` quando o contexto JWT do PostgREST falha em injetar `auth.uid()` durante a execução do `SECURITY DEFINER`.
-    - Refinada filtragem na aba `Aguardando NF/ROM` para excluir OFs prioritárias.
+    - Refinada filtragem na aba `Aguardando NF/ROM` para excluir OFs prioritárias (revertido parcialmente na atualização acima para permitir localização).
 
 - **12/08/2026 (Brasília) — Correção de Filtragem de Abas em OF:**
 
