@@ -21,9 +21,10 @@
 - **12/08/2026 (Brasília) — Reforço na Sincronização de Coleta de OF:**
     - Implementado `Promise.all` para aguardar o `refetchQueries` de todas as listagens críticas (`billing_orders`, `bootstrap`, `list`) após a coleta, garantindo que a OF saia da aba "Pronto para coleta" sem atrasos.
     - Validada a persistência da invalidação agressiva no hook `useBillingOrders.ts`.
-- **12/08/2026 (Brasília) — Correção ao Atrelar OFs (Erro de Auditoria):**
-    - Corrigida a chamada da função `_of_audit` nas RPCs `link_billing_orders`, `unlink_billing_order_group` e `remove_from_billing_order_group`, que ainda utilizavam a assinatura obsoleta de 5 argumentos.
-    - Sincronizada a auditoria de 6 argumentos em todo o fluxo de agrupamento de OFs, garantindo que a funcionalidade "Atrelar OFs" opere sem erros de banco de dados.
+- **12/08/2026 (Brasília) — Correção Definitiva ao Atrelar OFs:**
+    - Resolvido o erro "function public._of_audit(uuid, unknown, jsonb, text, text, jsonb) does not exist" ao atrelar OFs.
+    - Sincronizada a assinatura da RPC `link_billing_orders` (4 argumentos) com a função canônica de auditoria `_of_audit` (6 argumentos).
+    - Removidas versões obsoletas/duplicadas das funções de agrupamento (`link`, `unlink`, `remove`) para garantir estabilidade no banco de dados.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
 
     - Corrigida ambiguidade na RPC `cancel_billing_order` (erro "Could not choose the best candidate function") através da remoção de versões duplicadas e consolidação em uma única assinatura com tipos de argumentos flexíveis (`text`).
