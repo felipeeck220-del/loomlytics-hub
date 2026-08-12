@@ -6170,8 +6170,8 @@ export type Database = {
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
       set_billing_order_delivery_doc: {
         Args: {
-          p_author_code?: string
-          p_author_name?: string
+          p_author_code: string
+          p_author_name: string
           p_company_id: string
           p_doc_number: string
           p_doc_type: string
