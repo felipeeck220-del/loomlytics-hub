@@ -301,7 +301,7 @@ const BillingOrders = () => {
       if (activeTab === 'all') return matchesSearch;
       
       if (activeTab === 'priority_tab') {
-        return order.priority && order.status === 'open' && matchesSearch;
+        return order.priority && (order.status === 'open' || order.status === 'priority') && matchesSearch;
       }
 
       // Se for a aba Aberto, garantir que mostre apenas o que não é prioridade e tem status open

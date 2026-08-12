@@ -1,3 +1,6 @@
+- **12/08/2026 (Brasília) — Estabilização de Prioridade na OF:**
+    - Corrigida a filtragem da aba "Aberto Prioritário" em `src/pages/BillingOrders.tsx` para aceitar OFs com status `priority` (estágio intermediário pós-RPC).
+    - Ajustada a chamada da RPC `set_billing_order_priority` no hook `useBillingOrders.ts` para passar corretamente o parâmetro `p_priority` vindo dos dados, garantindo que a mudança de status seja processada.
 - **12/08/2026 (Brasília) — Movimentação Manual OF #597 e Estabilização:**
     - Movida manualmente a OF #597 para "Coletadas" via script SQL direto (chama `collect_billing_order`).
     - Confirmada a limpeza de paletes e auditoria centralizada de 6 argumentos.

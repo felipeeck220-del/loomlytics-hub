@@ -283,9 +283,12 @@ export function useBillingOrders() {
         }));
       } else if (status === 'priority') {
         ({ data: res } = await (supabase as any).rpc('set_billing_order_priority', {
-          p_company_id: user?.company_id, p_id: id, p_priority: true,
+          p_company_id: user?.company_id, 
+          p_id: id, 
+          p_priority: (data?.priority ?? true),
           p_reason: data?.priority_reason ?? null,
-          p_author_name: a.name, p_author_code: a.code,
+          p_author_name: a.name, 
+          p_author_code: a.code,
         }));
       } else {
         throw new Error(`Status não suportado: ${status}`);
