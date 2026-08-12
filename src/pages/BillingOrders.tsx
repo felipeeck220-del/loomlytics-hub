@@ -313,10 +313,12 @@ const BillingOrders = () => {
       if (activeTab === 'awaiting_doc') {
         const isReady = order.status === 'ready';
         if (!isReady) return false;
+        if (order.priority) return false; // Prioridade tem sua própria aba ou fica em Aberto
         if (!!(order as any).delivery_doc_number) return false;
         if (!matchesSearch) return false;
         return true;
       }
+
 
       // "Pronto para coleta" = OF pronta COM NF/Romaneio já lançado
       if (activeTab === 'ready') {
