@@ -5151,7 +5151,7 @@ export type Database = {
           p_author_name: string
           p_company_id: string
           p_details?: Json
-          p_target_id: string
+          p_id: string
         }
         Returns: undefined
       }
@@ -5198,8 +5198,8 @@ export type Database = {
       }
       collect_billing_order: {
         Args: {
-          p_author_code: string
-          p_author_name: string
+          p_author_code?: string
+          p_author_name?: string
           p_company_id: string
           p_id: string
         }
