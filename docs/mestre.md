@@ -1,3 +1,6 @@
+- **12/08/2026 (Brasília) — Correção de Filtragem de Abas em OF:**
+    - Corrigido bug na lógica de filtragem do frontend onde OFs `collected` apareciam indevidamente na aba `Aguardando NF/ROM`.
+    - Refinada a lógica de filtragem em `BillingOrders.tsx` para garantir isolamento estrito de status em abas operacionais, garantindo que OFs prioritárias, abertas, coletadas e canceladas fiquem em seus respectivos lugares.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização Definitiva de OF:**
     - Padronizada a assinatura da função `_of_audit` para 6 argumentos em todas as RPCs operacionais (`set_doc`, `priority`, `link`, `unlink`, `collect`, `cancel`).
     - Reforçada a trigger `handle_billing_order_status_change` para garantir a consolidação de peças e peso dos paletes no cabeçalho da OF durante a coleta, evitando dados zerados.
