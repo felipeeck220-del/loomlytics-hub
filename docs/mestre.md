@@ -1,3 +1,7 @@
+- **12/08/2026 (Brasília) — Movimentação Manual OF #594 e Estabilização da Coleta:**
+    - Movida manualmente a OF #594 para "Coletadas" via comando SQL direto para contornar falha de interface reportada.
+    - Refatorada a RPC `collect_billing_order` para garantir a assinatura correta de 6 argumentos na auditoria interna, prevenindo erros de "function does not exist".
+    - Confirmada a limpeza de paletes associados após a coleta para manter a integridade dos dados e liberar reservas de estoque.
 - **12/08/2026 (Brasília) — Localização da OF #567 e Ajuste Visual em Aguardando NF/ROM:**
     - Corrigida a filtragem na aba `Aguardando NF/ROM` para permitir a exibição de OFs com prioridade que estejam no status `ready` (separadas), mas sem documento. Anteriormente, elas eram excluídas da aba, o que causou o "sumiço" da OF #567.
     - Implementado ajuste visual no hook `getStatusStyle`: agora as OFs prioritárias exibem a cor violeta (padrão da aba) quando visualizadas na aba `Aguardando NF/ROM`, atendendo ao pedido do usuário de manter o destaque de documento em vez do destaque de prioridade vermelha nesta etapa específica.
