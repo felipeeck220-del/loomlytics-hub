@@ -313,7 +313,8 @@ const BillingOrders = () => {
       if (activeTab === 'awaiting_doc') {
         const isReady = order.status === 'ready';
         if (!isReady) return false;
-        if (order.priority) return false; // Prioridade tem sua própria aba ou fica em Aberto
+        // Prioridade deve aparecer aqui se estiver pronta e sem documento, 
+        // mas o usuário quer que tenha a cor correta (violeta) em vez da cor de prioridade (vermelha) nesta aba.
         if (!!(order as any).delivery_doc_number) return false;
         if (!matchesSearch) return false;
         return true;
@@ -1078,8 +1079,9 @@ const BillingOrders = () => {
   };
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
-  const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean) => {
-    if (isPriority && status !== 'collected') {
+  const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean, currentTab?: string) => {
+    // Se estiver na aba Aguardando NF/ROM, a prioridade visual é da aba (violeta)
+    if (isPriority && status !== 'collected' && currentTab !== 'awaiting_doc') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
     switch (status) {
@@ -1285,7 +1287,7 @@ const BillingOrders = () => {
         <div className="mt-6 space-y-3">
           {visibleOrders.map((order) => {
             const hasDoc = !!(order as any).delivery_doc_number;
-            const style = getStatusStyle(order.status, order.priority, hasDoc);
+            const style = getStatusStyle(order.status, order.priority, hasDoc, activeTab);
             return (
               <Card
                 key={order.id}
@@ -1306,7 +1308,7 @@ const BillingOrders = () => {
                         <Badge variant="outline" className="font-semibold uppercase text-[10px] border-foreground/20 text-foreground">
                           {order.dyehouse}
                         </Badge>
-                        {order.priority && order.status === 'open' && (
+                        {order.priority && (order.status === 'open' || (order.status === 'ready' && activeTab === 'awaiting_doc')) && (
                           <Badge variant="destructive" className="animate-pulse gap-1 text-[10px]">
                             <AlertTriangle className="h-3 w-3" /> PRIORIDADE
                           </Badge>
