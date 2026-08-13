@@ -303,32 +303,29 @@ export function useBillingOrders() {
       }
     },
     onSuccess: async (data, vars) => {
-      // Invalidação imediata e aguardada de todos os caches relacionados
-      console.log(`[Mutation Success] Status: ${vars.status}. Data:`, data);
+      console.log(`[Mutation Success] Status: ${vars.status}. ID: ${vars.id}`);
       
-      // Se for coletada ou cancelada, removemos do cache local imediatamente (otimista)
+      // 1. Remoção otimista agressiva e logging
       if (vars.status === 'collected' || vars.status === 'cancelled') {
         queryClient.setQueryData(['billing_orders', user?.company_id], (old: any) => {
           if (!old) return old;
-          return old.filter((o: any) => o.id !== vars.id);
+          const filtered = old.filter((o: any) => o.id !== vars.id);
+          console.log(`[Optimistic] Cache size before: ${old.length}, after: ${filtered.length}`);
+          return filtered;
         });
       }
 
-      // Invalidação agressiva de todos os caches que podem afetar a listagem
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['audit_logs'], exact: false })
-      ]);
+      // 2. Invalidação agressiva de todos os caches (sem Promise.all para forçar ordem se necessário, mas aqui paralelos são OK)
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false });
       
-      // Força o refetch imediato das queries principais para garantir sincronia na UI
-      // Usamos um pequeno delay para garantir que o banco já tenha processado a transação
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 3. Delay tático aumentado para 2000ms para garantir que transações do banco (triggers/limpeza) terminem
+      // e que o Realtime não sobrescreva com dados obsoletos durante a transição
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // 4. Refetch final para garantir consistência
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
         queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
