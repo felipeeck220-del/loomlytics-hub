@@ -2038,6 +2038,10 @@ const BillingOrders = () => {
 
             // 3. Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
             console.log("Invalidando caches após coleta bem sucedida...");
+            
+            // Forçamos a remoção local IMEDIATA da OF da lista para evitar race conditions do React Query
+            setOrders(prev => prev.filter(o => o.id !== target.id));
+            
             await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
             await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
             await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
@@ -2048,6 +2052,7 @@ const BillingOrders = () => {
 
             setShowCollectConfirm(null);
             setIsCollecting(false); // Reset do estado de carregamento do botão principal
+            toast({ title: 'OF marcada como coletada' });
             console.log("Fluxo de coleta finalizado");
           } catch (err: any) {
             if (err?.code === 'CONFLICT') {
