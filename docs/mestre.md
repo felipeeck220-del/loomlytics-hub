@@ -1,3 +1,8 @@
+- **13/08/2026 (Brasília) — Estabilização Final da Coleta de OF (Definitivo):**
+    - Corrigido erro de "recursão de atualização" na trigger `handle_billing_order_status_change` movendo a deleção de paletes e estorno de reservas para dentro da RPC `collect_billing_order`, executada após o update de status.
+    - Resolvida a pendência das OFs #612 e #611, movendo-as manualmente para a aba "Coletadas" e consolidando seus dados de peças e peso.
+    - Implementada "remoção otimista" na interface (frontend) via `queryClient.setQueryData`, garantindo que a OF desapareça instantaneamente da tela ao ser coletada, sem depender exclusivamente do refetch do banco.
+    - Refatorada a trigger `BEFORE UPDATE` para focar exclusivamente na consolidação de dados (paletes -> cabeçalho), assegurando que os valores reais nunca fiquem zerados.
 - **13/08/2026 (Brasília) — Estabilização Crítica de Consolidação e Coleta (OF):**
     - Corrigida a trigger `handle_billing_order_status_change` para atuar como `BEFORE UPDATE`, garantindo a persistência dos dados de peças e peso antes da deleção de paletes.
     - Centralizada a lógica de limpeza de paletes e estorno de reservas dentro da trigger atômica, removendo redundâncias na RPC `collect_billing_order`.
