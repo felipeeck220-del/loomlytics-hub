@@ -1093,19 +1093,31 @@ const BillingOrders = () => {
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
   const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean, currentTab?: string) => {
-    // Se estiver na aba Aguardando NF/ROM, a prioridade visual é da aba (violeta)
-    if (isPriority && status !== 'collected' && currentTab !== 'awaiting_doc') {
+    // 1. Se estiver SEPARANDO, a cor deve ser AMARELA (amber), independente de ser prioridade
+    if (status === 'separating') {
+      return { stripe: 'bg-amber-500', label: 'SEPARANDO', badgeClass: 'bg-amber-500 text-white border-amber-600' };
+    }
+
+    // 2. Se estiver PRONTO (ready):
+    if (status === 'ready') {
+      // Se tiver documento, cor VERDE (emerald)
+      if (hasDoc) {
+        return { stripe: 'bg-emerald-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
+      }
+      // Se NÃO tiver documento, cor VIOLETA (violet)
+      return { stripe: 'bg-violet-600', label: 'AGUARDANDO NF/ROM', badgeClass: 'bg-violet-600 text-white border-violet-700' };
+    }
+
+    // 3. PRIORIDADE (Aberto Prioritário): cor VERMELHA (red)
+    // Só mostramos vermelho se for prioridade e não estiver em estados posteriores (separando/pronto)
+    if (isPriority && status !== 'collected' && status !== 'cancelled') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
+
+    // 4. Fluxo Normal (Open) e Estados Finais
     switch (status) {
       case 'open':
         return { stripe: 'bg-sky-600', label: 'ABERTO', badgeClass: 'bg-sky-600 text-white border-sky-700' };
-      case 'separating':
-        return { stripe: 'bg-amber-500', label: 'SEPARANDO', badgeClass: 'bg-amber-500 text-white border-amber-600' };
-      case 'ready':
-        return hasDoc
-          ? { stripe: 'bg-emerald-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-emerald-600 text-white border-emerald-700' }
-          : { stripe: 'bg-violet-600', label: 'AGUARDANDO NF/ROM', badgeClass: 'bg-violet-600 text-white border-violet-700' };
       case 'collected':
         return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
       case 'cancelled':
