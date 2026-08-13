@@ -1290,6 +1290,11 @@ const BillingOrders = () => {
         )}
 
         <div className="mt-6 space-y-3">
+          {visibleOrders.length === 0 && !isLoading && (
+            <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+              Nenhuma ordem encontrada nesta aba.
+            </div>
+          )}
           {visibleOrders.map((order) => {
             const hasDoc = !!(order as any).delivery_doc_number;
             const style = getStatusStyle(order.status, order.priority, hasDoc, activeTab);
