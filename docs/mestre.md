@@ -1,7 +1,9 @@
+- **13/08/2026 (Brasília) — Ajuste de Filtro na Aba Aberto Prioritário (OF):**
+    - Corrigido o filtro da aba "Aberto Prioritário" para exibir apenas OFs em estado inicial (Aberto/Priority).
+    - OFs que já iniciaram separação ou estão prontas agora saem desta aba e seguem para suas respectivas abas operacionais (Separando, Aguardando NF, Pronto para Coleta), evitando duplicidade visual.
 - **13/08/2026 (Brasília) — Ajuste de Cores Progressivas na OF:**
+...
     - Corrigida a lógica de precedência de cores nas Ordens de Faturamento (OF).
-    - Agora, o status "Separando" (Amarelo) e "Pronto/Aguardando NF" (Verde/Violeta) têm prioridade visual sobre o "Vermelho" de prioridade, permitindo acompanhar o progresso real da ordem mesmo que seja prioritária.
-    - Mantida a cor vermelha apenas enquanto a OF prioritária estiver em "Aberto".
 - **13/08/2026 (Brasília) — Estabilização Definitiva da OF #613 e Coleta (Final):**
 ...
     - Reforçada a trigger `AFTER UPDATE` para garantir limpeza de paletes em qualquer transição para `collected/cancelled`.

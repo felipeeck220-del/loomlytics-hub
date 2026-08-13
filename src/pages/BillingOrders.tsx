@@ -303,7 +303,7 @@ const BillingOrders = () => {
       
       if (activeTab === 'priority_tab') {
         return (order.priority || order.status === 'priority') && 
-               (order.status === 'open' || order.status === 'priority' || order.status === 'separating' || order.status === 'ready') && 
+               (order.status === 'open' || order.status === 'priority') && 
                order.status !== 'collected' && 
                order.status !== 'cancelled' && 
                matchesSearch;
