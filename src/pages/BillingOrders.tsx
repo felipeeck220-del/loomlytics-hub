@@ -2039,8 +2039,12 @@ const BillingOrders = () => {
             // 3. Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
             console.log("Invalidando caches após coleta bem sucedida...");
             
-            // Forçamos a remoção local IMEDIATA da OF da lista para evitar race conditions do React Query
-            setOrders(prev => prev.filter(o => o.id !== target.id));
+            // Forçamos a remoção local IMEDIATA da OF da lista para evitar race conditions
+            // Como 'orders' vem do hook e não temos o setter aqui, usamos queryClient.setQueryData
+            queryClient.setQueryData(['billing_orders', user?.company_id], (old: any[] | undefined) => {
+              if (!old) return old;
+              return old.filter(o => o.id !== target.id);
+            });
             
             await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
             await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
