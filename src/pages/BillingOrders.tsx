@@ -2032,13 +2032,15 @@ const BillingOrders = () => {
             await Promise.all([
               queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
               queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
-              queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] }),
-              queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
-              queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
-              queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false })
+              queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] })
             ]);
+            
+            // Refetch explícito após invalidação
+            queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false });
+            queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false });
 
             setShowCollectConfirm(null);
+            setIsCollecting(false); // Reset do estado de carregamento do botão principal
             console.log("Fluxo de coleta finalizado");
           } catch (err: any) {
             if (err?.code === 'CONFLICT') {
