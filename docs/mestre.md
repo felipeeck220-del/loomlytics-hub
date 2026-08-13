@@ -1,3 +1,7 @@
+- **13/08/2026 (Brasília) — Correção de Registro Duplicado de NF/Romaneio:**
+    - Resolvido o erro "Documento já registrado" ao editar NF/Romaneio na RPC `set_billing_order_delivery_doc`.
+    - Removida a trava de auditoria que impedia a atualização do número do documento quando ele já existia, permitindo correções de digitação sem conflitos de "already".
+    - Mantida a integridade da auditoria com o novo valor.
 - **13/08/2026 (Brasília) — Movimentação Manual OF #569 e Estabilização de Coleta:**
     - Movimentada manualmente a OF #569 para "Coletadas" via RPC `collect_billing_order` (transação atômica).
     - Confirmada a preservação de peças (12) e peso (128.000) e a limpeza automática dos paletes.
