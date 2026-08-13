@@ -1,3 +1,6 @@
+- **13/08/2026 (Brasília) — Estabilização Crítica de Coleta e Auditoria (OF):**
+    - Sincronizada a RPC `collect_billing_order` para garantir auditoria de 6 argumentos e integridade do saldo de estoque após a exclusão do módulo manual.
+    - Corrigido o mapeamento de parâmetros no hook `useBillingOrders.ts` para evitar erros de assinatura de função no banco.
 - **13/08/2026 (Brasília) — Estabilização Crítica de Prioridade (OF):**
     - Recriada a RPC `set_billing_order_priority` com assinatura robusta e auditoria canônica de 6 argumentos, resolvendo falha de execução após mudanças no esquema.
     - Corrigido o mapeamento do parâmetro `p_priority` no hook `useBillingOrders.ts` para garantir que valores booleanos sejam passados corretamente para o banco.
