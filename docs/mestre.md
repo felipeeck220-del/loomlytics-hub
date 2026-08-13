@@ -1,3 +1,7 @@
+- **13/08/2026 (Brasília) — Consolidação Definitiva da Coleta de OF:**
+    - Refatorada e consolidada a RPC `collect_billing_order` para garantir idempotência, auditoria canônica de 6 argumentos e limpeza imediata de paletes.
+    - Sincronizada a invalidação de cache no frontend em `BillingOrders.tsx`, garantindo que o estado de carregamento `isCollecting` seja resetado corretamente após a operação.
+    - Confirmada a remoção de qualquer lógica residual relacionada ao antigo módulo de estoque manual nas transições de status.
 - **13/08/2026 (Brasília) — Estabilização Crítica de Coleta e Auditoria (OF):**
     - Sincronizada a RPC `collect_billing_order` para garantir auditoria de 6 argumentos e integridade do saldo de estoque após a exclusão do módulo manual.
     - Corrigido o mapeamento de parâmetros no hook `useBillingOrders.ts` para evitar erros de assinatura de função no banco.
