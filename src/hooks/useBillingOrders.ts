@@ -302,8 +302,10 @@ export function useBillingOrders() {
         throw new Error(res.error || 'Erro na operação do banco de dados');
       }
     },
-    onSuccess: async (_d, vars) => {
+    onSuccess: async (data, vars) => {
       // Invalidação imediata e aguardada de todos os caches relacionados
+      console.log(`[Mutation Success] Status: ${vars.status}. Data:`, data);
+      
       await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
       await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
       await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
@@ -313,11 +315,9 @@ export function useBillingOrders() {
       await queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
       
       // Força o refetch imediato das queries principais para garantir sincronia na UI
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
-        queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
-        queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false })
-      ]);
+      queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false });
+      queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false });
+      queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false });
       
       const labels: Record<string, string> = {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
