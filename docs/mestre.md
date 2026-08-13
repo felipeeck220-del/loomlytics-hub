@@ -1,3 +1,6 @@
+- **13/08/2026 (Brasília) — Movimentação Manual OF #622 e #623:**
+    - Movimentadas manualmente as OFs #622 e #623 para "Coletadas" via RPC `collect_billing_order`.
+    - Garantida a limpeza de paletes e auditoria de coleta para o usuário Felipe #832.
 - **13/08/2026 (Brasília) — Correção de Registro Duplicado de NF/Romaneio:**
     - Resolvido o erro "Documento já registrado" ao editar NF/Romaneio na RPC `set_billing_order_delivery_doc`.
     - Removida a trava de auditoria que impedia a atualização do número do documento quando ele já existia, permitindo correções de digitação sem conflitos de "already".
