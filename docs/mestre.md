@@ -1,3 +1,6 @@
+- **13/08/2026 (Brasília) — Movimentação Manual OF #591 e Refinamento de Filtro:**
+    - Movida manualmente a OF #591 para "Coletadas" via migração SQL.
+    - Refinado o filtro visual em `src/pages/BillingOrders.tsx` para garantir que OFs `collected` ou `cancelled` sejam removidas imediatamente de qualquer aba operacional, prevenindo o "congelamento" em Pronto para Coleta.
 - **12/08/2026 (Brasília) — Estabilização Final de Coleta e Prioridade (OF):**
     - Sincronizada a função de auditoria `_of_audit` para assinatura de 6 argumentos com isolamento de tenant.
     - Refatorada a RPC `collect_billing_order` para incluir a limpeza de paletes (`DELETE`) garantindo que a OF saia da aba "Pronto para coleta" imediatamente após a coleta.
