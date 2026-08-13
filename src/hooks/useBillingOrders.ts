@@ -324,10 +324,11 @@ export function useBillingOrders() {
         queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false })
       ]);
       
-      // 3. Delay tático de 2500ms (aumentado para evitar reaparecimento por latência de trigger/realtime)
+      // 3. Delay tático de 5000ms (aumentado substancialmente)
       // O usuário relatou que a OF some e volta, o que indica que o refetch está trazendo dados velhos
       // antes da transação de DELETE de paletes e UPDATE de status concluir totalmente no nó do banco.
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Com 5 segundos garantimos que o Realtime e os gatilhos terminem sua propagação.
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       // 4. Refetch final agressivo
       await Promise.all([
