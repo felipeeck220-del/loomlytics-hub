@@ -83,6 +83,7 @@ const BillingOrders = () => {
   // Resetar página ao trocar de aba
   useEffect(() => { setCollectedPage(1); }, [activeTab]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [checkingOfId, setCheckingOfId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
   const [confirmFinalizePallets, setConfirmFinalizePallets] = useState(false);
