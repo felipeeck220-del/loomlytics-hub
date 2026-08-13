@@ -1,3 +1,8 @@
+- **13/08/2026 (Brasília) — Pente Fino e Estabilização Final de Integridade (OF):**
+    - Realizada auditoria técnica completa e consolidada no módulo de faturamento (OF), garantindo a resiliência das transições de status e integridade dos dados pós-coleta.
+    - Confirmada a eficácia da trigger `AFTER UPDATE` e da RPC `collect_billing_order` na limpeza atômica de paletes e reservas, resolvendo definitivamente o reaparecimento de ordens coletadas.
+    - Validada a remoção de todos os resquícios funcionais do módulo "Estoque Manual" do frontend e backend.
+    - Verificada a conformidade das auditorias canônicas de 6 argumentos em todas as operações de faturamento.
 - **13/08/2026 (Brasília) — Ajuste de Filtro na Aba Aberto Prioritário (OF):**
     - Corrigido o filtro da aba "Aberto Prioritário" para exibir apenas OFs em estado inicial (Aberto/Priority).
     - OFs que já iniciaram separação ou estão prontas agora saem desta aba e seguem para suas respectivas abas operacionais (Separando, Aguardando NF, Pronto para Coleta), evitando duplicidade visual.
