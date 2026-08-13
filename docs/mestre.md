@@ -1,3 +1,6 @@
+- **13/08/2026 (Brasília) — Implementação de Testes de Integração e Reforço na Coleta (OF):**
+    - Implementada validação de fluxo de coleta com fotos para garantir que a OF sempre mude de "Pronto para coleta" para "Coletadas" e desapareça instantaneamente das abas operacionais.
+    - Reforçada a lógica de desacoplamento entre upload de fotos e mudança de status na RPC, garantindo que falhas de rede no upload não causem inconsistência de status no banco.
 - **13/08/2026 (Brasília) — Estabilização Final da Transição de Coleta (OF):**
     - Corrigida a lógica de filtragem reativa em `src/pages/BillingOrders.tsx` para garantir que OFs `collected` sejam removidas instantaneamente de qualquer aba operacional (Pronto para coleta, Atraso, etc.) removendo o atraso visual percebido pelo usuário.
     - Otimizada a sequência de invalidação no `onSuccess` do hook `useBillingOrders.ts` com logs de depuração para rastrear a propagação do novo status `collected`.
