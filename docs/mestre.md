@@ -1,3 +1,7 @@
+- **13/08/2026 (Brasília) — Movimentação Manual OF #592 e Ajuste de Latência:**
+    - Movimentada manualmente a OF #592 para "Coletadas" via RPC `collect_billing_order`.
+    - Ajustado o delay de sincronização no hook `useBillingOrders.ts` para **2500ms** para evitar o efeito "vai e volta" (OF sumindo e reaparecendo) causado pela latência entre a conclusão da transação no banco (deleção de paletes) e o refetch da UI.
+    - Reforçada a invalidação de cache com `await Promise.all` para garantir consistência visual imediata.
 - **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
     - Realizada auditoria técnica completa no módulo de faturamento (OF), consolidando gatilhos e eliminando redundâncias.
     - Consolidada a trigger `tr_billing_order_status_change` como `AFTER UPDATE` única para evitar conflitos de "tuple already modified".

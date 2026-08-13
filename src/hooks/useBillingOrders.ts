@@ -315,17 +315,21 @@ export function useBillingOrders() {
         });
       }
 
-      // 2. Invalidação imediata de todos os caches relacionados
-      queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false });
+      // 2. Invalidação imediata e forçada de todos os caches relacionados
+      // Usando invalidate e refetch com cancelamento de queries em andamento
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false })
+      ]);
       
-      // 3. Delay estratégico de 1200ms para permitir que as triggers e transações do banco concluam
-      // antes do refetch final, evitando que dados obsoletos voltem via Realtime ou query.
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      // 3. Delay tático de 2500ms (aumentado para evitar reaparecimento por latência de trigger/realtime)
+      // O usuário relatou que a OF some e volta, o que indica que o refetch está trazendo dados velhos
+      // antes da transação de DELETE de paletes e UPDATE de status concluir totalmente no nó do banco.
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
-      // 4. Refetch agressivo para garantir consistência visual
+      // 4. Refetch final agressivo
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['billing_orders'], exact: false }),
         queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], exact: false }),
