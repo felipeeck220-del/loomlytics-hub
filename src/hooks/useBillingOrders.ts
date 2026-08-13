@@ -306,18 +306,28 @@ export function useBillingOrders() {
       // Invalidação imediata e aguardada de todos os caches relacionados
       console.log(`[Mutation Success] Status: ${vars.status}. Data:`, data);
       
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
-      await queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
-      await queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
-      await queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
-      await queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
+      // Se for coletada ou cancelada, removemos do cache local imediatamente (otimista)
+      if (vars.status === 'collected' || vars.status === 'cancelled') {
+        queryClient.setQueryData(['billing_orders', user?.company_id], (old: any) => {
+          if (!old) return old;
+          return old.filter((o: any) => o.id !== vars.id);
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['stock_movements_history'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ['audit_logs'], exact: false });
       
       // Força o refetch imediato das queries principais para garantir sincronia na UI
-      queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false });
-      queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false });
-      queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
+        queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
+        queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false })
+      ]);
       
       const labels: Record<string, string> = {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
