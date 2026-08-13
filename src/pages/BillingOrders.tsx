@@ -1633,6 +1633,7 @@ const BillingOrders = () => {
                             onClick={async () => {
                               if (isCollecting) return;
                               setIsCollecting(true);
+                              setCheckingOfId(order.id);
                               try {
                                 console.log("[OF Coleta] Verificando status atual da OF #", order.of_number);
                                 const { data: current, error: checkErr } = await supabase
@@ -1655,6 +1656,7 @@ const BillingOrders = () => {
                                   await queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
                                   await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
                                   setIsCollecting(false);
+                                  setCheckingOfId(null);
                                   return;
                                 }
                                 setShowCollectConfirm(order);
@@ -1663,10 +1665,11 @@ const BillingOrders = () => {
                                 toast({ title: 'Erro ao verificar OF', variant: 'destructive' });
                               } finally {
                                 setIsCollecting(false);
+                                setCheckingOfId(null);
                               }
                             }}
                           >
-                            {isCollecting && showCollectConfirm?.id === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />} Marcar Coleta
+                            {isCollecting && checkingOfId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />} Marcar Coleta
                           </Button>
                         )}
                       </div>
