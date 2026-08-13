@@ -314,15 +314,21 @@ export function useBillingOrders() {
         });
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['stock_movements_history'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['audit_logs'], exact: false });
+      // Invalidação agressiva de todos os caches que podem afetar a listagem
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['audit_logs'], exact: false })
+      ]);
       
       // Força o refetch imediato das queries principais para garantir sincronia na UI
+      // Usamos um pequeno delay para garantir que o banco já tenha processado a transação
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
         queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
