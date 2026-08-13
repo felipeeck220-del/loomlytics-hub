@@ -285,7 +285,7 @@ export function useBillingOrders() {
         ({ data: res } = await (supabase as any).rpc('set_billing_order_priority', {
           p_company_id: user?.company_id, 
           p_id: id, 
-          p_priority: (data?.priority ?? true),
+          p_priority: data?.priority !== undefined ? data.priority : true,
           p_reason: data?.priority_reason ?? null,
           p_author_name: a.name, 
           p_author_code: a.code,
