@@ -1,3 +1,8 @@
+- **13/08/2026 (Brasília) — Estabilização Crítica de Consolidação e Coleta (OF):**
+    - Corrigida a trigger `handle_billing_order_status_change` para atuar como `BEFORE UPDATE`, garantindo a persistência dos dados de peças e peso antes da deleção de paletes.
+    - Centralizada a lógica de limpeza de paletes e estorno de reservas dentro da trigger atômica, removendo redundâncias na RPC `collect_billing_order`.
+    - Refinada a lógica de consolidação: paletes > separação manual > fallback (expected) para evitar registros zerados na aba "Coletadas".
+    - Validada a transição de status instantânea e integridade de dados pós-coleta.
 - **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
     - Realizada auditoria técnica de integridade no módulo de faturamento (OF), validando assinaturas de RPCs, consistência de esquemas e fluxos de transição de status.
     - Confirmada a resiliência das RPCs operacionais (`collect`, `priority`, `ready`, `create`, `cancel`, `set_doc`) com `SECURITY DEFINER` e auditoria canônica de 6 argumentos.
