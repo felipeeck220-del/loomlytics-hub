@@ -1,3 +1,5 @@
+- **13/08/2026 (Brasília) — Correção de Animação no Botão de Coleta (OF):**
+    - Implementado estado `checkingOfId` para garantir que a animação de carregamento (`Loader2`) seja exibida apenas no botão clicado, evitando o comportamento de "piscar" em todos os botões da lista.
 - **13/08/2026 (Brasília) — Implementação de Testes de Integração e Reforço na Coleta (OF):**
     - Implementada validação de fluxo de coleta com fotos para garantir que a OF sempre mude de "Pronto para coleta" para "Coletadas" e desapareça instantaneamente das abas operacionais.
     - Reforçada a lógica de desacoplamento entre upload de fotos e mudança de status na RPC, garantindo que falhas de rede no upload não causem inconsistência de status no banco.
