@@ -356,7 +356,7 @@ const BillingOrders = () => {
       if (activeTab === 'collected' || activeTab === 'cancelled') {
         if (order.status !== activeTab) return false;
       } else {
-        // Bloqueia coletadas/canceladas em abas operacionais
+        // Bloqueia coletadas/canceladas em QUALQUER aba que não seja a delas
         if (order.status === 'collected' || order.status === 'cancelled') return false;
         
         // Para outras abas operacionais (separating), filtra pelo status
