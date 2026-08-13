@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -302,8 +302,16 @@ const BillingOrders = () => {
       if (activeTab === 'all') return matchesSearch;
       
       if (activeTab === 'priority_tab') {
-        // Garantir que status 'priority' também seja capturado se existir no banco
-        return (order.priority || order.status === 'priority') && (order.status === 'open' || order.status === 'priority') && matchesSearch;
+        return (order.priority || order.status === 'priority') && 
+               (order.status === 'open' || order.status === 'priority' || order.status === 'separating' || order.status === 'ready') && 
+               order.status !== 'collected' && 
+               order.status !== 'cancelled' && 
+               matchesSearch;
+      }
+
+      // Bloqueio global: coletadas e canceladas nunca aparecem em abas operacionais
+      if (order.status === 'collected' || order.status === 'cancelled') {
+        if (activeTab !== 'collected' && activeTab !== 'cancelled') return false;
       }
 
       // Se for a aba Aberto, garantir que mostre apenas o que não é prioridade e tem status open
@@ -1290,6 +1298,11 @@ const BillingOrders = () => {
         )}
 
         <div className="mt-6 space-y-3">
+          {visibleOrders.length === 0 && !isLoading && (
+            <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+              Nenhuma ordem encontrada nesta aba.
+            </div>
+          )}
           {visibleOrders.map((order) => {
             const hasDoc = !!(order as any).delivery_doc_number;
             const style = getStatusStyle(order.status, order.priority, hasDoc, activeTab);

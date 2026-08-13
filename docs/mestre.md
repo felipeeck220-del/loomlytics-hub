@@ -1,3 +1,8 @@
+- **13/08/2026 (Brasília) — Correção do Efeito "Vai e Volta" na Coleta (OF):**
+    - Identificada causa do reaparecimento de OFs coletadas devido a latência do Realtime e cache inconsistente.
+    - Implementada trava de segurança global nos filtros de `BillingOrders.tsx` para excluir sumariamente ordens `collected/cancelled` de qualquer aba operacional.
+    - Adicionado delay tático de 500ms no refetch do `useBillingOrders.ts` para garantir que o banco finalize a transação antes da atualização da UI.
+    - Reforçada a remoção otimista no cache do React Query.
 - **13/08/2026 (Brasília) — Estabilização Final da Coleta de OF (Definitivo):**
     - Corrigido erro de "recursão de atualização" na trigger `handle_billing_order_status_change` movendo a deleção de paletes e estorno de reservas para dentro da RPC `collect_billing_order`, executada após o update de status.
     - Resolvida a pendência das OFs #612 e #611, movendo-as manualmente para a aba "Coletadas" e consolidando seus dados de peças e peso.
