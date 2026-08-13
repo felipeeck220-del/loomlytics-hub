@@ -1,7 +1,9 @@
+- **13/08/2026 (Brasília) — Ajuste de Cores Progressivas na OF:**
+    - Corrigida a lógica de precedência de cores nas Ordens de Faturamento (OF).
+    - Agora, o status "Separando" (Amarelo) e "Pronto/Aguardando NF" (Verde/Violeta) têm prioridade visual sobre o "Vermelho" de prioridade, permitindo acompanhar o progresso real da ordem mesmo que seja prioritária.
+    - Mantida a cor vermelha apenas enquanto a OF prioritária estiver em "Aberto".
 - **13/08/2026 (Brasília) — Estabilização Definitiva da OF #613 e Coleta (Final):**
-    - Resolvido o problema da OF #613 (e futuras) reaparecerem na aba "Pronto para coleta" após a confirmação.
-    - Implementada movimentação manual da OF #613 e limpeza atômica de paletes via SQL.
-    - Aumentado o delay de sincronização (Latency Compensation) para 2000ms no hook `useBillingOrders.ts` para garantir que o banco conclua transações complexas antes do refetch.
+...
     - Reforçada a trigger `AFTER UPDATE` para garantir limpeza de paletes em qualquer transição para `collected/cancelled`.
 - **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
     - Realizada auditoria técnica completa no módulo de faturamento (OF), gerando `docs/of_integrity_audit.md`.
