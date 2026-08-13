@@ -1,8 +1,9 @@
-- **13/08/2026 (Brasília) — Pente Fino e Estabilização Final de Integridade (OF):**
-    - Realizada auditoria técnica completa e consolidada no módulo de faturamento (OF), garantindo a resiliência das transições de status e integridade dos dados pós-coleta.
-    - Confirmada a eficácia da trigger `AFTER UPDATE` e da RPC `collect_billing_order` na limpeza atômica de paletes e reservas, resolvendo definitivamente o reaparecimento de ordens coletadas.
-    - Validada a remoção de todos os resquícios funcionais do módulo "Estoque Manual" do frontend e backend.
-    - Verificada a conformidade das auditorias canônicas de 6 argumentos em todas as operações de faturamento.
+- **13/08/2026 (Brasília) — Estabilização Crítica e Fix de Coleta (OF #614, #615):**
+    - Movimentadas manualmente as OFs #614 e #615 para "Coletadas" via RPC `collect_billing_order` estabilizada.
+    - Refatorada a RPC `collect_billing_order` para garantir atomicidade: consolidação de paletes -> update status -> delete paletes em uma única transação, prevenindo "fantasmas" na interface.
+    - Otimizada a filtragem reativa em `src/pages/BillingOrders.tsx` com trava global de status para garantir que ordens coletadas desapareçam instantaneamente de qualquer aba operacional, independente da latência do cache.
+    - Ajustado o delay de sincronização no hook `useBillingOrders.ts` para 1200ms, equilibrando performance e consistência transacional.
+    - Confirmada a persistência de peças e peso nas OFs coletadas através da consolidação manual via paletes/previsão.
 - **13/08/2026 (Brasília) — Ajuste de Filtro na Aba Aberto Prioritário (OF):**
     - Corrigido o filtro da aba "Aberto Prioritário" para exibir apenas OFs em estado inicial (Aberto/Priority).
     - OFs que já iniciaram separação ou estão prontas agora saem desta aba e seguem para suas respectivas abas operacionais (Separando, Aguardando NF, Pronto para Coleta), evitando duplicidade visual.

@@ -311,7 +311,10 @@ const BillingOrders = () => {
 
       // Bloqueio global: coletadas e canceladas nunca aparecem em abas operacionais
       if (order.status === 'collected' || order.status === 'cancelled') {
-        if (activeTab !== 'collected' && activeTab !== 'cancelled') return false;
+        if (activeTab === 'collected' || activeTab === 'cancelled') {
+          return order.status === activeTab && matchesSearch;
+        }
+        return false;
       }
 
       // Se for a aba Aberto, garantir que mostre apenas o que não é prioridade e tem status open
