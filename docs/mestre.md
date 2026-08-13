@@ -1,3 +1,7 @@
+- **13/08/2026 (Brasília) — Movimentação Manual OF #569 e Estabilização de Coleta:**
+    - Movimentada manualmente a OF #569 para "Coletadas" via RPC `collect_billing_order` (transação atômica).
+    - Confirmada a preservação de peças (12) e peso (128.000) e a limpeza automática dos paletes.
+    - Mantido o delay de sincronização de 5000ms no hook para prevenir efeito ghost em novas coletas.
 - **13/08/2026 (Brasília) — Movimentação Manual OF #568 e Estabilização de Coleta:**
     - Movimentada manualmente a OF #568 para "Coletadas" via script SQL direto (transação atômica).
     - Ajustado o delay de sincronização no hook `useBillingOrders.ts` para **5000ms**. Esta medida extrema visa eliminar definitivamente o reaparecimento de OFs (efeito ghost) causado por latência de propagação de triggers de limpeza de paletes e Realtime.
