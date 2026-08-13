@@ -305,31 +305,31 @@ export function useBillingOrders() {
     onSuccess: async (data, vars) => {
       console.log(`[Mutation Success] Status: ${vars.status}. ID: ${vars.id}`);
       
-      // 1. Remoção otimista agressiva e logging
+      // 1. Remoção otimista agressiva no cache local
       if (vars.status === 'collected' || vars.status === 'cancelled') {
         queryClient.setQueryData(['billing_orders', user?.company_id], (old: any) => {
           if (!old) return old;
           const filtered = old.filter((o: any) => o.id !== vars.id);
-          console.log(`[Optimistic] Cache size before: ${old.length}, after: ${filtered.length}`);
+          console.log(`[Optimistic] Cache updated. Removed ID: ${vars.id}`);
           return filtered;
         });
       }
 
-      // 2. Invalidação agressiva de todos os caches (sem Promise.all para forçar ordem se necessário, mas aqui paralelos são OK)
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false });
+      // 2. Invalidação imediata de todos os caches relacionados
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false });
       
-      // 3. Delay tático aumentado para 2000ms para garantir que transações do banco (triggers/limpeza) terminem
-      // e que o Realtime não sobrescreva com dados obsoletos durante a transição
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 3. Delay estratégico de 1200ms para permitir que as triggers e transações do banco concluam
+      // antes do refetch final, evitando que dados obsoletos voltem via Realtime ou query.
+      await new Promise(resolve => setTimeout(resolve, 1200));
       
-      // 4. Refetch final para garantir consistência
+      // 4. Refetch agressivo para garantir consistência visual
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false }),
-        queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], type: 'active', exact: false }),
-        queryClient.refetchQueries({ queryKey: ['billing_orders_list'], type: 'active', exact: false })
+        queryClient.refetchQueries({ queryKey: ['billing_orders'], exact: false }),
+        queryClient.refetchQueries({ queryKey: ['billing_orders_bootstrap'], exact: false }),
+        queryClient.refetchQueries({ queryKey: ['billing_orders_list'], exact: false })
       ]);
       
       const labels: Record<string, string> = {
