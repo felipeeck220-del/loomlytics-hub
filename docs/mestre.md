@@ -1,3 +1,7 @@
+- **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
+    - Realizada auditoria técnica de integridade no módulo de faturamento (OF), validando assinaturas de RPCs, consistência de esquemas e fluxos de transição de status.
+    - Confirmada a resiliência das RPCs operacionais (`collect`, `priority`, `ready`, `create`, `cancel`, `set_doc`) com `SECURITY DEFINER` e auditoria canônica de 6 argumentos.
+    - Validada a limpeza de paletes e sincronização de saldo de estoque pós-coleta, garantindo conformidade com a exclusão do módulo de estoque manual.
 - **13/08/2026 (Brasília) — Correção de Animação no Botão de Coleta (OF):**
     - Implementado estado `checkingOfId` para garantir que a animação de carregamento (`Loader2`) seja exibida apenas no botão clicado, evitando o comportamento de "piscar" em todos os botões da lista.
 - **13/08/2026 (Brasília) — Implementação de Testes de Integração e Reforço na Coleta (OF):**
