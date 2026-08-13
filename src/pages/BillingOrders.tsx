@@ -356,7 +356,7 @@ const BillingOrders = () => {
       if (activeTab === 'collected' || activeTab === 'cancelled') {
         if (order.status !== activeTab) return false;
       } else {
-        // Bloqueia coletadas/canceladas em abas operacionais
+        // Bloqueia coletadas/canceladas em QUALQUER aba que não seja a delas
         if (order.status === 'collected' || order.status === 'cancelled') return false;
         
         // Para outras abas operacionais (separating), filtra pelo status
@@ -2008,8 +2008,13 @@ const BillingOrders = () => {
             console.log("Iniciando coleta da OF:", target.of_number);
             
             // 1. Executa a RPC de coleta
-            await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
-            console.log("RPC collect_billing_order executada com sucesso");
+            console.log("Chamando updateStatus.mutateAsync para status 'collected'...");
+            const result = await updateStatus.mutateAsync({ 
+              id: target.id, 
+              status: 'collected', 
+              expectedStatus: 'ready' 
+            });
+            console.log("RPC collect_billing_order executada com sucesso. Resultado:", result);
 
             // 2. Anexa as fotos se houver (operação separada para não travar a coleta)
             if (photos.length > 0) {
@@ -2028,12 +2033,10 @@ const BillingOrders = () => {
             }
 
             // 3. Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
-            console.log("Invalidando caches...");
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: ['billing_orders'] }),
-              queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] }),
-              queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] })
-            ]);
+            console.log("Invalidando caches após coleta bem sucedida...");
+            await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+            await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+            await queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
             
             // Refetch explícito após invalidação
             queryClient.refetchQueries({ queryKey: ['billing_orders'], type: 'active', exact: false });
