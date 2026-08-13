@@ -1,3 +1,6 @@
+- **13/08/2026 (Brasília) — Movimentação Manual OF #611 e Correção de Prioridade:**
+    - Movida manualmente a OF #611 para "Aberto Prioritário" via SQL.
+    - Refinada a lógica de filtragem da aba `priority_tab` em `src/pages/BillingOrders.tsx` para garantir que ordens marcadas como prioridade sejam exibidas corretamente mesmo em casos de inconsistência de status.
 - **13/08/2026 (Brasília) — Movimentação Manual OF #591 e Refinamento de Filtro:**
     - Movida manualmente a OF #591 para "Coletadas" via migração SQL.
     - Refinado o filtro visual em `src/pages/BillingOrders.tsx` para garantir que OFs `collected` ou `cancelled` sejam removidas imediatamente de qualquer aba operacional, prevenindo o "congelamento" em Pronto para Coleta.
