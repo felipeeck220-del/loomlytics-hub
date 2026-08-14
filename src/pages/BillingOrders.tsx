@@ -2972,7 +2972,7 @@ const BillingOrders = () => {
                   </div>
                 </div>
                 <DialogFooter className="mt-4 pt-4 border-t px-0">
-                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
+                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '' }); }}>Fechar</Button>
                   <Button
                     className={cn(
                       "font-bold gap-1.5",
