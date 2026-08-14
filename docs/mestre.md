@@ -67,3 +67,10 @@
 
 - **02/08/2026 (Brasília) — Pente fino de segurança: RPCs de Relatórios e Dashboard sem isolamento de empresa:**
     - Auditoria das funções `SECURITY DEFINER` injetando guarda de tenant `public.get_user_company_id()`.
+
+- **14/08/2026 (Brasília) — Pente Fino Técnico e Auditoria de Segurança (OF):**
+    - Realizada auditoria completa de todas as RPCs operacionais (`create`, `edit`, `start`, `ready`, `collect`, `cancel`, `link`).
+    - Confirmado que todas utilizam `SECURITY DEFINER` com `search_path = public` e proteção de tenant via `public._of_current_profile_id`.
+    - Validada a integridade do controle de múltiplos: trava de finalização no frontend e persistência no banco.
+    - Sincronizadas as assinaturas de auditoria em todo o fluxo logístico para o padrão de 6 argumentos.
+    - O módulo de Ordem de Faturamento (OF) está estabilizado como sistema logístico puro, sem dependências de triggers de estoque.
