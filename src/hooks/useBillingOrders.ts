@@ -324,10 +324,8 @@ export function useBillingOrders() {
         queryClient.invalidateQueries({ queryKey: ['billing_order_detail'], exact: false })
       ]);
       
-      // 3. Delay tático de 10000ms (aumentado para eliminar definitivamente o efeito ghost)
-      // O usuário relatou que a OF some e volta. Com a nova trigger atômica e limpeza de paletes,
-      // a propagação do Realtime e processamento em triggers complexas exige maior tempo de segurança.
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      // 3. Delay tático de 500ms
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // 4. Refetch final agressivo
       await Promise.all([
