@@ -58,8 +58,8 @@
 - **08/08/2026 (Brasília) — Mecânica: Remoção de Skeletons e otimização visual:**
     - Spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados.
 
-- **06/08/2026 (Brasília) — Ordem de Faturamento (OF): anexo de foto obrigatório na coleta:**
-    - No modal de finalização da coleta, o anexo de pelo menos 1 foto das notas fiscais/documentos passou a ser obrigatório.
+- **14/08/2026 (Brasília) — Ordem de Faturamento (OF): fotos na coleta tornadas opcionais:**
+    - Removida a obrigatoriedade de anexo de foto para finalizar a coleta de OFs, tornando o processo mais ágil conforme solicitação.
 
 - **02/08/2026 (Brasília) — Pente fino Estoque Malha (Manual):**
     - Auditoria completa do módulo após as últimas entregas.
