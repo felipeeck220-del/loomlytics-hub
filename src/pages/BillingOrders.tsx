@@ -1103,9 +1103,16 @@ const BillingOrders = () => {
 
     // 2. Se estiver PRONTO (ready):
     if (status === 'ready') {
+      // Se estiver sendo visualizada na aba "Atraso", mantém o estilo de Pronto com Doc se aplicável
+      const isDelayed = currentTab === 'delayed_collection';
+      
       // Se tiver documento, cor VERDE (emerald)
       if (hasDoc) {
-        return { stripe: 'bg-emerald-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
+        return { 
+          stripe: isDelayed ? 'bg-orange-600' : 'bg-emerald-600', 
+          label: isDelayed ? 'ATRASO NA COLETA' : 'PRONTO PARA COLETA', 
+          badgeClass: isDelayed ? 'bg-orange-600 text-white border-orange-700' : 'bg-emerald-600 text-white border-emerald-700' 
+        };
       }
       // Se NÃO tiver documento, cor VIOLETA (violet)
       return { stripe: 'bg-violet-600', label: 'AGUARDANDO NF/ROM', badgeClass: 'bg-violet-600 text-white border-violet-700' };
