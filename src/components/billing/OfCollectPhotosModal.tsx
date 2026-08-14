@@ -66,10 +66,8 @@ export const OfCollectPhotosModal: React.FC<Props> = ({
 
   const handleConfirm = async () => {
     if (!order || saving) return;
-    if (drafts.length === 0) {
-      toast({ title: 'Anexo obrigatório', description: 'Adicione pelo menos uma foto das notas fiscais para finalizar.', variant: 'destructive' });
-      return;
-    }
+    // Removida obrigatoriedade de fotos conforme solicitação
+
     setSaving(true);
     const uploadedPaths: string[] = [];
     try {
@@ -144,8 +142,8 @@ export const OfCollectPhotosModal: React.FC<Props> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <p className="text-sm text-muted-foreground font-medium bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-amber-700 dark:text-amber-400">
-            <strong>Anexo obrigatório:</strong> Tire pelo menos <strong>1 foto</strong> (máximo {MAX_PHOTOS}) das notas fiscais e demais documentos para finalizar.
+          <p className="text-sm text-muted-foreground font-medium bg-blue-500/10 p-3 rounded-md border border-blue-500/20 text-blue-700 dark:text-blue-400">
+            <strong>Anexo opcional:</strong> Se desejar, tire até <strong>{MAX_PHOTOS} fotos</strong> das notas fiscais e demais documentos para registro.
           </p>
 
           <div className="space-y-3">
