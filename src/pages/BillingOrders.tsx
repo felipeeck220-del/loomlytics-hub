@@ -1638,7 +1638,7 @@ const BillingOrders = () => {
                           </Button>
                         )}
 
-                        {(order.status === 'open' || order.status === 'priority' || (order.status as string) === 'open_priority' || order.priority) && (role === 'expedicao' || isAdmin) && (
+                        {(order.status === 'open' || order.status === 'priority' || (order.status as string) === 'open_priority' || (order.priority && (order.status === 'open' || order.status === 'priority'))) && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
                             className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
