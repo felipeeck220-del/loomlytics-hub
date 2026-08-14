@@ -149,6 +149,11 @@
     - Resolvido o erro "function public._of_audit(uuid, unknown, jsonb, text, text, jsonb) does not exist" ao atrelar OFs.
     - Sincronizada a assinatura da RPC `link_billing_orders` (4 argumentos) com a função canônica de auditoria `_of_audit` (6 argumentos).
     - Removidas versões obsoletas/duplicadas das funções de agrupamento (`link`, `unlink`, `remove`) para garantir estabilidade no banco de dados.
+- **14/08/2026 (Brasília) — Estabilização Crítica e Refatoração de RPCs (OF):**
+    - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
+    - Iniciada separação manualmente para a OF #626 (ID 8dd5aa93) via migração direta para resolver travamento na aba "Aberto".
+    - Refatorada a lógica do botão "Iniciar Separação" em `BillingOrders.tsx` para garantir visibilidade correta em ordens prioritárias.
+    - Otimizadas as RPCs `collect_billing_order` e `launch_billing_order_ready` com travas pessimistas (`FOR UPDATE`) para eliminar o "efeito fantasma" e garantir atomicidade nas transições de status.
 - **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
 
     - Corrigida ambiguidade na RPC `cancel_billing_order` (erro "Could not choose the best candidate function") através da remoção de versões duplicadas e consolidação em uma única assinatura com tipos de argumentos flexíveis (`text`).
