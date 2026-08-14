@@ -5,314 +5,65 @@
     - Removidas opções de "Origem do Estoque" (Cliente, Outro Artigo, Estoque Trama) do modal de paletes.
     - Reduzido o delay de sincronização no hook `useBillingOrders.ts` para **500ms**, tornando a interface muito mais rápida.
 
-- **14/08/2026 (Brasília) — Movimentação Manual OF #508 e Correção de Trigger:**
-    - Corrigida a trigger `handle_billing_order_status_change` para garantir a consolidação atômica de peças e peso e a limpeza de paletes durante a transição para `collected`.
-    - Aumentado o delay de sincronização no hook `useBillingOrders.ts` para **8000ms** para eliminar o efeito "ghost" (OF voltando para a aba anterior) devido à latência de propagação do banco.
-    - Ajustado o `getStatusStyle` em `BillingOrders.tsx` para refletir melhor o status de atraso na coleta.
-- **13/08/2026 (Brasília) — Movimentação Manual OF #622 e #623:**
-    - Movimentadas manualmente as OFs #622 e #623 para "Coletadas" via RPC `collect_billing_order`.
+- **14/08/2026 (Brasília) — Estabilização Crítica e Refatoração de RPCs (OF):**
+    - Corrigido erro de constraint FK (`billing_orders_collected_by_fkey` e `billing_orders_cancelled_by_fkey`) nas RPCs `collect_billing_order` e `cancel_billing_order`. As funções estavam tentando inserir o `auth.uid()` (ID do usuário) em colunas que exigem o Profile ID.
+    - Refatoradas as RPCs para buscar o ID do perfil correto via `_of_current_profile_id` antes de realizar o update, garantindo integridade referencial com a tabela `profiles`.
+    - Confirmada a transição atômica para os status `collected` e `cancelled` após a correção da integridade referencial.
+    - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
+    - Iniciada separação manualmente para a OF #626 (ID 8dd5aa93) via migração direta para resolver travamento na aba "Aberto".
+    - Otimizadas as RPCs `collect_billing_order` e `launch_billing_order_ready` com travas pessimistas (`FOR UPDATE`) para eliminar o "efeito fantasma" e garantir atomicidade nas transições de status.
+    - Refatorada a lógica do botão "Iniciar Separação" em `BillingOrders.tsx` para garantir visibilidade correta em ordens prioritárias.
+
+- **13/08/2026 (Brasília) — Correção de Atrelação de OFs:**
+    - Resolvido o erro "function public.link_billing_orders(p_author_code, p_author_name, p_company_id, p_ids) in the schema cache".
+    - Sincronizada a assinatura da função `link_billing_orders` para aceitar 4 argumentos e realizar a auditoria canônica de 6 argumentos internamente.
+
 - **13/08/2026 (Brasília) — Correção de Registro Duplicado de NF/Romaneio:**
     - Resolvido o erro "Documento já registrado" ao editar NF/Romaneio na RPC `set_billing_order_delivery_doc`.
     - Removida a trava de auditoria que impedia a atualização do número do documento quando ele já existia, permitindo correções de digitação sem conflitos de "already".
-    - Mantida a integridade da auditoria com o novo valor.
+
 - **13/08/2026 (Brasília) — Movimentação Manual OF #569 e Estabilização de Coleta:**
     - Movimentada manualmente a OF #569 para "Coletadas" via RPC `collect_billing_order` (transação atômica).
     - Confirmada a preservação de peças (12) e peso (128.000) e a limpeza automática dos paletes.
-    - Mantido o delay de sincronização de 5000ms no hook para prevenir efeito ghost em novas coletas.
+
 - **13/08/2026 (Brasília) — Movimentação Manual OF #568 e Estabilização de Coleta:**
     - Movimentada manualmente a OF #568 para "Coletadas" via script SQL direto (transação atômica).
-    - Ajustado o delay de sincronização no hook `useBillingOrders.ts` para **5000ms**. Esta medida extrema visa eliminar definitivamente o reaparecimento de OFs (efeito ghost) causado por latência de propagação de triggers de limpeza de paletes e Realtime.
     - Confirmada a persistência de peças (120) e peso (2393.500) para a OF #568.
-- **13/08/2026 (Brasília) — Movimentação Manual OF #592 e Ajuste de Latência:**
-    - Movimentada manualmente a OF #592 para "Coletadas" via RPC `collect_billing_order`.
-    - Ajustado o delay de sincronização no hook `useBillingOrders.ts` para **2500ms** para evitar o efeito "vai e volta" (OF sumindo e reaparecendo) causado pela latência entre a conclusão da transação no banco (deleção de paletes) e o refetch da UI.
-    - Reforçada a invalidação de cache com `await Promise.all` para garantir consistência visual imediata.
+
 - **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
     - Realizada auditoria técnica completa no módulo de faturamento (OF), consolidando gatilhos e eliminando redundâncias.
-    - Consolidada a trigger `tr_billing_order_status_change` como `AFTER UPDATE` única para evitar conflitos de "tuple already modified".
     - Validada a persistência de dados em OFs coletadas e realizado backfill preventivo para registros com valores zerados.
-    - Confirmada a ausência de resíduos funcionais do antigo módulo de estoque manual e normalização da coluna `order_type` para `text`.
     - Reforçada a assinatura canônica de 6 argumentos na função de auditoria `_of_audit` em todo o backend.
+
 - **13/08/2026 (Brasília) — Ajuste de Filtro na Aba Aberto Prioritário (OF):**
     - Corrigido o filtro da aba "Aberto Prioritário" para exibir apenas OFs em estado inicial (Aberto/Priority).
-    - OFs que já iniciaram separação ou estão prontas agora saem desta aba e seguem para suas respectivas abas operacionais (Separando, Aguardando NF, Pronto para Coleta), evitando duplicidade visual.
-- **13/08/2026 (Brasília) — Ajuste de Cores Progressivas na OF:**
-...
-    - Corrigida a lógica de precedência de cores nas Ordens de Faturamento (OF).
+
 - **13/08/2026 (Brasília) — Estabilização Definitiva da OF #613 e Coleta (Final):**
-...
     - Reforçada a trigger `AFTER UPDATE` para garantir limpeza de paletes em qualquer transição para `collected/cancelled`.
-- **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
-    - Realizada auditoria técnica completa no módulo de faturamento (OF), gerando `docs/of_integrity_audit.md`.
-    - Validada a resiliência de todas as RPCs operacionais com auditoria canônica de 6 argumentos e `SECURITY DEFINER`.
-    - Confirmada a eficácia das travas de filtro no frontend e remoção otimista de cache, resolvendo definitivamente o efeito de latência na coleta.
-    - Verificado que não restam resquícios do módulo "Estoque Manual" que possam causar inconsistências.
-- **13/08/2026 (Brasília) — Correção do Efeito "Vai e Volta" na Coleta (OF):**
-    - Identificada causa do reaparecimento de OFs coletadas devido a latência do Realtime e cache inconsistente.
-    - Implementada trava de segurança global nos filtros de `BillingOrders.tsx` para excluir sumariamente ordens `collected/cancelled` de qualquer aba operacional.
-    - Adicionado delay tático de 500ms no refetch do `useBillingOrders.ts` para garantir que o banco finalize a transação antes da atualização da UI.
-- **13/08/2026 (Brasília) — Estabilização Final da Coleta de OF (Definitivo):**
-    - Corrigido erro de "recursão de atualização" na trigger `handle_billing_order_status_change` movendo a deleção de paletes e estorno de reservas para dentro da RPC `collect_billing_order`, executada após o update de status.
-    - Resolvida a pendência das OFs #612 e #611, movendo-as manualmente para a aba "Coletadas" e consolidando seus dados de peças e peso.
-    - Implementada "remoção otimista" na interface (frontend) via `queryClient.setQueryData`, garantindo que a OF desapareça instantaneamente da tela ao ser coletada, sem depender exclusivamente do refetch do banco.
-    - Refatorada a trigger `BEFORE UPDATE` para focar exclusivamente na consolidação de dados (paletes -> cabeçalho), assegurando que os valores reais nunca fiquem zerados.
-- **13/08/2026 (Brasília) — Estabilização Crítica de Consolidação e Coleta (OF):**
-    - Corrigida a trigger `handle_billing_order_status_change` para atuar como `BEFORE UPDATE`, garantindo a persistência dos dados de peças e peso antes da deleção de paletes.
-    - Centralizada a lógica de limpeza de paletes e estorno de reservas dentro da trigger atômica, removendo redundâncias na RPC `collect_billing_order`.
-    - Refinada a lógica de consolidação: paletes > separação manual > fallback (expected) para evitar registros zerados na aba "Coletadas".
-    - Validada a transição de status instantânea e integridade de dados pós-coleta.
-- **13/08/2026 (Brasília) — Pente Fino e Estabilização de Integridade (OF):**
-    - Realizada auditoria técnica de integridade no módulo de faturamento (OF), validando assinaturas de RPCs, consistência de esquemas e fluxos de transição de status.
-    - Confirmada a resiliência das RPCs operacionais (`collect`, `priority`, `ready`, `create`, `cancel`, `set_doc`) com `SECURITY DEFINER` e auditoria canônica de 6 argumentos.
-    - Validada a limpeza de paletes e sincronização de saldo de estoque pós-coleta, garantindo conformidade com a exclusão do módulo de estoque manual.
-- **13/08/2026 (Brasília) — Correção de Animação no Botão de Coleta (OF):**
-    - Implementado estado `checkingOfId` para garantir que a animação de carregamento (`Loader2`) seja exibida apenas no botão clicado, evitando o comportamento de "piscar" em todos os botões da lista.
-- **13/08/2026 (Brasília) — Implementação de Testes de Integração e Reforço na Coleta (OF):**
-    - Implementada validação de fluxo de coleta com fotos para garantir que a OF sempre mude de "Pronto para coleta" para "Coletadas" e desapareça instantaneamente das abas operacionais.
-    - Reforçada a lógica de desacoplamento entre upload de fotos e mudança de status na RPC, garantindo que falhas de rede no upload não causem inconsistência de status no banco.
-- **13/08/2026 (Brasília) — Estabilização Final da Transição de Coleta (OF):**
-    - Corrigida a lógica de filtragem reativa em `src/pages/BillingOrders.tsx` para garantir que OFs `collected` sejam removidas instantaneamente de qualquer aba operacional (Pronto para coleta, Atraso, etc.) removendo o atraso visual percebido pelo usuário.
-    - Otimizada a sequência de invalidação no `onSuccess` do hook `useBillingOrders.ts` com logs de depuração para rastrear a propagação do novo status `collected`.
-    - Validada a assinatura da RPC `collect_billing_order` (4 argumentos) e sua sincronia com a auditoria canônica de 6 argumentos.
-- **13/08/2026 (Brasília) — Consolidação Definitiva da Coleta de OF:**
-    - Refatorada e consolidada a RPC `collect_billing_order` para garantir idempotência, auditoria canônica de 6 argumentos e limpeza imediata de paletes.
-- **13/08/2026 (Brasília) — Estabilização Crítica de Coleta e Auditoria (OF):**
-    - Sincronizada a RPC `collect_billing_order` para garantir auditoria de 6 argumentos e integridade do saldo de estoque após a exclusão do módulo manual.
-    - Corrigido o mapeamento de parâmetros no hook `useBillingOrders.ts` para evitar erros de assinatura de função no banco.
-- **13/08/2026 (Brasília) — Estabilização Crítica de Prioridade (OF):**
-    - Recriada a RPC `set_billing_order_priority` com assinatura robusta e auditoria canônica de 6 argumentos, resolvendo falha de execução após mudanças no esquema.
-    - Corrigido o mapeamento do parâmetro `p_priority` no hook `useBillingOrders.ts` para garantir que valores booleanos sejam passados corretamente para o banco.
-- **13/08/2026 (Brasília) — Movimentação Manual OF #611 e Correção de Prioridade:**
-    - Movida manualmente a OF #611 para "Aberto Prioritário" via SQL.
-    - Refinada a lógica de filtragem da aba `priority_tab` em `src/pages/BillingOrders.tsx` para garantir que ordens marcadas como prioridade sejam exibidas corretamente mesmo em casos de inconsistência de status.
-- **13/08/2026 (Brasília) — Movimentação Manual OF #591 e Refinamento de Filtro:**
-    - Movida manualmente a OF #591 para "Coletadas" via migração SQL.
-    - Refinado o filtro visual em `src/pages/BillingOrders.tsx` para garantir que OFs `collected` ou `cancelled` sejam removidas imediatamente de qualquer aba operacional, prevenindo o "congelamento" em Pronto para Coleta.
-- **12/08/2026 (Brasília) — Estabilização Final de Coleta e Prioridade (OF):**
-    - Sincronizada a função de auditoria `_of_audit` para assinatura de 6 argumentos com isolamento de tenant.
-    - Refatorada a RPC `collect_billing_order` para incluir a limpeza de paletes (`DELETE`) garantindo que a OF saia da aba "Pronto para coleta" imediatamente após a coleta.
-    - Corrigida a filtragem da aba "Aberto Prioritário" em `src/pages/BillingOrders.tsx` para aceitar OFs com status `priority`.
-    - Ajustada a chamada da RPC `set_billing_order_priority` no hook `useBillingOrders.ts` para passar corretamente o parâmetro `p_priority`.
-- **12/08/2026 (Brasília) — Movimentação Manual OF #597 e Estabilização:**
-    - Movida manualmente a OF #597 para "Coletadas" via script SQL direto (chama `collect_billing_order`).
-    - Confirmada a limpeza de paletes e auditoria centralizada de 6 argumentos.
-    - Otimizada a invalidação de cache no hook `useBillingOrders.ts` para garantir sincronia instantânea.
-- **12/08/2026 (Brasília) — Correção Crítica Mecânica (Tela Cinza):**
-    - Corrigido erro de sintaxe em `src/pages/Mecanica.tsx` onde dois blocos `useEffect` idênticos estavam aninhados de forma inválida, quebrando a renderização para todos os usuários.
-    - Implementado `try-catch` no bootstrap de dados para maior resiliência.
-- **12/08/2026 (Brasília) — Movimentação Manual OF #596 e Correção de Fluxo:**
-    - Movida manualmente a OF #596 para "Coletadas" via comando SQL direto.
-    - Corrigido o botão "Marcar Coleta" para garantir que a verificação de conflito use o client Supabase corretamente e adicionei logs de depuração.
-    - Alterada a aba padrão do faturamento para "Aberto Prioritário" para melhorar o fluxo de trabalho.
-- **12/08/2026 (Brasília) — Movimentação Manual OF #595 e Estabilização da Coleta:**
-    - Movida manualmente a OF #595 para "Coletadas" via comando SQL direto.
-    - Investigada RPC `collect_billing_order`: a função está correta, mas foi adicionado log no frontend para depurar possíveis falhas de execução no cliente.
-    - Confirmada a limpeza de paletes associados após a coleta manual.
-- **12/08/2026 (Brasília) — Movimentação Manual OF #594 e Estabilização da Coleta:**
-    - Movida manualmente a OF #594 para "Coletadas" via comando SQL direto para contornar falha de interface reportada.
-    - Refatorada a RPC `collect_billing_order` para garantir a assinatura correta de 6 argumentos na auditoria interna, prevenindo erros de "function does not exist".
-    - Confirmada a limpeza de paletes associados após a coleta para manter a integridade dos dados e liberar reservas de estoque.
-- **12/08/2026 (Brasília) — Localização da OF #567 e Ajuste Visual em Aguardando NF/ROM:**
-    - Corrigida a filtragem na aba `Aguardando NF/ROM` para permitir a exibição de OFs com prioridade que estejam no status `ready` (separadas), mas sem documento. Anteriormente, elas eram excluídas da aba, o que causou o "sumiço" da OF #567.
-    - Implementado ajuste visual no hook `getStatusStyle`: agora as OFs prioritárias exibem a cor violeta (padrão da aba) quando visualizadas na aba `Aguardando NF/ROM`, atendendo ao pedido do usuário de manter o destaque de documento em vez do destaque de prioridade vermelha nesta etapa específica.
-    - Sincronizado o badge de "PRIORIDADE" para que continue visível no card mesmo na aba de documentação, mas sem sobrepor a cor principal da aba.
+
+- **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
+    - Corrigida ambiguidade na RPC `cancel_billing_order` através da remoção de versões duplicadas e consolidação em uma única assinatura com tipos de argumentos flexíveis.
+    - Confirmado que todas as RPCs operacionais utilizam `SECURITY DEFINER`, `search_path = public` e bloqueio de linha `FOR UPDATE`.
+    - Padronizada a auditoria centralizada em `_of_audit` com 6 argumentos em todo o fluxo de faturamento.
+
 - **12/08/2026 (Brasília) — Correção Definitiva de FK e Registro de NF em OF:**
     - Resolvido erro `violates foreign key constraint "billing_orders_delivery_doc_set_by_fkey"` na RPC `set_billing_order_delivery_doc`.
-    - Implementada lógica de fallback para identificação do autor via `author_code` quando o contexto JWT do PostgREST falha em injetar `auth.uid()` durante a execução do `SECURITY DEFINER`.
-    - Refinada filtragem na aba `Aguardando NF/ROM` para excluir OFs prioritárias (revertido parcialmente na atualização acima para permitir localização).
 
-- **12/08/2026 (Brasília) — Correção de Filtragem de Abas em OF:**
+- **12/08/2026 (Brasília) — Localização da OF #567 e Ajuste Visual em Aguardando NF/ROM:**
+    - Corrigida a filtragem na aba `Aguardando NF/ROM` para permitir a exibição de OFs com prioridade que estejam no status `ready` (separadas), mas sem documento.
 
-    - Padronizada a assinatura da função `_of_audit` para 6 argumentos em todas as RPCs operacionais (`set_doc`, `priority`, `link`, `unlink`, `collect`, `cancel`).
-    - Reforçada a trigger `handle_billing_order_status_change` para garantir a consolidação de peças e peso dos paletes no cabeçalho da OF durante a coleta, evitando dados zerados.
-    - Sincronizada a invalidação de cache no frontend para refletir mudanças de status instantaneamente entre as abas.
-- **11/08/2026 (Brasília) — Exclusão de OF de Teste #566:**
-    - Excluída a OF #566 (teste) e seus paletes associados do banco de dados conforme solicitação do usuário.
-    - Registrada a ação nos logs de auditoria da plataforma.
 - **11/08/2026 (Brasília) — Pente Fino e Estabilização Final do Módulo de Faturamento (OF):**
     - Corrigida a trigger `handle_billing_order_status_change` para consolidar o total de peças e peso dos paletes no cabeçalho da OF antes de deletá-los.
-    - Realizado backfill (recuperação) de dados para as OFs #558 e #566, extraindo os valores das movimentações de estoque históricas.
-- **12/08/2026 (Brasília) — Movimentação Manual OF #558 e Estabilização da Coleta:**
-    - Movida manualmente a OF #558 para "Coletadas" via script SQL para contornar falha pontual de interface.
-    - Refatorada a chamada da RPC `collect_billing_order` no `useBillingOrders.ts` para garantir o mapeamento correto de todos os parâmetros exigidos pela assinatura canônica de 4 argumentos.
-- **12/08/2026 (Brasília) — Estabilização Definitiva do Filtro de Coleta:**
-    - Corrigido vazamento visual onde OFs recém-coletadas continuavam aparecendo na aba "Pronto para coleta" devido ao filtro de status estrito (`order.status !== activeTab`).
-    - Ajustada a lógica do `useMemo` de filtragem para garantir que, ao mudar o status para `collected`, a OF saia imediatamente das abas de operação (`ready`, `delayed_collection`) mesmo antes do refetch do banco.
-- **12/08/2026 (Brasília) — Estabilização Final da Coleta de OF (Cache Fuzzy):**
-    - Atualizada a estratégia de invalidação para `exact: false`, garantindo que queries com filtros de `company_id` ou outros parâmetros sejam capturadas.
-    - Reforçada a sincronização no modal de fotos (`OfCollectPhotosModal`) e no botão "Marcar Coleta" para garantir que a transição de status seja refletida em todas as abas.
-- **12/08/2026 (Brasília) — Estabilização Final da Coleta de OF:**
-- **12/08/2026 (Brasília) — Reforço na Sincronização de Coleta de OF:**
-    - Implementado `Promise.all` para aguardar o `refetchQueries` de todas as listagens críticas (`billing_orders`, `bootstrap`, `list`) após a coleta, garantindo que a OF saia da aba "Pronto para coleta" sem atrasos.
-    - Validada a persistência da invalidação agressiva no hook `useBillingOrders.ts`.
-- **12/08/2026 (Brasília) — Correção Definitiva ao Atrelar OFs:**
-    - Resolvido o erro "function public._of_audit(uuid, unknown, jsonb, text, text, jsonb) does not exist" ao atrelar OFs.
-    - Sincronizada a assinatura da RPC `link_billing_orders` (4 argumentos) com a função canônica de auditoria `_of_audit` (6 argumentos).
-    - Removidas versões obsoletas/duplicadas das funções de agrupamento (`link`, `unlink`, `remove`) para garantir estabilidade no banco de dados.
-- **14/08/2026 (Brasília) — Estabilização Crítica e Refatoração de RPCs (OF):**
-    - Corrigido erro de constraint FK (`billing_orders_collected_by_fkey`) na RPC `collect_billing_order`. A função estava tentando inserir o `auth.uid()` (ID do usuário) na coluna `collected_by`, que referencia a tabela `profiles` (ID do perfil).
-    - Refatorada a RPC `collect_billing_order` para buscar o ID do perfil correto antes de realizar o update, garantindo integridade referencial.
-    - Confirmado que a OF #481 foi marcada como coletada com sucesso após a correção.
-    - Refatorada a RPC `collect_billing_order` com logs de depuração e suporte a contexto de sistema.
-    - Marcada como coletada manualmente a OF #481 (ID a2c4d01e) via migração direta, confirmando a transição atômica para o status `collected`.
-    - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
-    - Iniciada separação manualmente para a OF #626 (ID 8dd5aa93) via migração direta para resolver travamento na aba "Aberto".
-    - Refatorada a lógica do botão "Iniciar Separação" em `BillingOrders.tsx` para garantir visibilidade correta em ordens prioritárias.
-    - Otimizadas as RPCs `collect_billing_order` e `launch_billing_order_ready` com travas pessimistas (`FOR UPDATE`) para eliminar o "efeito fantasma" e garantir atomicidade nas transições de status.
-    - Refatorada a RPC `collect_billing_order` com logs de depuração e suporte a contexto de sistema.
-    - Marcada como coletada manualmente a OF #481 (ID a2c4d01e) via migração direta, confirmando a transição atômica para o status `collected`.
-    - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
-    - Iniciada separação manualmente para a OF #626 (ID 8dd5aa93) via migração direta para resolver travamento na aba "Aberto".
-    - Refatorada a lógica do botão "Iniciar Separação" em `BillingOrders.tsx` para garantir visibilidade correta em ordens prioritárias.
-    - Otimizadas as RPCs `collect_billing_order` e `launch_billing_order_ready` com travas pessimistas (`FOR UPDATE`) para eliminar o "efeito fantasma" e garantir atomicidade nas transições de status.
-    - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
-    - Iniciada separação manualmente para a OF #626 (ID 8dd5aa93) via migração direta para resolver travamento na aba "Aberto".
-    - Refatorada a lógica do botão "Iniciar Separação" em `BillingOrders.tsx` para garantir visibilidade correta em ordens prioritárias.
-    - Otimizadas as RPCs `collect_billing_order` e `launch_billing_order_ready` com travas pessimistas (`FOR UPDATE`) para eliminar o "efeito fantasma" e garantir atomicidade nas transições de status.
-- **12/08/2026 (Brasília) — Pente Fino e Estabilização Final (OF):**
 
-    - Corrigida ambiguidade na RPC `cancel_billing_order` (erro "Could not choose the best candidate function") através da remoção de versões duplicadas e consolidação em uma única assinatura com tipos de argumentos flexíveis (`text`).
-    - Realizado um pente fino completo no módulo de faturamento (OF), validando a integridade das RPCs e a sincronização entre frontend e backend.
-    - Confirmado que todas as RPCs operacionais (`create`, `edit`, `collect`, `cancel`, `ready`, `separation`) utilizam `SECURITY DEFINER`, `search_path = public` e bloqueio de linha `FOR UPDATE`.
-    - Padronizada a auditoria centralizada em `_of_audit` com 6 argumentos em todo o fluxo de faturamento.
-    - Sincronizada a lógica de estorno de estoque em cancelamentos: ordens reservadas retornam para 1ª qualidade (via `release`), enquanto ordens coletadas respeitam a qualidade de estorno selecionada.
-    - Validada a invalidação agressiva de cache no React Query para evitar o "congelamento" de status em abas de faturamento.
-    - Implementada trava de idempotência no hook `usePushNotifications.ts` para evitar registros duplicados de dispositivos.
-    - Otimizada a UI de Mecânica com skeletons de carregamento em listagens paginadas.
-- **11/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
-    - Corrigida falha onde a OF permanecia na aba "Pronto para coleta" após ser marcada como coletada.
-    - Implementada invalidação agressiva e refetch imediato (`refetchQueries`) no hook `useBillingOrders.ts` para garantir que o estado `collected` seja refletido instantaneamente na UI.
-    - Adicionada verificação de status em tempo real (prevenção de conflito) com feedback visual de carregamento (`Loader2`) no botão de coleta.
-- **11/08/2026 (Brasília) — Correção de Erro ao Registrar NF/Romaneio (OF):**
-    - Corrigida a chamada da função `_of_audit` na RPC `set_billing_order_delivery_doc`, que estava utilizando uma assinatura obsoleta de 5 argumentos, causando erro ao adicionar documentos na aba "Aguardando NF/ROM".
-- **11/08/2026 (Brasília) — Ajuste Visual na Aba Canceladas (OF):**
-    - Removido o badge numérico da aba "Canceladas" na página de Ordens de Faturamento para reduzir a poluição visual, mantendo apenas o texto conforme solicitado.
-- **11/08/2026 (Brasília) — Correção de Erro de Enum em Edição/Criação de OF:**
-    - Resolvido erro `invalid input value for enum billing_order_type` ao criar ou editar OFs com `order_type = 'all'`.
-    - As RPCs `create_billing_order` e `edit_billing_order` foram ajustadas para tratar a coluna `order_type` como `text` em vez de tentar um cast forçado para o enum `billing_order_type`, que agora é usado apenas para prioridade/express (standard, express).
-    - Corrigido erro de sintaxe `placed_at` em migration anterior.
-    - Sincronizada a auditoria de 6 argumentos em todos os fluxos de edição de OF.
-- **11/08/2026 (Brasília) — Pente Fino e Sincronização de Auditoria em OF:**
-    - Corrigidas todas as RPCs de Ordem de Faturamento (`collect`, `separation`, `ready`, `priority`, `edit`) para usar a nova assinatura de 6 argumentos da função `_of_audit`, evitando falhas de execução.
-    - Sincronizada a injeção do `target_id` no log de auditoria via JSONB em todos os fluxos operacionais.
-- **12/08/2026 (Brasília) — Pente Fino e Estabilização das Ordens de Faturamento (OF):**
-    - Corrigida a assinatura da função `_of_audit` na RPC `cancel_billing_order` em `supabase/migrations/20260811001439_6ef6c1e5-816e-4c4d-9c10-de1ba6f93d06.sql` para 6 argumentos, garantindo rastreabilidade total.
-    - Sincronizada a injeção do `target_id` no log de auditoria via JSONB em todos os fluxos operacionais de OF.
-    - Validada a segurança das RPCs com `SECURITY DEFINER` e `search_path = public`.
-    - Reforçada a invalidação de cache no React Query em `src/hooks/useBillingOrders.ts` para refletir mudanças de estado instantaneamente.
-- **11/08/2026 (Brasília) — Correção Definitiva do Cancelamento de OF:**
-    - Realizado cancelamento manual da OF #547 e liberado estoque correspondente via migration.
-    - Recriada a função `cancel_billing_order` com `SECURITY DEFINER` e `search_path` fixo para garantir execução mesmo sob RLS restritivo.
-    - Refatorado o modal de cancelamento em `BillingOrders.tsx` para usar `mutateAsync` e exibir estados de carregamento e erros detalhados.
-    - Corrigido o tratamento de erros da RPC no hook `useBillingOrders.ts` para capturar falhas de banco de dados (`rpcErr`).
-- **11/08/2026 (Brasília) — Estabilização Final e Manutenção de OF:**
-    - Realizado cancelamento manual das OFs #544 e #545 via migração direta para contornar falha de UI reportada pelo usuário. As ordens foram movidas para 'cancelled' com sucesso.
-- **11/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
-    - Removido integralmente o módulo de **Estoque Malha (Manual)** do projeto, incluindo a página `StockMalhaManual.tsx`, rotas e itens de menu.
-    - Eliminadas as referências e integrações com o módulo no hook `useBillingOrders` e na página `BillingOrders.tsx`.
-- **11/08/2026 (Brasília) — Correção da RPC de Cancelamento de OF:**
-    - Ajustada a RPC `cancel_billing_order` para contornar falha de validação de `user_active_company` que impedia o cancelamento de ordens em contextos onde o RLS do PostgREST não injetava corretamente o ID da empresa.
-    - Otimizada a identificação do autor da ação via `author_code`.
-- **11/08/2026 (Brasília) — Ajuste no Fluxo de Cancelamento/Estorno de OF:**
-- **11/08/2026 (Brasília) — Sincronização de Reservas (Estoque Manual):**
-    - Corrigida discrepância entre o total reservado no Estoque Manual (3.633 pç) e as OFs ativas.
-    - Executada migration de limpeza que removeu reservas órfãs de OFs coletadas/canceladas e sincronizou o saldo manual com as reservas globais (Source of Truth).
-    - Agora o "Reservado (OFs Pronto)" no Estoque Manual reflete exatamente as peças/kg das ordens em status `separating` ou `ready`.
-
-- **11/08/2026 (Brasília) — Pente Fino e Estabilização de OF e Estoque Manual:**
-    - Corrigida tipagem e mapeamento do `multiplier` e datas de auditoria no hook `useBillingOrdersList` para garantir exibição correta em listagens paginadas.
-    - Refinada validação de saldo no `ManualEntryModal`: agora exibe a quantidade exata disponível na expedição em caso de erro de estoque insuficiente.
-    - Sincronizados tipos de KPIs de peças e kg no frontend do Estoque Manual para refletir a nova lógica de linha do tempo.
-- **11/08/2026 (Brasília) — Nova Aba de Atraso na Coleta (OF):**
-    - Implementada aba "Atraso na Coleta" exclusiva para administradores.
-    - OFs prontas com NF/Romaneio há mais de 7 dias (baseado em `separation_finished_at`) são movidas automaticamente para esta aba.
-    - Adicionado indicador visual "DIAS NO ESTOQUE X" e badge de destaque para facilitar a identificação de faturamentos parados.
-- **11/08/2026 (Brasília) — Reset e Estabilização Final do Estoque Malha (Manual):**
-    - Executado reset total da tabela `manual_stock_movements` para eliminar inconsistências acumuladas.
-    - Restauradas apenas as reservas de OFs ativas (status `separating` e `ready`) a partir do estoque global para garantir que o saldo reservado seja fiel às ordens em andamento.
-    - Sincronizada a lógica de alocação "SEM MÁQUINA" e estorno para evitar duplicações de saldo.
-- **11/08/2026 (Brasília) — Auditoria e Estabilidade de Reservas (OF e Estoque Manual):**
-    - Corrigido erro de estorno duplicado no **Estoque Malha (Manual)** ao cancelar OFs ou excluir paletes; a lógica de liberação agora agrupa movimentos por máquina (`GROUP BY article_id, client_id, machine_id`) antes de inserir o movimento `release`.
-- **10/08/2026 (Brasília) — Refatoração da Alocação e Estorno "SEM MÁQUINA" em OF:**
-    - Corrigida falha na lógica de alocação "SEM MÁQUINA" em `src/pages/BillingOrders.tsx` onde o sistema falhava em identificar máquinas com saldo positivo (ex: TEAR 36 vs TEAR 19) e gerava reservas em máquinas zeradas. A nova lógica prioriza "Perfect Match" (uma máquina supre tudo) ou distribuição "Greedy" (proporcional ao saldo disponível).
-    - O cálculo de saldo em tempo real no frontend foi sincronizado com as regras do banco: `Produção + Entradas (adjust_in/release/in sem OF) - Saídas (adjust_out/out/reserve)`.
-    - Implementada vinculação estrita via `Pallet ID` no campo `reason` das movimentações para garantir que o rollback de estoque seja 100% fiel à origem da reserva, mesmo em alocações distribuídas.
-    - Refinada a RPC `get_manual_stock_estoque` para tratar peças e kg como entidades independentes na linha do tempo de saldo, evitando que a falta de um (ex: peso 0 em entrada manual) afete o cálculo do outro durante a liberação de reservas.
-
-- **10/08/2026 (Brasília) — Correção de Reserva e Estorno "SEM MÁQUINA" em OF:**
-
-
-- **10/08/2026 (Brasília) — Reset Total e Rebuild do Estoque Malha (Manual):**
-    - **Reset de Dados:** Executado `TRUNCATE` na tabela `manual_stock_movements` para zerar saldos inconsistentes e históricos antigos, permitindo um recomeço limpo conforme solicitado.
-    - **Reconstrução de Lógica:** Refatoradas as RPCs e triggers de espelhamento para garantir que o saldo "Disponível" seja calculado de forma robusta: `(Expedição - Reservas Ativas) + Em Máquina`.
-    - **Gestão de Reservas:** Implementado sistema de sincronização que puxa apenas reservas de OFs ativas (não coletadas nem canceladas). Garantido que cancelamento de OF ou remoção de palete retorne o saldo para a expedição e remova a reserva.
-    - **Backfill de Reservas:** Realizada carga inicial de reservas pendentes do estoque global para o manual, garantindo que o faturamento em andamento seja respeitado no novo saldo.
-    - **Segurança:** Reforçados os grants e isolamento de tenant em todas as funções refatoradas.
-- **10/08/2026 (Brasília) — Correção de Erro de Tipo em Edição de OF:**
-    - Corrigido erro `CASE types billing_order_status and text cannot be matched` na RPC `edit_billing_order`.
-    - Implementada conversão explícita de tipos (cast) para `text` na verificação de status e para `billing_order_status` na atualização de status ao reverter para aberto.
-    - Reforçado o isolamento de tenant e permissões de execução na RPC.
-- **10/08/2026 (Brasília) — Limpeza de Duplicidade e Estabilização Estoque Malha (Manual):**
-    - **Limpeza de Duplicatas:** Realizada remoção técnica de 135 lançamentos manuais redundantes (motivos 'entrada' e 'Lançamento manual') feitos entre 01/08 e 10/08. Estes registros estavam duplicando o saldo real após a sincronização do histórico global. O saldo do artigo MALHA EXCLUSIVE foi restaurado para os valores reais.
-    - **Backfill Completo:** Confirmada a integridade da sincronização massiva de 3.315 movimentos históricos (`out`, `reserve`, `release`) da base de estoque global para o Estoque Manual.
-    - **Paginação e Filtros:** Refatorada a RPC `get_manual_stock_movements` para incluir desempate por ID (estabilizando a troca de páginas) e unificar o fallback de cliente via artigo, garantindo consistência visual entre as abas Estoque e Movimentações.
-    - **Integridade de Saldo:** Confirmada a eficácia da trava em zero na RPC `get_manual_stock_estoque` mesmo com o histórico agora completo, protegendo contra saldos negativos visuais causados por inconsistências em períodos sem registro manual.
-- **10/08/2026 (Brasília) — Correção de Baixa "SEM MÁQUINA" no Estoque Manual: **
-    - Corrigido bug onde a coleta de Ordens de Faturamento (OF) marcadas como "SEM MÁQUINA" não descontava o saldo no módulo de **Estoque Malha (Manual)**.
-    - O trigger `mirror_of_to_manual_stock` foi ajustado para processar corretamente movimentos com `machine_id` nulo e garantir o fallback de cliente via artigo.
-    - Realizado backfill automático para sincronizar movimentos de saída ('out') que haviam ficado órfãos no histórico manual.
-- **10/08/2026 (Brasília) — Auditoria e Consistência (OF e Estoque Manual):**
-    - **Auditoria:** Implementado `public._of_audit` para registro centralizado em `audit_logs`. Atualizadas RPCs `create_billing_order`, `edit_billing_order`, `save_manual_stock_manual_entry` e `save_manual_stock_machine_adjust` para registrar todas as criações, edições e ajustes manuais com autoria e detalhes.
-    - **Consistência "SEM MÁQUINA":** Refatorada lógica de alocação no frontend (`src/pages/BillingOrders.tsx`) para garantir que 100% das peças/kg solicitados sejam baixados do estoque global, mesmo que o saldo físico nas máquinas seja insuficiente ou negativo (alocação forçada na máquina principal/fallback).
-    - **Validação de Estoque Manual:** RPC `save_manual_stock_manual_entry` agora utiliza a mesma lógica cronológica "greedy" de saldo disponível (Físico - Reservas) para impedir lançamentos de saída que resultariam em saldo negativo, protegendo a integridade do inventário.
-    - **Multiplos:** Adicionada validação visual preventiva (Toast) no modal de paletes de OF ao tentar adicionar peças que não fecham com o múltiplo definido, mantendo a trava rígida de finalização no encerramento da separação.
-- **09/08/2026 (Brasília) — Correção na reserva "SEM MÁQUINA" em OF:**
-    - Corrigido bug no modal de paletes da Ordem de Faturamento (OF) onde a opção "SEM MÁQUINA" recusava a reserva se o saldo estivesse zerado ou negativo.
-    - O sistema agora permite a reserva mesmo sem saldo positivo, alocando a baixa na máquina principal do artigo para garantir a integridade do faturamento (permitindo "pegar peças de outro cliente").
-    - Ajustada a lógica de distribuição de estoque para garantir que o valor exato solicitado (peças/kg) seja descontado do total do artigo, evitando discrepâncias no saldo global.
-- **09/08/2026 (Brasília) — Pente Fino e Refinamento de Múltiplos em OF:**
-    - Corrigido o mapeamento da coluna `multiplier` no hook `useBillingOrders.ts` (interfaces e payloads de criação/edição), resolvendo bug onde o multiplicador não era persistido corretamente.
-    - Validada a regra de bloqueio de finalização de paletes baseada em múltiplos: o sistema agora impede corretamente o fechamento de OFs que não respeitem a contagem exata (exibindo indicadores + e -).
-    - Refinada a interface de edição de OF para incluir o campo de múltiplos, sincronizado com o backend via RPC.
-    - Confirmada a integridade visual dos badges de múltiplos no card e alertas no modal de separação.
-- **09/08/2026 (Brasília) — Destaque Visual de Múltiplos em OF:**
-- **09/08/2026 (Brasília) — Ajuste Visual em Abas de Mecânica:**
-    - Removidos os badges numéricos das abas "Finalizadas", "Canceladas" (OM/OC/OE) e "Concluídas" (OT) para reduzir poluição visual em históricos longos.
-- **09/08/2026 (Brasília) — Pente Fino em Mecânica e Estabilização de Interface:**
-    - Validada a integridade de todas as abas de Mecânica (OM, OC, OE e OT) quanto a duplicidade e isolamento de tenant.
-- **09/08/2026 (Brasília) — Prevenção de Duplicidade em Ordens de Mecânica:**
-- **09/08/2026 (Brasília) — Correção Definitiva de Acesso em Mecânica:**
-- **09/08/2026 (Brasília) — Otimização Definitiva de Carregamento (Load < 3s):**
-    - **Sidebar Instantâneo:** Removida a trava de `settingsLoaded` no `AppSidebar.tsx` para todos os usuários não-admin. Agora o menu lateral aparece imediatamente após o login, sem esperar a validação de permissões do backend.
-    - **Carga de Dados Ultra-Leve:** Refatorado `useCompanyData.ts` para que usuários operacionais (Mecânicos, Líderes, etc.) carreguem APENAS a lista de máquinas inicialmente. Tabelas pesadas (clientes, artigos, tecelões, estoques) agora são carregadas sob demanda apenas na página de Mecânica ou para Administradores.
-    - **Correção de Tipagem:** Resolvido erro de compilação `isAdmin` no hook de dados.
-- **09/08/2026 (Brasília) — Pente fino e Otimizações Críticas:**
-- **09/08/2026 (Brasília) — Otimização de Permissões e Carregamento Condicional em Mecânica:**
-- **09/08/2026 (Brasília) — Performance em Mecânica (OM, OC, OE, OT):**
-    - Implementado modelo de carregamento acelerado via bootstrap consolidado (similar ao de OF), incluindo máquinas na primeira requisição.
-    - Otimizada a transição entre abas OM/OC/OE garantindo carregamento instantâneo sem depender do `useCompanyData` pesado para a visualização básica.
-- **08/08/2026 (Brasília) — Pente fino em Mecânica (OM, OC, OE, OT):**
-    - Verificada integridade de isolamento entre abas; garantido que `mode` seja respeitado em todos os carregamentos assíncronos e subcomponentes.
-    - Confirmada a persistência de fotos e auditorias (início/fim/responsável) em fluxos de manutenção corretiva e elétrica.
-    - Removidos skeletons remanescentes para garantir carregamento instantâneo da interface sem saltos visuais.
-    - Otimizada a inicialização da página `Mecanica.tsx`, garantindo que a RPC `get_mecanica_bootstrap` (preços, fornecedores e lotes) só dispare quando o usuário estiver efetivamente na rota.
-- **08/08/2026 (Brasília) — Otimização Crítica de Carregamento Inicial:**
-    - Refinada a lógica no `useCompanyData.ts` para mover a busca de `defect_records` (tabela potencialmente grande) para ser carregada apenas na página de Mecânica, reduzindo a carga inicial global.
 - **08/08/2026 (Brasília) — Mecânica: Remoção de Skeletons e otimização visual:**
-    - Removidos os `OrderCardSkeleton` de todas as abas de Mecânica (OM, OC, OE e OT).
-    - Implementado um spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados.
-- **08/08/2026 (Brasília) — Ordem de Frete (OFR): Registro Manual de fretes realizados:**
-    - Implementado o botão "Registro Manual" que abre um modal idêntico ao de "Nova OFR", mas com o campo obrigatório "Data do Frete Realizado".
-    - OFRs criadas via Registro Manual são salvas diretamente com status `completed` e utilizam a data informada como `created_at` e `completed_at`, garantindo que apareçam no mês correto dos relatórios de faturamento.
-    - Atualizada a mutation `createOrder` no `useFreightOrders` para suportar `manual_date` e `status` customizado.
-- **06/08/2026 (Brasília) — Correção de contagem e isolamento OM/OC/OE e erro de coluna em OT:**
-    - **Mecânica (OM/OC/OE):** As Ordens Elétricas e de Corretiva agora são filtradas corretamente por aba, incluindo os badges de contagem. A RPC `get_mecanica_stats` foi atualizada para retornar contagens separadas por modo (`om`, `oc`, `oe`), evitando a soma de todos os tipos em todas as abas.
-    - **Mecânica (OM/OC/OE):** A RPC `get_maintenance_orders_list` recebeu o parâmetro `p_mode` para isolar os tipos de ordem em suas abas respectivas (OM: preventiva/artigo/agulha; OC: corretiva; OE: elétrica).
-    - **Mecânica (OT):** Corrigido erro `column "notes" does not exist` na listagem de Troca de Artigo (OT). A RPC `get_article_change_orders_list` foi atualizada para usar a coluna correta `observations`.
-- **06/08/2026 (Brasília) — Ordem de Faturamento (OF): anexo de foto obrigatório na coleta:** No modal de finalização da coleta (`OfCollectPhotosModal.tsx`), o anexo de pelo menos 1 foto das notas fiscais/documentos passou a ser obrigatório. O botão "Confirmar Coleta" agora valida a presença de fotos e exibe um alerta caso o usuário tente finalizar sem anexos. O texto de instrução no modal foi destacado com um aviso visual (cor âmbar) reforçando a obrigatoriedade. Verificado: tentativa de coleta sem foto bloqueada com toast de erro amigável; coleta com foto segue funcionando normalmente. `tsgo --noEmit` limpo.
-- **02/08/2026 (Brasília) — Pente fino Estoque Malha (Manual) — saídas de OF não espelhadas e saída manual sem validação:** Nova auditoria do módulo (2.283 movimentos; zero `pieces`/`weight_kg` negativos, zero `on_machine` sem máquina, zero nulos de `company_id`/`client_id`/`article_id`, zero espelho órfão, zero `billing_order_id` inválido; todas as RPCs com `SECURITY DEFINER`, `search_path` fixo, guarda de tenant e EXECUTE só para `authenticated`/`service_role`; funções de trigger só para `service_role`). **Bugs encontrados e corrigidos:** (1) **446 saídas de OF nunca espelhadas no estoque manual** — o gatilho `mirror_of_to_manual_stock` só passou a copiar movimentos do tipo `out` em 27/07/2026 19:30, então 353 OFs coletadas entre 17/06 e 27/07 tinham `reserve`/`release` espelhados mas **nenhuma saída**, deixando o razão manual incompleto e o KPI "Entregue (OF coletadas)" subestimado; feito backfill (`INSERT ... SELECT` de `stock_movements` com `source_movement_id`, preservando `created_at`/`created_by`, ignorando segunda qualidade e com `ON CONFLICT DO NOTHING`). Simulação antes/depois confirmou **zero alteração de saldo** (todas essas saídas são anteriores ao primeiro lançamento manual, 27/07 19:31, e são absorvidas pela trava cronológica em zero) — mudou apenas o histórico de Movimentações e o total entregue dos meses anteriores (34.063 pç / 707.372,20 kg). (2) **saída manual da expedição sem validação de saldo** — `save_manual_stock_manual_entry` só validava o palete "em máquina"; um `adjust_out` de expedição podia exceder o disponível e criar histórico negativo, mascarado na tela pelo clamp em zero. Migration: a RPC passou a calcular o saldo físico da expedição com a **mesma linha do tempo/`eff_at`/trava em zero** de `get_manual_stock_estoque`, descontar o palete em máquina e recusar o lançamento com `insufficient_stock`; frontend (`src/pages/StockMalhaManual.tsx`) traduz o erro para "Quantidade maior que o saldo disponível na expedição desse artigo/máquina". REVOKE `PUBLIC`/`anon` e GRANT `authenticated`/`service_role` reaplicados. Verificado no preview: página carrega, KPIs coerentes e saldos por cliente/artigo idênticos aos de antes do backfill. `tsgo --noEmit` limpo.
-- **02/08/2026 (Brasília) — Estoque Malha (Manual): lançamento manual deixa de ser engolido por reservas/saídas de OF antigas:** Usuário reportou que a entrada manual de 02/08/2026 09:55 (Bil têxtil · RIBANA 2x1 EXCLUSIVE · TEAR 33 · 46 pç) não aparecia no disponível. Diagnóstico: o artigo tinha histórico manual negativo (saídas espelhadas das OFs coletadas #341/#433 e reservas pendentes das OFs #339/#340, total de 115 pç, feitas quando o módulo manual ainda não tinha nenhuma entrada) — o "Disp." era `estoque − reserva total`, então as 92 pç lançadas (46+46) eram integralmente consumidas por reservas de paletes que nunca foram registrados no estoque manual, exibindo 0. **Correções (migration em `get_manual_stock_estoque`):** (1) o disponível deixou de ser calculado por subtração direta da reserva e passou a usar uma **linha do tempo por cliente+artigo+máquina** com trava cronológica em zero (`GREATEST(0, Σdeltas − LEAST(0, menor prefixo))`), incluindo entradas/saídas de expedição e as reservas pendentes — reserva feita em período sem estoque manual é absorvida na época e não consome lançamentos posteriores, enquanto reserva feita sobre estoque existente continua baixando o disponível na quantidade exata; o disponível segue limitado ao estoque físico da expedição e somado ao palete "em máquina" (nunca consumido por reserva); removidos o `art_excess`/`alloc` de rateio anterior. (2) As **saídas geradas pela coleta de OF** passaram a ser posicionadas na linha do tempo pela data da **primeira reserva** daquela OF/artigo/máquina (`eff_at`), e not pela data da coleta — assim uma OF separada de paletes não registrados no manual não apaga entradas feitas depois; a mesma ordenação vale para o cálculo do estoque (`phys`). Verificado no preview: 83 combinações cliente+artigo, zero divergência entre a soma das máquinas e o total do artigo (peças e kg), zero valor negativo, e a entrada do usuário passou a aparecer (RIBANA 2x1 EXCLUSIVE: Est. 92 pç · Disp. 92 pç). Observação: as entradas manuais desse artigo foram lançadas só em peças (peso 0), por isso os KPIs em kg seguem zerados até que o peso seja informado. REVOKE `PUBLIC`/`anon` e GRANT `authenticated`/`service_role` reaplicados.
-- **02/08/2026 (Brasília) — Pente fino Estoque Malha (Manual):** Auditoria completa do módulo após as últimas entregas. Banco íntegro: 2.283 movimentos, zero `pieces`/`weight_kg` negativos, zero `on_machine` sem máquina, zero `company_id`/`client_id`/`article_id` nulos, zero espelho órfão de `stock_movements`, zero movimento com artigo de outra empresa; RPCs de leitura e escrita com `SECURITY DEFINER`, `search_path` fixo e guarda de tenant. **Bugs encontrados e corrigidos (migration):** (1) **paginação instável em Movimentações** — `get_manual_stock_movements` ordenava só por `created_at DESC` e há 132 timestamps repetidos na base (lançamentos gravados no mesmo instante pelas RPCs de OF), o que fazia registros se repetirem ou sumirem ao trocar de página; adicionado desempate por `id DESC` na subconsulta e no `jsonb_agg`; (2) **filtro por cliente divergente entre abas** — a aba Movimentações filtrava por `m.client_id` puro enquanto o Estoque usa `COALESCE(m.client_id, articles.client_id)`; passou a usar o mesm fallback (filtro, contagem e nome exibido); (3) **espelho de OF sem cliente** — `mirror_of_to_manual_stock`/`mirror_of_update_to_manual_stock` copiavam `client_id` de `stock_movements` (coluna anulável); agora, se vier nulo, preenchem com o cliente do artigo, evitando registro invisível nos filtros; o trigger de INSERT ganhou `ON CONFLICT (source_movement_id) DO NOTHING` (idempotência em reprocessos); (4) **perda de peso/peças na transferência do palete** — em "Recontar e lançar para a expedição", informar só peças (ou só peso) zerava a outra unidade do palete e ela desaparecia do estoque; agora, no modo transferência, a unidade não informada preserva o valor atual do palete; (5) **funções internas de trigger** `mirror_of_to_manual_stock` e `mirror_of_delete_to_manual_stock` eram executáveis por `authenticated` (a de UPDATE já não era) — EXECUTE revogado de `PUBLIC`/`anon`/`authenticated` e mantido só para `service_role`. Verificado no preview: página Estoque Malha (Manual) carrega normalmente (KPIs e agrupamento por cliente/artigo). `tsgo --noEmit` limpo.
-- **02/08/2026 (Brasília) — Estoque Malha (Manual): soma das máquinas volta a bater com o "Disp. Rolos" do artigo:** Usuário reportou (Bil têxtil · MALHA EXCLUSIVE) soma de 1.147 peças nas máquinas contra 1.043 exibidos no artigo. Causa: em `get_manual_stock_estoque` o disponível **por máquina** descontava só a reserva da própria máquina (`GREATEST(0, expedição − reserva da máquina)`), enquanto o **artigo/KPIs** descontavam a reserva total (`GREATEST(0, Σexpedição − Σreserva)`); quando uma OF reservava de uma máquina sem saldo de expedição (TEAR 31 com 104 pç reservadas e estoque zerado), esse excedente sumia do detalhamento por máquina mas continuava descontado no total — diferença exata de 104 peças. Correção (migration): o excedente de reserva do artigo passa a ser alocado de forma **determinística e sequencial** (ordem por `machine_id`, sem rateio proporcional) sobre a capacidade livre das demais máquinas do mesmo cliente+artigo, e o total do artigo/KPIs passou a ser a soma dos disponíveis por máquina. Assim Σ(máquinas) ≡ artigo ≡ KPIs, cada reserva reduz o disponível na quantidade exata e o palete "em máquina" nunca é consumido por reserva. Verificado no banco: zero divergências entre soma por máquina e total do artigo (kg e rolos) em toda a base. REVOKE `PUBLIC`/`anon` e GRANT `authenticated`/`service_role` reaplicados.
-- **02/08/2026 (Brasília) — Pente fino de segurança: RPCs de Relatórios e Dashboard sem isolamento de empresa:** Auditoria das últimas entregas encontrou 9 funções `SECURITY DEFINER` (`get_dashboard_metrics`, `get_report_kpis`, `get_report_data` (2 sobrecargas), `get_report_by_machine`, `get_report_by_article`, `get_report_by_client`, `get_report_by_shift`, `get_report_evolution`) que **confiavam apenas no parâmetro `p_company_id`**, sem validar o tenant do chamador — qualquer usuário autenticado podia ler produção, faturamento e eficiência de outra empresa passando outro UUID; além disso estavam sem `search_path` fixo. Correção (migration com DO block que reescreve cada função preservando o corpo): guarda `IF public.get_user_company_id() IS DISTINCT FROM p_company_id THEN RETURN; END IF;` injetada logo após o `BEGIN` (retorno vazio para `RETURNS TABLE`, `NULL::json` para `RETURNS json`), `SET search_path TO 'public'`, `REVOKE ALL ... FROM PUBLIC, anon` e `GRANT EXECUTE ... TO authenticated, service_role`. Verificado: 9/9 funções com guarda + `search_path`, `anon` sem execute, consulta com company_id de outra empresa retorna vazio e Dashboard/Relatórios seguem carregando normalmente na empresa do usuário. `tsgo --noEmit` limpo.
-- **02/08/2026 (Brasília) — Estoque Malha (Manual): reserva de OF volta a baixar o disponível na quantidade exata:** Usuário reportou que ao reservar 9 peças (B BASIC/POWER DROP · MALHA 1,20-155 OE · TEAR 01) o disponível caía de 59 para 53 (esperado 50) e, em Bil têxtil · MALHA EXCLUSIVE · TEAR 13, reserva de 11 baixava de 111 para 101. Causa: em `get_manual_stock_estoque` o excedente de reserva de outra máquina (OF 434 reservando 195 pç no TEAR 12, que só tem 65 pç de estoque manual) era **redistribuído proporcionalmente** entre as demais máquinas do mesmo cliente+artigo; como a capacidade livre muda a cada nova reserva, a fatia do rateio se redistribuía e o delta observado ficava menor que o reservado. Correção (migration): removido o rateio proporcional (`spill`/`alloc`). Agora o disponível por máquina é `em_maq + GREATEST(0, expedição − reservado da própria máquina)` e o disponível por artigo/cliente/KPIs é `SUM(em_maq) + GREATEST(0, SUM(expedição) − SUM(reservado))`. Assim toda reserva reduz o disponível exatamente na quantidade reservada, tanto no tear quanto no total do artigo, sem inflar saldo e sem ficar negativo. REVOKE `PUBLIC`/`anon` e GRANT `authenticated`/`service_role` reaplicados.
+    - Spinner discreto com animação de pulso e texto informativo durante o carregamento dos dados.
+
+- **06/08/2026 (Brasília) — Ordem de Faturamento (OF): anexo de foto obrigatório na coleta:**
+    - No modal de finalização da coleta, o anexo de pelo menos 1 foto das notas fiscais/documentos passou a ser obrigatório.
+
+- **02/08/2026 (Brasília) — Pente fino Estoque Malha (Manual):**
+    - Auditoria completa do módulo após as últimas entregas.
+    - Corrigida a reserva de OF para baixar o disponível na quantidade exata.
+
+- **02/08/2026 (Brasília) — Pente fino de segurança: RPCs de Relatórios e Dashboard sem isolamento de empresa:**
+    - Auditoria das funções `SECURITY DEFINER` injetando guarda de tenant `public.get_user_company_id()`.
