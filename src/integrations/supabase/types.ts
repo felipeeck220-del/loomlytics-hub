@@ -6018,6 +6018,15 @@ export type Database = {
         }
         Returns: Json
       }
+      link_billing_orders: {
+        Args: {
+          p_author_code: string
+          p_author_name: string
+          p_company_id: string
+          p_ids: string[]
+        }
+        Returns: Json
+      }
       next_machine_status: {
         Args: {
           p_exclude_ac?: string
