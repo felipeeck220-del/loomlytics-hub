@@ -152,7 +152,7 @@ const BillingOrders = () => {
   const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
   const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null; created_at?: string | null; created_by_name?: string | null; created_by_code?: string | null }>>([]);
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>>([]);
-  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
   const [palletToDelete, setPalletToDelete] = useState<null | { id: string; pallet_number: number; pieces: number; weight: number; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>(null);
@@ -346,9 +346,6 @@ const BillingOrders = () => {
           if (diffDays > 7) return false;
         }
 
-        // BLOQUEIO ADICIONAL: Se a OF acabou de ser coletada via RPC, ela NÃO deve aparecer aqui
-        // mesmo que o cache ainda não tenha sido totalmente invalidado ou o Realtime esteja pendente.
-        if (order.status === 'collected') return false;
 
         if (!matchesSearch) return false;
         return true;
@@ -1657,7 +1654,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: '' });
                               setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
@@ -2078,12 +2075,12 @@ const BillingOrders = () => {
             // 3. Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
             console.log("Invalidando caches após coleta bem sucedida...");
             
-            // Forçamos a remoção local IMEDIATA da OF da lista para evitar race conditions
-            // Como 'orders' vem do hook e não temos o setter aqui, usamos queryClient.setQueryData
+            // Forçamos a remoção local IMEDIATA da OF da lista
             queryClient.setQueryData(['billing_orders', user?.company_id], (old: any[] | undefined) => {
               if (!old) return old;
               return old.filter(o => o.id !== target.id);
             });
+
             
             await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
             await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
@@ -2572,7 +2569,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '' }); } }}>
         <DialogContent
           className="sm:max-w-[560px] w-screen h-screen max-w-none rounded-none p-4 sm:w-auto sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6 [&>button.absolute]:hidden overflow-y-auto"
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -2718,62 +2715,6 @@ const BillingOrders = () => {
                       />
                     </div>
                   </div>
-                  <div className="rounded-md bg-muted/40 border-dashed border p-2 space-y-2">
-                    <div className="text-[10px] uppercase text-muted-foreground font-semibold">Origem do estoque deste palete</div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="flex items-start gap-2 text-xs cursor-pointer">
-                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'default'}
-                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
-                        <span>Estoque do <strong>cliente/artigo da OF</strong> (padrão)</span>
-                      </label>
-                      <label className="flex items-start gap-2 text-xs cursor-pointer">
-                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'alt'}
-                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'alt', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
-                        <span>Usar <strong>outro artigo</strong> (fecha esta OF descontando estoque de outro cliente/artigo)</span>
-                      </label>
-                      <label className="flex items-start gap-2 text-xs cursor-pointer">
-                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'own'}
-                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'own', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
-                        <span>Usar <strong>Estoque {companyFirstName}</strong> (baixa direta do estoque próprio da empresa)</span>
-                      </label>
-                    </div>
-                    {palletInput.source_mode === 'alt' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-[10px] uppercase">Cliente (alternativo) *</Label>
-                          <SearchableSelect
-                            value={palletInput.alt_client_id}
-                            onValueChange={v => setPalletInput({ ...palletInput, alt_client_id: v, alt_article_id: '' })}
-                            options={getClients().map(c => ({ value: c.id, label: c.name }))}
-                            placeholder="Selecione o cliente"
-                            autoFocusSearch={false}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] uppercase">Artigo (alternativo) *</Label>
-                          <SearchableSelect
-                            value={palletInput.alt_article_id}
-                            onValueChange={v => setPalletInput({ ...palletInput, alt_article_id: v })}
-                            options={getArticles().filter(a => a.client_id === palletInput.alt_client_id).map(a => ({ value: a.id, label: a.name }))}
-                            placeholder={palletInput.alt_client_id ? 'Selecione o artigo' : 'Selecione o cliente antes'}
-                            autoFocusSearch={false}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {palletInput.source_mode === 'own' && (
-                      <div>
-                        <Label className="text-[10px] uppercase">Artigo em Estoque {companyFirstName} *</Label>
-                        <SearchableSelect
-                          value={palletInput.own_article_id}
-                          onValueChange={v => setPalletInput({ ...palletInput, own_article_id: v })}
-                          options={ownArticles.map(a => ({ value: a.id, label: a.name }))}
-                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : 'Nenhum artigo'}
-                          autoFocusSearch={false}
-                        />
-                      </div>
-                    )}
-                  </div>
                   <div className="flex justify-end">
                     <Button
                       size="sm"
@@ -2786,273 +2727,55 @@ const BillingOrders = () => {
                           toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
-                        const useOwn = palletInput.source_mode === 'own';
-                        const useAlt = palletInput.source_mode === 'alt';
-                        if (!useOwn && !palletInput.machine_id) {
-                          toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA" para descontar do estoque total do artigo.', variant: 'destructive' });
-                          return;
-                        }
-                        if (useAlt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
-                          toast({ title: 'Selecione cliente e artigo alternativos', variant: 'destructive' });
-                          return;
-                        }
-                        if (useOwn && !palletInput.own_article_id) {
-                          toast({ title: `Selecione o artigo em Estoque ${companyFirstName}`, variant: 'destructive' });
+                        if (!palletInput.machine_id) {
+                          toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA".', variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
                         const order = showPalletsModal;
                         setPalletBusy(true);
                         try {
-                          // Calcula o próximo número diretamente do banco (não do
-                          // estado local) — evita paletes duplicados quando dois
-                          // usuários estão registrando paletes da mesma OF.
-                          const { data: maxRow } = await (supabase.from as any)('billing_order_pallets')
+                          // Calcula o próximo número
+                          const { data: maxRow } = await supabase
+                            .from('billing_order_pallets' as any)
                             .select('pallet_number')
                             .eq('billing_order_id', order.id)
                             .order('pallet_number', { ascending: false })
                             .limit(1)
                             .maybeSingle();
+                          
                           const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
                           const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
                           const nextNumber = Math.max(localMax, dbMax) + 1;
-                          const isNoMachine = !useOwn && palletInput.machine_id === '__none__';
-                          const palletMachineId = useOwn ? null : (isNoMachine ? null : palletInput.machine_id);
-                          const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
-                          const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
-                          const reasonSuffix = `OF #${order.of_number} · Palete ${nextNumber}`;
+                          const palletMachineId = palletInput.machine_id === '__none__' ? null : palletInput.machine_id;
 
-                          // ============ MODO ESTOQUE PRÓPRIO ============
-                          // Baixa direto do own_stock (sem passar por stock_movements/reserve)
-                          if (useOwn) {
-                            const { data: ownMv, error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
-                              company_id: user.company_id,
-                              own_article_id: palletInput.own_article_id,
-                              type: 'out',
-                              pieces: pc || 0,
-                              weight_kg: wt || 0,
-                              reason: `OF #${order.of_number} · Palete ${nextNumber} (Estoque ${companyFirstName})`,
-                              created_by: profile?.id ?? null,
-                            }).select('id').single();
-                            if (ownErr) throw ownErr;
-                            const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
+                          const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets')
+                            .insert({
                               billing_order_id: order.id,
                               company_id: user.company_id,
                               pallet_number: nextNumber,
                               pieces: pc || 0,
                               weight_kg: wt || 0,
-                              reserve_movement_id: null,
-                              machine_id: null,
-                              alt_client_id: null,
-                              alt_article_id: null,
-                              own_article_id: palletInput.own_article_id,
-                              own_stock_movement_id: ownMv?.id ?? null,
+                              machine_id: palletMachineId,
                               created_by: profile?.id ?? null,
-                            }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
-                            if (pErr) {
-                              // rollback do movimento próprio
-                              if (ownMv?.id) await (supabase.from as any)('own_stock_movements').delete().eq('id', ownMv.id);
-                              throw pErr;
-                            }
-                            setPallets(prev => [...prev, {
-                              id: row.id,
-                              pallet_number: row.pallet_number,
-                              pieces: Number(row.pieces),
-                              weight: Number(row.weight_kg),
-                              reserve_movement_id: null,
-                              machine_id: null,
-                              alt_client_id: null,
-                              alt_article_id: null,
-                              own_article_id: row.own_article_id ?? null,
-                              own_stock_movement_id: row.own_stock_movement_id ?? null,
-                            }]);
-                            setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
-                            refreshStockCaches();
-                            toast({ title: `Palete ${nextNumber} salvo (Estoque ${companyFirstName})` });
-                            setPalletBusy(false);
-                            return;
-                          }
-
-                          // Se SEM MÁQUINA: computa saldo por máquina do artigo e distribui a baixa.
-                          type Alloc = { machine_id: string; pieces: number; weight_kg: number };
-                          const allocations: Alloc[] = [];
-                          if (isNoMachine) {
-                            const [prodRes, mvRes] = await Promise.all([
-                              (supabase.from as any)('productions').select('machine_id, rolls_produced, weight_kg').eq('company_id', user.company_id).eq('article_id', effArticleId),
-                              (supabase.from as any)('stock_movements').select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id').eq('company_id', user.company_id).eq('article_id', effArticleId),
-                            ]);
-                            
-                            const bal = new Map<string, { pieces: number; weight: number }>();
-                            
-                            // 1. Considerar o saldo físico da expedição vindo do estoque global (apenas se houver produções)
-                            for (const p of (prodRes.data || [])) {
-                              if (!p.machine_id) continue;
-                              const cur = bal.get(p.machine_id) || { pieces: 0, weight: 0 };
-                              cur.pieces += Number(p.rolls_produced) || 0;
-                              cur.weight += Number(p.weight_kg) || 0;
-                              bal.set(p.machine_id, cur);
-                            }
-                            
-                            // 2. Considerar TODOS os movimentos do estoque global para espelhar o saldo real da expedição global
-                            // (Necessário para subtrair reservas/saídas que já ocorreram na base global)
-                            for (const mv of (mvRes.data || [])) {
-                              if (mv.is_second_quality || !mv.machine_id) continue;
-                              
-                              // IMPORTANTE: Só consideramos movimentos de saída ('reserve', 'out', 'adjust_out') 
-                              // que NÃO estejam vinculados a esta OF específica. 
-                              // O saldo atual deve ser o total que PODE ser reservado, sem contar 
-                              // o que já está reservado por esta OF no global (que ainda não virou palete).
-                              if (mv.billing_order_id === order.id) continue;
-
-                              const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
-                              const kg = Number(mv.weight_kg) || 0;
-                              const pcs = Number(mv.pieces) || 0;
-                              
-                              if (mv.type === 'adjust_in' || mv.type === 'release') {
-                                cur.pieces += pcs; cur.weight += kg;
-                              } else if (mv.type === 'adjust_out' || mv.type === 'out' || mv.type === 'reserve') {
-                                cur.pieces -= pcs; cur.weight -= kg;
-                              } else if (mv.type === 'in' && !mv.billing_order_id) {
-                                cur.pieces += pcs; cur.weight += kg;
-                              }
-                              bal.set(mv.machine_id, cur);
-                            }
-
-                            // O módulo de Estoque Manual foi removido. 
-                            // O saldo agora é calculado exclusivamente com base nos movimentos globais (stock_movements)
-                            // processados no passo 2 acima.
-
-                            // Ordena por peças disponíveis decrescente (prioridade do usuário)
-                            const sorted = Array.from(bal.entries())
-                              .filter(([, v]) => v.pieces >= 1)
-                              .sort((a, b) => b[1].pieces - a[1].pieces);
-                            
-                            let remPc = pc || 0;
-                            let remKg = wt || 0;
-
-                            // 1. Tentar encontrar uma única máquina que supra tudo (ex: preciso 50, tenho uma com 85)
-                            const perfectMatch = sorted.find(([, v]) => v.pieces >= remPc);
-                            if (perfectMatch) {
-                              const [mid] = perfectMatch;
-                              allocations.push({ machine_id: mid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
-                              remPc = 0;
-                              remKg = 0;
-                            } else {
-                              // 2. Distribuir entre as máquinas com saldo (ex: preciso 50, tenho duas com 25)
-                              for (const [mid, v] of sorted) {
-                                if (remPc <= 0) break;
-                                const takePc = Math.min(v.pieces, remPc);
-                                // Proporção do peso baseado nas peças tomadas (ou o restante se for a última)
-                                const takeKg = remPc > takePc 
-                                  ? (remKg * (takePc / remPc))
-                                  : remKg;
-                                
-                                allocations.push({ machine_id: mid, pieces: takePc, weight_kg: Number(takeKg.toFixed(3)) });
-                                remPc -= takePc;
-                                remKg -= takeKg;
-                              }
-                            }
-
-                            // Se ainda sobrou algo (estoque total insuficiente), alocamos o restante na máquina com mais saldo ou principal
-                            if (remPc > 0) {
-                              const fbMid = sorted.length > 0 ? sorted[0][0] : (order.machine_id || getMachines()[0]?.id);
-                              if (!fbMid) throw new Error('Nenhuma máquina encontrada para alocação.');
-                              const existing = allocations.find(a => a.machine_id === fbMid);
-                              if (existing) {
-                                existing.pieces += remPc;
-                                existing.weight_kg = Number((existing.weight_kg + remKg).toFixed(3));
-                              } else {
-                                allocations.push({ machine_id: fbMid, pieces: remPc, weight_kg: Number(remKg.toFixed(3)) });
-                              }
-                            }
+                            })
+                            .select('id, pallet_number, pieces, weight_kg, machine_id')
+                            .single();
 
 
-                          }
+                          if (pErr) throw pErr;
 
-
-                          // 1. Cria movimento(s) de reserva
-                          const reserveRows = isNoMachine
-                            ? allocations.map(a => ({
-                                company_id: user.company_id,
-                                article_id: effArticleId,
-                                client_id: effClientId,
-                                billing_order_id: order.id,
-                                machine_id: a.machine_id,
-                                type: 'reserve',
-                                pieces: a.pieces,
-                                weight_kg: a.weight_kg,
-                                reason: `${reasonSuffix} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
-                                created_by: profile?.id ?? null,
-                              }))
-                            : [{
-                                company_id: user.company_id,
-                                article_id: effArticleId,
-                                client_id: effClientId,
-                                billing_order_id: order.id,
-                                machine_id: palletMachineId,
-                                type: 'reserve',
-                                pieces: pc || 0,
-                                weight_kg: wt || 0,
-                                reason: `${reasonSuffix} (reserva${useAlt ? ' · outro artigo' : ''})`,
-                                created_by: profile?.id ?? null,
-                              }];
-                          
-                          // Registramos os movimentos de reserva. A RPC cancel_billing_order agora agrupa esses movimentos
-                          // ao estornar, garantindo integridade no estoque manual sem duplicidade.
-                          const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
-                          if (mvErr) throw mvErr;
-                          const firstMvId = (mvRows && mvRows[0]?.id) || null;
-                          // 2. Persiste palete (machine_id=null quando SEM MÁQUINA)
-                          const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
-                            billing_order_id: order.id,
-                            company_id: user.company_id,
-                            pallet_number: nextNumber,
-                            pieces: pc || 0,
-                            weight_kg: wt || 0,
-                            reserve_movement_id: firstMvId,
-                            machine_id: palletMachineId,
-                            alt_client_id: useAlt ? palletInput.alt_client_id : null,
-                            alt_article_id: useAlt ? palletInput.alt_article_id : null,
-                            created_by: profile?.id ?? null,
-                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
-                          if (pErr) {
-                            // rollback dos movimentos se persistência falhar
-                            const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
-                            if (ids.length) await (supabase.from as any)('stock_movements').delete().in('id', ids);
-                            throw pErr;
-                           }
-                           
-                           // Link das reservas ao palete para estorno robusto no futuro
-                           const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
-                           if (ids.length) {
-                             await (supabase.from as any)('stock_movements')
-                               .update({ reason: `${reasonSuffix} (Pallet ID: ${row.id})` })
-                               .in('id', ids);
-                           }
-
-                           setPallets(prev => [...prev, {
-                             id: row.id,
-                             pallet_number: row.pallet_number,
-                             pieces: Number(row.pieces),
-                             weight: Number(row.weight_kg),
-                             reserve_movement_id: row.reserve_movement_id,
-                             machine_id: row.machine_id ?? null,
-                             alt_client_id: row.alt_client_id ?? null,
-                             alt_article_id: row.alt_article_id ?? null,
-                             own_article_id: row.own_article_id ?? null,
-                             own_stock_movement_id: row.own_stock_movement_id ?? null,
-                           }]);
-
-                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
-                          refreshStockCaches();
-                          toast({
-                            title: `Palete ${nextNumber} salvo e reservado no estoque`,
-                            description: isNoMachine
-                              ? `SEM MÁQUINA: distribuído em ${allocations.length} máquina${allocations.length !== 1 ? 's' : ''} com saldo positivo.`
-                              : undefined,
-                          });
-                        } catch (e: any) {
-                          toast({ title: 'Erro ao salvar palete', description: e.message, variant: 'destructive' });
+                          setPallets(prev => [...prev, {
+                            id: row.id,
+                            pallet_number: row.pallet_number,
+                            pieces: Number(row.pieces),
+                            weight: Number(row.weight_kg),
+                            machine_id: row.machine_id ?? null,
+                          }]);
+                          setPalletInput({ ...palletInput, pieces: '', weight: '' });
+                          toast({ title: `Palete ${nextNumber} salvo` });
+                        } catch (err: any) {
+                          toast({ title: 'Erro ao salvar palete', description: err.message, variant: 'destructive' });
                         } finally {
                           setPalletBusy(false);
                         }
@@ -3249,7 +2972,7 @@ const BillingOrders = () => {
                   </div>
                 </div>
                 <DialogFooter className="mt-4 pt-4 border-t px-0">
-                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
+                  <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '' }); }}>Fechar</Button>
                   <Button
                     className={cn(
                       "font-bold gap-1.5",
@@ -3394,7 +3117,7 @@ const BillingOrders = () => {
                       setConfirmFinalizePallets(false);
                       setShowPalletsModal(null);
                       setPallets([]);
-                      setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                      setPalletInput({ pieces: '', weight: '', machine_id: '' });
                     } catch (err: any) {
                       if (err?.code === 'CONFLICT') {
                         setConfirmFinalizePallets(false);
