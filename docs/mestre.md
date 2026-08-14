@@ -1,7 +1,8 @@
+- **14/08/2026 (Brasília) — Estabilização Definitiva da Coleta de OF (Ghost-Free):**
+    - Implementado **bloqueio de status** direto na renderização da aba "Pronto para coleta" para impedir que OFs coletadas reapareçam durante o delay de sincronização.
+    - Aumentado o **delay de sincronização tática para 10.000ms** no hook `useBillingOrders.ts` para garantir a propagação total das triggers atômicas de limpeza de paletes.
+    - Validada a RPC `collect_billing_order` como única fonte de verdade para transições de coleta, com auditoria consolidada.
 - **14/08/2026 (Brasília) — Movimentação Manual OF #508 e Correção de Trigger:**
-    - Movimentada manualmente a OF #508 para "Coletadas" via RPC `collect_billing_order`, garantindo a preservação de 345 peças e 6990kg.
-    - Refinada a trigger `handle_billing_order_status_change` para garantir `collected_at` e integridade de dados na transição.
-- **14/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
     - Corrigida a trigger `handle_billing_order_status_change` para garantir a consolidação atômica de peças e peso e a limpeza de paletes durante a transição para `collected`.
     - Aumentado o delay de sincronização no hook `useBillingOrders.ts` para **8000ms** para eliminar o efeito "ghost" (OF voltando para a aba anterior) devido à latência de propagação do banco.
     - Ajustado o `getStatusStyle` em `BillingOrders.tsx` para refletir melhor o status de atraso na coleta.
