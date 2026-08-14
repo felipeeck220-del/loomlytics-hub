@@ -2294,24 +2294,6 @@ const BillingOrders = () => {
                     O cancelamento de uma OF coletada é um registro logístico e não realiza estornos automáticos de estoque.
                   </div>
                 </div>
-                    <label className={cn(
-                      'flex items-start gap-2 p-2 rounded-md border cursor-pointer transition-colors',
-                      reversalQuality === 'second' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-border hover:bg-muted/50'
-                    )}>
-                      <input
-                        type="radio"
-                        name="rev-q"
-                        className="mt-0.5"
-                        checked={reversalQuality === 'second'}
-                        onChange={() => setReversalQuality('second')}
-                      />
-                      <div className="text-xs">
-                        <div className="font-semibold text-amber-700 dark:text-amber-400">2ª qualidade</div>
-                        <div className="text-muted-foreground">Peças vão para a aba <strong>Estoque de 2ª</strong> (saldo independente). O estoque principal não é afetado.</div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
                 <p className="text-sm text-muted-foreground">Informe o motivo do estorno (mín. 5 caracteres):</p>
               </>
             ) : (
@@ -2849,9 +2831,6 @@ const BillingOrders = () => {
                         setPalletBusy(false);
                         setPalletToDelete(null);
                       }
-                    }}
-                                    setPalletToDelete(null);
-                                  }
                     }}
                   />
                   {/* Resumo por máquina */}
