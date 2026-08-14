@@ -3054,8 +3054,15 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Atrelar OFs */}
-      <Dialog open={showLinkModal} onOpenChange={(v) => { setShowLinkModal(v); if (!v) setLinkSelected(new Set()); }}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] overflow-y-auto">
+      <Dialog 
+        open={showLinkModal} 
+        onOpenChange={(v) => { 
+          if (linkBusy) return;
+          setShowLinkModal(v); 
+          if (!v) setLinkSelected(new Set()); 
+        }}
+      >
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] overflow-y-auto" onPointerDownOutside={(e) => linkBusy && e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5 text-fuchsia-600" />
@@ -3212,7 +3219,7 @@ const BillingOrders = () => {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowLinkModal(false); setLinkSelected(new Set()); }}>
+            <Button variant="outline" disabled={linkBusy} onClick={() => { setShowLinkModal(false); setLinkSelected(new Set()); }}>
               Fechar
             </Button>
             {isAdmin && (
