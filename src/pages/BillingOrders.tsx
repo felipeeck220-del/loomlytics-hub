@@ -2286,43 +2286,12 @@ const BillingOrders = () => {
             {showCancelModal?.status === 'collected' ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  O estorno devolve as <strong>{showCancelModal?.pieces_real} pç / {Number(showCancelModal?.weight_real || 0).toFixed(2)} kg</strong> e move a OF para <strong>Canceladas</strong>.
+                  A OF <strong>#{showCancelModal?.of_number}</strong> será movida para <strong>Canceladas</strong>.
                 </p>
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-foreground">Tipo do estorno *</div>
-                  <div className="grid grid-cols-1 gap-2">
-                    <label className={cn(
-                      'flex items-start gap-2 p-2 rounded-md border cursor-pointer transition-colors',
-                      reversalQuality === 'first' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-border hover:bg-muted/50'
-                    )}>
-                      <input
-                        type="radio"
-                        name="rev-q"
-                        className="mt-0.5"
-                        checked={reversalQuality === 'first'}
-                        onChange={() => setReversalQuality('first')}
-                      />
-                      <div className="text-xs">
-                        <div className="font-semibold text-emerald-700 dark:text-emerald-400">1ª qualidade</div>
-                        <div className="text-muted-foreground">Peças voltam para o <strong>Estoque de Malha</strong>, somam em Disponível e descontam Entregue kg/Rolos.</div>
-                      </div>
-                    </label>
-                    <label className={cn(
-                      'flex items-start gap-2 p-2 rounded-md border cursor-pointer transition-colors',
-                      reversalQuality === 'second' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-border hover:bg-muted/50'
-                    )}>
-                      <input
-                        type="radio"
-                        name="rev-q"
-                        className="mt-0.5"
-                        checked={reversalQuality === 'second'}
-                        onChange={() => setReversalQuality('second')}
-                      />
-                      <div className="text-xs">
-                        <div className="font-semibold text-amber-700 dark:text-amber-400">2ª qualidade</div>
-                        <div className="text-muted-foreground">Peças vão para a aba <strong>Estoque de 2ª</strong> (saldo independente). O estoque principal não é afetado.</div>
-                      </div>
-                    </label>
+                  <div className="text-xs font-semibold text-foreground">Atenção</div>
+                  <div className="p-2 rounded-md border border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-900 dark:text-amber-200">
+                    O cancelamento de uma OF coletada é um registro logístico e não realiza estornos automáticos de estoque.
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">Informe o motivo do estorno (mín. 5 caracteres):</p>
@@ -2843,83 +2812,25 @@ const BillingOrders = () => {
                     open={!!palletToDelete}
                     onOpenChange={(o) => { if (!o) setPalletToDelete(null); }}
                     title="Excluir palete?"
-                    description={palletToDelete ? `Deseja realmente excluir o Palete ${palletToDelete.pallet_number} (${palletToDelete.pieces} pç · ${palletToDelete.weight.toFixed(2)} kg)? O estoque reservado será liberado.` : ''}
+                    description={palletToDelete ? `Deseja realmente excluir o Palete ${palletToDelete.pallet_number} (${palletToDelete.pieces} pç · ${palletToDelete.weight.toFixed(2)} kg)?` : ''}
                     confirmLabel="Excluir"
                     cancelLabel="Cancelar"
                     onConfirm={async () => {
                       const p = palletToDelete;
                       if (!p || !user?.company_id) return;
-                      const order = showPalletsModal;
                       setPalletBusy(true);
                       try {
-                        if (p.own_article_id) {
-                                      // Palete de Estoque Próprio: reverte a saída
-                                      const { error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
-                                        company_id: user.company_id,
-                                        own_article_id: p.own_article_id,
-                                        type: 'in',
-                                        pieces: p.pieces || 0,
-                                        weight_kg: p.weight || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (devolve Estoque ${companyFirstName})`,
-                                        created_by: profile?.id ?? null,
-                                      });
-                                      if (ownErr) throw ownErr;
-                                      } else {
-                                        // Reservas baseadas no histórico de razão (para OFs com ou sem máquina)
-                                        // A liberação agora é delegada a inserções agrupadas de 'release' para
-                                        // evitar que o trigger do estoque manual duplique o saldo disponível.
-                                        
-                                        const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
-                                          .select('id, machine_id, pieces, weight_kg, article_id, client_id')
-                                          .eq('company_id', user.company_id)
-                                          .eq('billing_order_id', order.id)
-                                          .eq('type', 'reserve')
-                                          .or(`reason.like.OF #${order.of_number} · Palete ${p.pallet_number} %,reason.like.% (Pallet ID: ${p.id})`);
-                                        
-                                        if (qErr) throw qErr;
-
-                                        // 3. Inserir lançamentos de estorno (liberação)
-                                        // Agrupamos por máquina para garantir que não haja duplicatas no estoque manual
-                                        const groupedReleases = (reservas || []).reduce((acc: any, curr: any) => {
-                                          const mid = curr.machine_id || 'null';
-                                          if (!acc[mid]) {
-                                            acc[mid] = { ...curr, pieces: 0, weight_kg: 0 };
-                                          }
-                                          acc[mid].pieces += Number(curr.pieces) || 0;
-                                          acc[mid].weight_kg += Number(curr.weight_kg) || 0;
-                                          return acc;
-                                        }, {});
-
-                                        const releasesToInsert = Object.values(groupedReleases).map((r: any) => ({
-                                          company_id: user.company_id,
-                                          article_id: r.article_id,
-                                          client_id: r.client_id,
-                                          billing_order_id: order.id,
-                                          machine_id: r.machine_id,
-                                          type: 'release',
-                                          pieces: Number(r.pieces) || 0,
-                                          weight_kg: Number(r.weight_kg) || 0,
-                                          reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (estorno reserva agrupada)`,
-                                          created_by: profile?.id ?? null,
-                                        }));
-
-                                        if (releasesToInsert.length > 0) {
-                                          const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releasesToInsert);
-                                          if (relErr) throw relErr;
-                                        }
-                                      }
-                                    // 2. Apaga palete
-                                    const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
-                                    if (delErr) throw delErr;
-                                    setPallets(prev => prev.filter(x => x.id !== p.id));
-                                    refreshStockCaches();
-                                    toast({ title: `Palete ${p.pallet_number} removido — estoque liberado` });
-                                  } catch (e: any) {
-                                    toast({ title: 'Erro ao remover palete', description: e.message, variant: 'destructive' });
-                                  } finally {
-                                    setPalletBusy(false);
-                                    setPalletToDelete(null);
-                                  }
+                        // 1. Apaga palete (simplificado: sem estornos de estoque manual/reservas)
+                        const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
+                        if (delErr) throw delErr;
+                        setPallets(prev => prev.filter(x => x.id !== p.id));
+                        toast({ title: `Palete ${p.pallet_number} removido` });
+                      } catch (e: any) {
+                        toast({ title: 'Erro ao remover palete', description: e.message, variant: 'destructive' });
+                      } finally {
+                        setPalletBusy(false);
+                        setPalletToDelete(null);
+                      }
                     }}
                   />
                   {/* Resumo por máquina */}
