@@ -3117,7 +3117,7 @@ const BillingOrders = () => {
                       setConfirmFinalizePallets(false);
                       setShowPalletsModal(null);
                       setPallets([]);
-                      setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                      setPalletInput({ pieces: '', weight: '', machine_id: '' });
                     } catch (err: any) {
                       if (err?.code === 'CONFLICT') {
                         setConfirmFinalizePallets(false);
