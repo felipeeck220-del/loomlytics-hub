@@ -1,7 +1,10 @@
-- **14/08/2026 (Brasília) — Estabilização Definitiva da Coleta de OF (Ghost-Free):**
-    - Implementado **bloqueio de status** direto na renderização da aba "Pronto para coleta" para impedir que OFs coletadas reapareçam durante o delay de sincronização.
-    - Aumentado o **delay de sincronização tática para 10.000ms** no hook `useBillingOrders.ts` para garantir a propagação total das triggers atômicas de limpeza de paletes.
-    - Validada a RPC `collect_billing_order` como única fonte de verdade para transições de coleta, com auditoria consolidada.
+- **14/08/2026 (Brasília) — Simplificação do Módulo de Faturamento (OF):**
+    - Desvinculada integralmente a **Ordem de Faturamento (OF)** do **Estoque de Malha**.
+    - Removida a lógica de reservas de estoque, limpeza de paletes e estorno automático ao coletar ou cancelar OFs.
+    - O módulo agora funciona como um controle logístico e de faturamento puro, eliminando o "efeito fantasma" e latências causadas por triggers de estoque pesadas.
+    - Removidas opções de "Origem do Estoque" (Cliente, Outro Artigo, Estoque Trama) do modal de paletes.
+    - Reduzido o delay de sincronização no hook `useBillingOrders.ts` para **500ms**, tornando a interface muito mais rápida.
+
 - **14/08/2026 (Brasília) — Movimentação Manual OF #508 e Correção de Trigger:**
     - Corrigida a trigger `handle_billing_order_status_change` para garantir a consolidação atômica de peças e peso e a limpeza de paletes durante a transição para `collected`.
     - Aumentado o delay de sincronização no hook `useBillingOrders.ts` para **8000ms** para eliminar o efeito "ghost" (OF voltando para a aba anterior) devido à latência de propagação do banco.

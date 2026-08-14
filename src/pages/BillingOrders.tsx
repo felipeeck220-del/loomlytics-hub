@@ -346,9 +346,6 @@ const BillingOrders = () => {
           if (diffDays > 7) return false;
         }
 
-        // BLOQUEIO ADICIONAL: Se a OF acabou de ser coletada via RPC, ela NÃO deve aparecer aqui
-        // mesmo que o cache ainda não tenha sido totalmente invalidado ou o Realtime esteja pendente.
-        if (order.status === 'collected') return false;
 
         if (!matchesSearch) return false;
         return true;
@@ -2078,12 +2075,12 @@ const BillingOrders = () => {
             // 3. Invalidação forçada e IMEDIATA para garantir que a UI reflita a mudança de aba
             console.log("Invalidando caches após coleta bem sucedida...");
             
-            // Forçamos a remoção local IMEDIATA da OF da lista para evitar race conditions
-            // Como 'orders' vem do hook e não temos o setter aqui, usamos queryClient.setQueryData
+            // Forçamos a remoção local IMEDIATA da OF da lista
             queryClient.setQueryData(['billing_orders', user?.company_id], (old: any[] | undefined) => {
               if (!old) return old;
               return old.filter(o => o.id !== target.id);
             });
+
             
             await queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
             await queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
