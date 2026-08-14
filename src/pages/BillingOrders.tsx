@@ -346,6 +346,10 @@ const BillingOrders = () => {
           if (diffDays > 7) return false;
         }
 
+        // BLOQUEIO ADICIONAL: Se a OF acabou de ser coletada via RPC, ela NÃO deve aparecer aqui
+        // mesmo que o cache ainda não tenha sido totalmente invalidado ou o Realtime esteja pendente.
+        if (order.status === 'collected') return false;
+
         if (!matchesSearch) return false;
         return true;
       }
