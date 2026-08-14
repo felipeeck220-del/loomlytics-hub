@@ -1121,7 +1121,7 @@ const BillingOrders = () => {
 
     // 3. PRIORIDADE (Aberto Prioritário): cor VERMELHA (red)
     // Só mostramos vermelho se for prioridade e não estiver em estados posteriores (separando/pronto)
-    if (isPriority && status !== 'collected' && status !== 'cancelled') {
+    if (isPriority && status !== 'collected' && status !== 'cancelled' && status !== 'separating' && status !== 'ready') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
 
@@ -1638,7 +1638,7 @@ const BillingOrders = () => {
                           </Button>
                         )}
 
-                        {order.status === 'open' && (role === 'expedicao' || isAdmin) && (
+                        {(order.status === 'open' || order.status === 'priority' || (order.status as string) === 'open_priority') && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
                             className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
@@ -2128,7 +2128,11 @@ const BillingOrders = () => {
               onClick={async () => {
                 const target = showStartSepConfirm;
                 try {
-                  await updateStatus.mutateAsync({ id: target.id, status: 'separating', expectedStatus: 'open' });
+                  await updateStatus.mutateAsync({ 
+                    id: target.id, 
+                    status: 'separating', 
+                    expectedStatus: target.status 
+                  });
                   setShowStartSepConfirm(null);
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
