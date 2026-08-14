@@ -2749,8 +2749,7 @@ const BillingOrders = () => {
                           const nextNumber = Math.max(localMax, dbMax) + 1;
                           const palletMachineId = palletInput.machine_id === '__none__' ? null : palletInput.machine_id;
 
-                          const { data: row, error: pErr } = await supabase
-                            .from('billing_order_pallets' as any)
+                          const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets')
                             .insert({
                               billing_order_id: order.id,
                               company_id: user.company_id,
@@ -2762,6 +2761,7 @@ const BillingOrders = () => {
                             })
                             .select('id, pallet_number, pieces, weight_kg, machine_id')
                             .single();
+
 
                           if (pErr) throw pErr;
 
