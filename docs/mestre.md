@@ -1,3 +1,6 @@
+- **14/08/2026 (Brasília) — Movimentação Manual OF #508 e Correção de Trigger:**
+    - Movimentada manualmente a OF #508 para "Coletadas" via RPC `collect_billing_order`, garantindo a preservação de 345 peças e 6990kg.
+    - Refinada a trigger `handle_billing_order_status_change` para garantir `collected_at` e integridade de dados na transição.
 - **14/08/2026 (Brasília) — Estabilização Crítica da Coleta de OF:**
     - Corrigida a trigger `handle_billing_order_status_change` para garantir a consolidação atômica de peças e peso e a limpeza de paletes durante a transição para `collected`.
     - Aumentado o delay de sincronização no hook `useBillingOrders.ts` para **8000ms** para eliminar o efeito "ghost" (OF voltando para a aba anterior) devido à latência de propagação do banco.

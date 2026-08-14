@@ -1,0 +1,1 @@
+UPDATE billing_orders SET status = 'collected', collected_at = now() WHERE id = '780d12a3-4c7d-4992-9be2-ec63cb9d29de';

@@ -2047,13 +2047,13 @@ const BillingOrders = () => {
             console.log("Iniciando coleta da OF:", target.of_number);
             
             // 1. Executa a RPC de coleta
-            console.log("Chamando updateStatus.mutateAsync para status 'collected'...");
+            console.log("DEPURAÇÃO: Chamando updateStatus.mutateAsync para OF:", target.of_number, "Status:", "collected");
             const result = await updateStatus.mutateAsync({ 
               id: target.id, 
               status: 'collected', 
               expectedStatus: 'ready' 
             });
-            console.log("RPC collect_billing_order executada com sucesso. Resultado:", result);
+            console.log("DEPURAÇÃO: RPC collect_billing_order executada. Resultado:", result);
 
             // 2. Anexa as fotos se houver (operação separada para não travar a coleta)
             if (photos.length > 0) {

@@ -1,0 +1,1 @@
+UPDATE billing_orders SET status = 'ready', pieces_real = 345, weight_real = 6990.000, weight_avg = (6990.000 / 345.0), collected_at = NULL WHERE id = '780d12a3-4c7d-4992-9be2-ec63cb9d29de';
