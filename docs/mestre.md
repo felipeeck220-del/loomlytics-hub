@@ -150,6 +150,15 @@
     - Sincronizada a assinatura da RPC `link_billing_orders` (4 argumentos) com a função canônica de auditoria `_of_audit` (6 argumentos).
     - Removidas versões obsoletas/duplicadas das funções de agrupamento (`link`, `unlink`, `remove`) para garantir estabilidade no banco de dados.
 - **14/08/2026 (Brasília) — Estabilização Crítica e Refatoração de RPCs (OF):**
+    - Corrigido erro de constraint FK (`billing_orders_collected_by_fkey`) na RPC `collect_billing_order`. A função estava tentando inserir o `auth.uid()` (ID do usuário) na coluna `collected_by`, que referencia a tabela `profiles` (ID do perfil).
+    - Refatorada a RPC `collect_billing_order` para buscar o ID do perfil correto antes de realizar o update, garantindo integridade referencial.
+    - Confirmado que a OF #481 foi marcada como coletada com sucesso após a correção.
+    - Refatorada a RPC `collect_billing_order` com logs de depuração e suporte a contexto de sistema.
+    - Marcada como coletada manualmente a OF #481 (ID a2c4d01e) via migração direta, confirmando a transição atômica para o status `collected`.
+    - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
+    - Iniciada separação manualmente para a OF #626 (ID 8dd5aa93) via migração direta para resolver travamento na aba "Aberto".
+    - Refatorada a lógica do botão "Iniciar Separação" em `BillingOrders.tsx` para garantir visibilidade correta em ordens prioritárias.
+    - Otimizadas as RPCs `collect_billing_order` e `launch_billing_order_ready` com travas pessimistas (`FOR UPDATE`) para eliminar o "efeito fantasma" e garantir atomicidade nas transições de status.
     - Refatorada a RPC `collect_billing_order` com logs de depuração e suporte a contexto de sistema.
     - Marcada como coletada manualmente a OF #481 (ID a2c4d01e) via migração direta, confirmando a transição atômica para o status `collected`.
     - Refatorada a RPC `start_billing_order_separation` para ser resiliente a contextos de sistema e corrigir erro de comparação de tipos (o status prioritário é uma flag booleana `priority`, não um valor do enum `status`).
