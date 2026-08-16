@@ -257,9 +257,7 @@ export default function StockMalhaManual() {
                                     <span className="font-bold">{formatWeight(art.stockKg)}</span>
                                   </div>
                                 </td>
-                                <td className="py-4 text-center text-sm font-bold text-amber-500">0</td>
-                                <td className="py-4 text-center text-sm font-medium text-amber-500">0,00 kg</td>
-                                <td className="py-4 text-center text-sm font-medium">0,00 kg</td>
+                                <td className="py-4 text-center text-sm font-medium text-primary">{formatWeight(art.stockKg)}</td>
                                 <td className="py-4 text-center text-sm font-bold text-primary">0 pç</td>
                                 <td className="py-4 text-center text-sm font-bold text-primary">{art.stockRolls}</td>
                               </tr>
