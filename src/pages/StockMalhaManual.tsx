@@ -318,8 +318,8 @@ export default function StockMalhaManual() {
                                               {isAdmin && (
                                                 <Button 
                                                   variant="outline" 
-                                                  size="xs" 
-                                                  className="h-6 text-[9px] px-2"
+                                                  size="sm" 
+                                                  className="h-6 text-[9px] px-2 font-normal"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     setSelectedPalletData({
@@ -402,8 +402,8 @@ export default function StockMalhaManual() {
                                             {isAdmin && (
                                               <Button 
                                                 variant="outline" 
-                                                size="xs" 
-                                                className="h-5 text-[8px] px-1"
+                                                size="sm" 
+                                                className="h-5 text-[8px] px-1 font-normal"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   setSelectedPalletData({
