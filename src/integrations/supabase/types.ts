@@ -2999,6 +2999,7 @@ export type Database = {
           description: string | null
           id: string
           machine_id: string | null
+          on_machine: boolean | null
           pieces: number
           type: string
           weight_kg: number
@@ -3012,6 +3013,7 @@ export type Database = {
           description?: string | null
           id?: string
           machine_id?: string | null
+          on_machine?: boolean | null
           pieces?: number
           type: string
           weight_kg?: number
@@ -3025,6 +3027,7 @@ export type Database = {
           description?: string | null
           id?: string
           machine_id?: string | null
+          on_machine?: boolean | null
           pieces?: number
           type?: string
           weight_kg?: number
@@ -5156,6 +5159,20 @@ export type Database = {
           p_tag: string
         }
         Returns: number
+      }
+      adjust_manual_machine_pallet: {
+        Args: {
+          p_action: string
+          p_article_id: string
+          p_author_id: string
+          p_client_id: string
+          p_company_id: string
+          p_description?: string
+          p_machine_id: string
+          p_pieces: number
+          p_weight_kg: number
+        }
+        Returns: undefined
       }
       cancel_billing_order: {
         Args: {
