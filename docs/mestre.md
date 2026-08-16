@@ -74,13 +74,12 @@
     - Validada a integridade do controle de múltiplos: trava de finalização no frontend e persistência no banco.
     - Sincronizadas as assinaturas de auditoria em todo o fluxo logístico para o padrão de 6 argumentos.
     - O módulo de Ordem de Faturamento (OF) está estabilizado como sistema logístico puro, sem dependências de triggers de estoque.
-- **16/08/2026 (Brasília) — Recriação do Estoque Malha (Manual) Independente:**
-    - Recriado o módulo de Estoque Malha (Manual) como controle logístico 100% independente.
-    - Implementada tabela `manual_stock_movements` e RPCs `save_manual_stock_entry`, `get_manual_stock_estoque_independent` e `get_manual_stock_movements_independent`.
-    - O módulo não possui gatilhos ou vínculos automáticos com Ordens de Faturamento (OF) ou Produção, funcionando exclusivamente via lançamentos manuais.
-    - Adicionado acesso no Sidebar abaixo de "Vendas de Resíduos" e configuradas permissões para Admin e Expedição.
-    - Layout mobile otimizado com cards e modais simplificados.
+- **16/08/2026 (Brasília) — Estilização do Estoque Malha (Manual) Independente:**
+    - Refatorada a página `StockMalhaManual.tsx` para replicar o estilo visual do "Estoque Clientes" (conforme print de referência).
+    - Implementadas tabelas colapsáveis (Cliente > Artigo > Máquina) e KPIs detalhados (Entradas, Saídas, Reservados, Disponível).
+    - Realizado o reset completo dos dados de movimentação manual para garantir um "zero start" e lógica de saldo 100% independente.
+    - Atualizada a RPC `get_manual_stock_estoque_independent` para suportar o novo layout hierárquico e cálculos de saldo por máquina.
 
-78: - **14/08/2026 (Brasília) — Limpeza de Dados de Teste (OF):**
-79:     - Removidas permanentemente do banco de dados 32 ordens de faturamento de teste (OF #628, #626, #627, #624, #623, #622, #615, #614, #613, #612, #611, #599, #597, #596, #595, #594, #625, #598, #565, #552, #551, #550, #549, #548, #547, #546, #545, #544, #543, #530, #529, #421) e seus respectivos paletes.
-80:     - A limpeza visa garantir a precisão dos relatórios de faturamento e logísticos, eliminando registros inconsistentes gerados durante a fase de estabilização.
+- **14/08/2026 (Brasília) — Limpeza de Dados de Teste (OF):**
+    - Removidas permanentemente do banco de dados 32 ordens de faturamento de teste (OF #628, #626, #627, #624, #623, #622, #615, #614, #613, #612, #611, #599, #597, #596, #595, #594, #625, #598, #565, #552, #551, #550, #549, #548, #547, #546, #545, #544, #543, #530, #529, #421) e seus respectivos paletes.
+    - A limpeza visa garantir a precisão dos relatórios de faturamento e logísticos, eliminando registros inconsistentes gerados durante a fase de estabilização.
