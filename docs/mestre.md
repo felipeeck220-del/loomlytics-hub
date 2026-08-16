@@ -1,15 +1,9 @@
 - **16/08/2026 (Brasília) — Estabilização do Estoque de Malha (Manual):**
-    - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que o lançamento para expedição zere o saldo em máquina e adicione apenas o valor total recontado no estoque disponível, eliminando qualquer soma residual de paletes anteriores.
-
-    - Corrigido o texto de ajuda no `ManualStockEntryModal.tsx` para refletir o novo comportamento de zeramento e lançamento.
+    - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que as ações de 'Recontar palete e manter na máquina' ou 'Lançar para expedição' SUBSTITUAM o valor anterior em vez de somar, zerando o saldo da máquina antes de aplicar a nova contagem total informada no input.
+    - Corrigido o texto de ajuda no `ManualStockEntryModal.tsx` para refletir o novo comportamento de substituição total.
     - Consolidada a lógica de segurança RLS e isolamento multi-tenant para a tabela `manual_stock_movements`.
     - Criado documento de memória `mem://features/manual-stock-logic.md` para garantir a persistência das regras de negócio do módulo.
 
-    - Corrigida a RPC `adjust_manual_machine_pallet` que falhava ao zerar o saldo em máquina por não filtrar corretamente os movimentos de expedição durante o cálculo do saldo atual da máquina.
-    - Restaurado o layout horizontal para as opções de "Destino" (Expedição / Em máquina) no modal de lançamento manual, posicionando-as ao lado do "Tipo".
-
-- **16/08/2026 (Brasília) — Ajuste no Lançamento para Expedição:**
-    - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que, ao lançar um palete para expedição, o saldo atual em máquina seja zerado e o novo valor recontado seja inserido diretamente no estoque disponível (expedição).
 
 - **16/08/2026 (Brasília) — Controle de Paletes em Máquina no Estoque Malha (Manual):**
     - Implementada função "Em máquina" para separar peças em produção do estoque de expedição.
