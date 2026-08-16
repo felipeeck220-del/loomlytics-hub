@@ -275,9 +275,7 @@ export default function StockMalhaManual() {
                                   <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.outKg)}</td>
                                   <td className="py-3 text-center text-muted-foreground">{mac.outPc}</td>
                                   <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.stockKg)}</td>
-                                  <td className="py-3 text-center text-muted-foreground">0</td>
-                                  <td className="py-3 text-center text-muted-foreground">0,00 kg</td>
-                                  <td className="py-3 text-center text-muted-foreground">0,00 kg</td>
+                                  <td className="py-3 text-center text-muted-foreground text-primary/70">{formatWeight(mac.stockKg)}</td>
                                   <td className="py-3 text-center text-muted-foreground font-bold text-primary/70">0 pç</td>
                                   <td className="py-3 text-center text-muted-foreground font-bold text-primary/70">{mac.stockRolls}</td>
                                 </tr>
