@@ -211,8 +211,6 @@ export default function StockMalhaManual() {
                       </div>
                       <div className="hidden sm:flex items-center gap-6 text-xs text-muted-foreground">
                         <span>Entradas: <b className="text-foreground">{group.totalInPc} pç</b></span>
-                        <span>Reservado: <b className="text-amber-500">0 pç</b></span>
-                        <span>Em maq.: <b className="text-foreground">0 pç</b></span>
                         <span>Disponível: <b className="text-primary">{group.totalStockRolls} pç</b></span>
                       </div>
                     </div>
