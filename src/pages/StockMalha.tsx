@@ -58,10 +58,10 @@ export default function StockMalha() {
     getClients, getArticles, getYarnTypes, getMachines, refreshData
   } = useSharedCompanyData();
   
-  const clients = getClients();
-  const articles = getArticles();
-  const yarnTypes = getYarnTypes();
-  const machines = getMachines();
+  const clients = getClients() || [];
+  const articles = getArticles() || [];
+  const yarnTypes = getYarnTypes() || [];
+  const machines = getMachines() || [];
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
   // No Invoices or InvoiceItems dependency as requested: "sem ligação com a aba Saida de malha"
