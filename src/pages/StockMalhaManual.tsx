@@ -1,3 +1,4 @@
+// <!-- leia o arquivo mestre.md (OBRIGATÓRIO LER ANTES DE ATUALIZAR O PROJETO) e prossiga -> enviei um arquivo StockMalhaManual.tsx e 1.png de como  Estoque Malha (Manual)  deve ser no desgn, de resto deve continuar sendo independente sem ligação com Ordem de Faturamento (OF) que mostra no codigo StockMalhaManual.tsx, enviei apenas para voce copiar o design -->
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -7,7 +8,7 @@ import { SearchableSelect } from '@/components/SearchableSelect';
 import { formatWeight } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { 
-  Package, Scale, Warehouse, Plus, Search, Loader2, History, ArrowUpRight, ChevronDown, Download
+  Package, Scale, Warehouse, Plus, Search, Loader2, History, ArrowUpRight, ChevronDown, Download, Info
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
