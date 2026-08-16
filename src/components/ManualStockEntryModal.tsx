@@ -198,7 +198,10 @@ export function ManualStockEntryModal({ open, onOpenChange, onSuccess, palletMod
               <Alert className="bg-primary/5 border-primary/20 py-2">
                 <Info className="h-3 w-3 text-primary" />
                 <AlertDescription className="text-[10px] text-primary/80">
-                  Informe a quantidade TOTAL contada no palete. O valor salvo substitui o saldo atual em máquina.
+                  {action === 'substitute' 
+                    ? 'Informe a quantidade TOTAL contada no palete. O valor salvo substituirá o saldo atual em máquina.'
+                    : `Informe a quantidade TOTAL contada no palete. Será adicionado apenas a diferença (${(parseInt(pieces || '0') - (initialData?.currentPc || 0))} pç) ao estoque disponível.`
+                  }
                 </AlertDescription>
               </Alert>
             </div>
