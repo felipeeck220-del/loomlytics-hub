@@ -7,7 +7,7 @@ import { SearchableSelect } from '@/components/SearchableSelect';
 import { formatWeight } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { 
-  Package, Scale, Warehouse, Plus, Search, CalendarDays, Loader2, History, ArrowUpRight, ArrowDownLeft, ChevronDown
+  Package, Scale, Warehouse, Plus, Search, Loader2, History, ArrowUpRight, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +33,6 @@ export default function StockMalhaManual() {
   
   const clients = getClients();
   const articles = getArticles();
-  const machines = getMachines();
 
   const { data: stockData, isLoading: stockLoading } = useQuery({
     queryKey: ['manual_stock_estoque_independent', companyId, filterClient, filterArticle],
@@ -93,7 +92,7 @@ export default function StockMalhaManual() {
           </div>
           <p className="text-muted-foreground text-sm">Visão consolidada do saldo de artigos por cliente (Manual e Independente)</p>
         </div>
-        <Button onClick={() => setEntryModalOpen(true)} className="btn-gradient w-full sm:w-auto h-11 px-6 shadow-lg shadow-primary/20">
+        <Button onClick={() => setEntryModalOpen(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto h-11 px-6 shadow-lg shadow-emerald-500/20 rounded-md">
           <Plus className="h-5 w-5 mr-2" /> Lançamento Manual
         </Button>
       </div>
@@ -155,38 +154,42 @@ export default function StockMalhaManual() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-        <TabsList className="w-full sm:w-fit bg-background/60 p-1 h-auto gap-1 border border-border/50">
-          <TabsTrigger value="estoque" className="py-2 px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all">
+        <TabsList className="bg-[#1A1F2C] border border-white/5 p-1 h-12 inline-flex">
+          <TabsTrigger 
+            value="estoque" 
+            className="px-8 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-md transition-all text-muted-foreground"
+          >
             Estoque
           </TabsTrigger>
-          <TabsTrigger value="movimentacoes" className="py-2 px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all">
+          <TabsTrigger 
+            value="movimentacoes" 
+            className="px-8 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-md transition-all text-muted-foreground"
+          >
             Movimentações
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="estoque" className="space-y-4 mt-6">
-          <Card className="card-glass border-none bg-background/40 p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <SearchableSelect
-                value="Todo período"
-                onValueChange={() => {}}
-                options={[{ value: 'Todo período', label: 'Todo período' }]}
-                placeholder="Período"
-              />
-              <SearchableSelect
-                value={filterClient}
-                onValueChange={setFilterClient}
-                options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                placeholder="Todos clientes"
-              />
-              <SearchableSelect
-                value={filterArticle}
-                onValueChange={setFilterArticle}
-                options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
-                placeholder="Todos artigos"
-              />
-            </div>
-          </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <SearchableSelect
+              value="Todo período"
+              onValueChange={() => {}}
+              options={[{ value: 'Todo período', label: 'Todo período' }]}
+              placeholder="Período"
+            />
+            <SearchableSelect
+              value={filterClient}
+              onValueChange={setFilterClient}
+              options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+              placeholder="Todos clientes"
+            />
+            <SearchableSelect
+              value={filterArticle}
+              onValueChange={setFilterArticle}
+              options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+              placeholder="Todos artigos"
+            />
+          </div>
 
           {stockLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -222,14 +225,16 @@ export default function StockMalhaManual() {
                         <thead>
                           <tr className="border-b border-border/50 text-[10px] uppercase tracking-wider text-muted-foreground">
                             <th className="py-3 font-medium">Artigo</th>
-                            <th className="py-3 font-medium text-center">Entradas (kg)</th>
-                            <th className="py-3 font-medium text-center">Peças entradas</th>
-                            <th className="py-3 font-medium text-center">Entregue (kg)</th>
-                            <th className="py-3 font-medium text-center">Peças entregues</th>
+                            <th className="py-3 font-medium text-center">Produzido kg</th>
+                            <th className="py-3 font-medium text-center">Entregue kg</th>
                             <th className="py-3 font-medium text-center">Físico kg</th>
+                            <th className="py-3 font-medium text-center">Reservado kg</th>
                             <th className="py-3 font-medium text-center text-primary">Disponível kg</th>
-                            <th className="py-3 font-medium text-center">Em maq.</th>
-                            <th className="py-3 font-medium text-center text-primary">Disp. Peças</th>
+                            <th className="py-3 font-medium text-center">Rolos prod.</th>
+                            <th className="py-3 font-medium text-center">Rolos ent.</th>
+                            <th className="py-3 font-medium text-center">Rolos físicos</th>
+                            <th className="py-3 font-medium text-center">Reservado</th>
+                            <th className="py-3 font-medium text-center text-primary">Disponível</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -247,16 +252,14 @@ export default function StockMalhaManual() {
                                   </div>
                                 </td>
                                 <td className="py-4 text-center text-sm font-medium">{formatWeight(art.inKg)}</td>
-                                <td className="py-4 text-center text-sm font-bold">{art.inPc}</td>
                                 <td className="py-4 text-center text-sm font-medium">{formatWeight(art.outKg)}</td>
-                                <td className="py-4 text-center text-sm">{art.outPc}</td>
-                                <td className="py-4 text-center text-sm">
-                                  <div className="flex flex-col items-center">
-                                    <span className="font-bold">{formatWeight(art.stockKg)}</span>
-                                  </div>
-                                </td>
+                                <td className="py-4 text-center text-sm font-bold">{formatWeight(art.stockKg)}</td>
+                                <td className="py-4 text-center text-sm text-amber-500/70">0,00 kg</td>
                                 <td className="py-4 text-center text-sm font-medium text-primary">{formatWeight(art.stockKg)}</td>
-                                <td className="py-4 text-center text-sm font-bold text-primary">0 pç</td>
+                                <td className="py-4 text-center text-sm font-bold">{art.inPc}</td>
+                                <td className="py-4 text-center text-sm font-medium">{art.outPc}</td>
+                                <td className="py-4 text-center text-sm font-bold">{art.stockRolls}</td>
+                                <td className="py-4 text-center text-sm text-amber-500/70">0 pç</td>
                                 <td className="py-4 text-center text-sm font-bold text-primary">{art.stockRolls}</td>
                               </tr>
                               
@@ -269,12 +272,14 @@ export default function StockMalhaManual() {
                                     </div>
                                   </td>
                                   <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.inKg)}</td>
-                                  <td className="py-3 text-center text-muted-foreground font-bold">{mac.inPc}</td>
                                   <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.outKg)}</td>
-                                  <td className="py-3 text-center text-muted-foreground">{mac.outPc}</td>
-                                  <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.stockKg)}</td>
+                                  <td className="py-3 text-center text-muted-foreground font-bold">{formatWeight(mac.stockKg)}</td>
+                                  <td className="py-3 text-center text-muted-foreground/50">0,00 kg</td>
                                   <td className="py-3 text-center text-muted-foreground text-primary/70">{formatWeight(mac.stockKg)}</td>
-                                  <td className="py-3 text-center text-muted-foreground font-bold text-primary/70">0 pç</td>
+                                  <td className="py-3 text-center text-muted-foreground font-bold">{mac.inPc}</td>
+                                  <td className="py-3 text-center text-muted-foreground">{mac.outPc}</td>
+                                  <td className="py-3 text-center text-muted-foreground font-bold">{mac.stockRolls}</td>
+                                  <td className="py-3 text-center text-muted-foreground/50">0 pç</td>
                                   <td className="py-3 text-center text-muted-foreground font-bold text-primary/70">{mac.stockRolls}</td>
                                 </tr>
                               ))}
@@ -321,36 +326,33 @@ export default function StockMalhaManual() {
                     <div className="flex gap-4">
                       <div className={cn(
                         "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 shadow-inner",
-                        mov.type === 'in' ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                        mov.type === 'in' ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
                       )}>
-                        {mov.type === 'in' ? <ArrowDownLeft className="h-6 w-6" /> : <ArrowUpRight className="h-6 w-6" />}
+                        {mov.type === 'in' ? <Plus className="h-6 w-6" /> : <History className="h-6 w-6" />}
                       </div>
                       <div>
-                        <p className="text-base font-bold text-foreground leading-tight">{mov.article}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{mov.client}</p>
+                        <h4 className="font-bold text-foreground">{mov.article}</h4>
+                        <p className="text-sm text-muted-foreground">{mov.client} • {mov.machine}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">{new Date(mov.created_at).toLocaleString('pt-BR')}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={cn("text-lg font-bold tracking-tight", mov.type === 'in' ? "text-success" : "text-destructive")}>
-                        {mov.type === 'in' ? '+' : '-'}{formatWeight(mov.weight_kg)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase">{mov.pieces} peças</p>
+                      <div className={cn("text-lg font-bold", mov.type === 'in' ? "text-emerald-500" : "text-red-500")}>
+                        {mov.type === 'in' ? '+' : '-'}{mov.pieces} pç
+                      </div>
+                      <div className="text-xs text-muted-foreground">{formatWeight(mov.weight_kg)}</div>
+                      {mov.reason && (
+                        <div className="mt-1 text-[10px] text-muted-foreground/80 italic">
+                          "{mov.reason}"
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2 pt-3 border-t border-border/20 text-[10px] sm:text-xs z-10">
-                    <div className="flex items-center gap-6 text-muted-foreground/60">
-                      <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> {new Date(mov.created_at).toLocaleString('pt-BR')}</span>
-                      <span className="bg-muted/30 px-2 py-0.5 rounded text-[9px] font-semibold uppercase tracking-tighter italic">Por: {mov.author || 'Sistema'}</span>
-                    </div>
-                    {mov.reason && <p className="text-foreground/60 line-clamp-1 italic text-right flex-1 ml-4 text-[11px]">"{mov.reason}"</p>}
                   </div>
                 </div>
               ))}
               {filteredMovements.length === 0 && (
-                <div className="text-center py-20 bg-background/20 rounded-xl border border-dashed border-border/50">
-                  <History className="h-10 w-10 mx-auto text-muted-foreground/20 mb-2" />
-                  <p className="text-muted-foreground">Nenhuma movimentação registrada.</p>
+                <div className="text-center py-12 text-muted-foreground text-sm border border-dashed border-border/50 rounded-lg">
+                  Nenhuma movimentação encontrada.
                 </div>
               )}
             </div>
@@ -361,10 +363,7 @@ export default function StockMalhaManual() {
       <ManualStockEntryModal 
         open={entryModalOpen}
         onOpenChange={setEntryModalOpen}
-        clients={clients}
-        articles={articles}
-        machines={machines}
-        onSaved={refreshAll}
+        onSuccess={refreshAll}
       />
     </div>
   );
