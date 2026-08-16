@@ -88,13 +88,13 @@ export default function StockMalhaManual() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Warehouse className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-display font-bold text-foreground">Estoque Malha (Manual)</h1>
+            <Package className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-display font-bold text-foreground">Estoque de Malha (Manual)</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Armazém paralelo — entradas somente manuais. Saídas manuais e independentes.</p>
+          <p className="text-muted-foreground text-sm">Visão consolidada do saldo de artigos por cliente (Manual e Independente)</p>
         </div>
         <Button onClick={() => setEntryModalOpen(true)} className="btn-gradient w-full sm:w-auto h-11 px-6 shadow-lg shadow-primary/20">
-          <Plus className="h-5 w-5 mr-2" /> Lançamento manual
+          <Plus className="h-5 w-5 mr-2" /> Lançamento Manual
         </Button>
       </div>
 
@@ -103,7 +103,7 @@ export default function StockMalhaManual() {
           <CardContent className="p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Package className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider">Entradas manuais</span>
+              <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider">Entradas</span>
             </div>
             <div>
               <span className="text-xl sm:text-2xl font-bold text-foreground leading-none">{kpis.inPc} pç</span>
@@ -129,10 +129,10 @@ export default function StockMalhaManual() {
           <CardContent className="p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Warehouse className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider">Reservado</span>
+              <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-amber-500">Reservado</span>
             </div>
             <div>
-              <span className="text-xl sm:text-2xl font-bold text-foreground leading-none">0 pç</span>
+              <span className="text-xl sm:text-2xl font-bold text-amber-500 leading-none">0 pç</span>
               <p className="text-[10px] text-muted-foreground mt-1">0,00 kg</p>
             </div>
           </CardContent>
@@ -142,13 +142,12 @@ export default function StockMalhaManual() {
           <CardContent className="p-4 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Scale className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-primary">Rolos disp.</span>
+              <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-primary">Disponível</span>
             </div>
             <div>
               <span className="text-xl sm:text-2xl font-bold text-primary leading-none">{kpis.stockRolls} pç</span>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
                 <span>{formatWeight(kpis.stockKg)}</span>
-                <span>Em maq.: 0 pç</span>
               </div>
             </div>
           </CardContent>
@@ -212,8 +211,6 @@ export default function StockMalhaManual() {
                       </div>
                       <div className="hidden sm:flex items-center gap-6 text-xs text-muted-foreground">
                         <span>Entradas: <b className="text-foreground">{group.totalInPc} pç</b></span>
-                        <span>Reservado: <b className="text-amber-500">0 pç</b></span>
-                        <span>Em maq.: <b className="text-foreground">0 pç</b></span>
                         <span>Disponível: <b className="text-primary">{group.totalStockRolls} pç</b></span>
                       </div>
                     </div>
@@ -226,15 +223,13 @@ export default function StockMalhaManual() {
                           <tr className="border-b border-border/50 text-[10px] uppercase tracking-wider text-muted-foreground">
                             <th className="py-3 font-medium">Artigo</th>
                             <th className="py-3 font-medium text-center">Entradas (kg)</th>
-                            <th className="py-3 font-medium text-center">Rolos entrados</th>
+                            <th className="py-3 font-medium text-center">Peças entradas</th>
                             <th className="py-3 font-medium text-center">Entregue (kg)</th>
-                            <th className="py-3 font-medium text-center">Rolos entregues</th>
+                            <th className="py-3 font-medium text-center">Peças entregues</th>
                             <th className="py-3 font-medium text-center">Físico kg</th>
-                            <th className="py-3 font-medium text-center text-amber-500">Rolos reservados</th>
-                            <th className="py-3 font-medium text-center text-amber-500">Reservado kg</th>
-                            <th className="py-3 font-medium text-center">Disponível kg</th>
+                            <th className="py-3 font-medium text-center text-primary">Disponível kg</th>
                             <th className="py-3 font-medium text-center">Em maq.</th>
-                            <th className="py-3 font-medium text-center text-primary">Disp. Rolos</th>
+                            <th className="py-3 font-medium text-center text-primary">Disp. Peças</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -260,9 +255,7 @@ export default function StockMalhaManual() {
                                     <span className="font-bold">{formatWeight(art.stockKg)}</span>
                                   </div>
                                 </td>
-                                <td className="py-4 text-center text-sm font-bold text-amber-500">0</td>
-                                <td className="py-4 text-center text-sm font-medium text-amber-500">0,00 kg</td>
-                                <td className="py-4 text-center text-sm font-medium">0,00 kg</td>
+                                <td className="py-4 text-center text-sm font-medium text-primary">{formatWeight(art.stockKg)}</td>
                                 <td className="py-4 text-center text-sm font-bold text-primary">0 pç</td>
                                 <td className="py-4 text-center text-sm font-bold text-primary">{art.stockRolls}</td>
                               </tr>
@@ -280,9 +273,7 @@ export default function StockMalhaManual() {
                                   <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.outKg)}</td>
                                   <td className="py-3 text-center text-muted-foreground">{mac.outPc}</td>
                                   <td className="py-3 text-center text-muted-foreground">{formatWeight(mac.stockKg)}</td>
-                                  <td className="py-3 text-center text-muted-foreground">0</td>
-                                  <td className="py-3 text-center text-muted-foreground">0,00 kg</td>
-                                  <td className="py-3 text-center text-muted-foreground">0,00 kg</td>
+                                  <td className="py-3 text-center text-muted-foreground text-primary/70">{formatWeight(mac.stockKg)}</td>
                                   <td className="py-3 text-center text-muted-foreground font-bold text-primary/70">0 pç</td>
                                   <td className="py-3 text-center text-muted-foreground font-bold text-primary/70">{mac.stockRolls}</td>
                                 </tr>
