@@ -40,6 +40,7 @@ import FaturamentoTotal from "./pages/FaturamentoTotal";
 import StockMalha from "./pages/StockMalha";
 import BillingOrders from "./pages/BillingOrders";
 import FreightOrders from "./pages/FreightOrders";
+import StockMalhaManual from "./pages/StockMalhaManual";
 
 import NotFound from "./pages/NotFound";
 
@@ -82,7 +83,7 @@ const App = () => (
                 <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
                 <Route path="contas-pagar" element={<ProtectedRoute routeKey="contas-pagar"><AccountsPayable /></ProtectedRoute>} />
                 <Route path="residuos" element={<ProtectedRoute routeKey="residuos"><ResidueSales /></ProtectedRoute>} />
-                <Route path="estoque-malha" element={<ProtectedRoute routeKey="estoque-malha"><StockMalha /></ProtectedRoute>} />
+                <Route path="estoque-malha" element={<ProtectedRoute routeKey="estoque-malha"><StockMalhaManual /></ProtectedRoute>} />
                 <Route path="billing-orders" element={<ProtectedRoute routeKey="billing-orders"><BillingOrders /></ProtectedRoute>} />
                 
                 <Route path="freight-orders" element={<ProtectedRoute routeKey="freight-orders"><FreightOrders /></ProtectedRoute>} />
