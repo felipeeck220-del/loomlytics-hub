@@ -59,7 +59,7 @@ export default function StockMalhaManual() {
       if (error) throw error;
       return (data || { groups: [], kpis: {} }) as {
         groups: any[];
-        kpis: { inKg: number; inPc: number; outKg: number; outPc: number; stockKg: number; stockRolls: number };
+        kpis: { inKg: number; inPc: number; outKg: number; outPc: number; onMachineKg: number; onMachinePc: number; stockKg: number; stockRolls: number };
       };
     },
     enabled: !!companyId,
