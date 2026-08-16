@@ -1,3 +1,4 @@
+// <!-- leia o arquivo mestre.md (OBRIGATÓRIO LER ANTES DE ATUALIZAR O PROJETO) e prossiga -> enviei um arquivo StockMalhaManual.tsx e 1.png de como  Estoque Malha (Manual)  deve ser no desgn, de resto deve continuar sendo independente sem ligação com Ordem de Faturamento (OF) que mostra no codigo StockMalhaManual.tsx, enviei apenas para voce copiar o design -->
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
