@@ -1,5 +1,6 @@
 - **16/08/2026 (Brasília) — Estabilização do Estoque de Malha (Manual):**
-    - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que as ações de 'Recontar palete e manter na máquina' ou 'Lançar para expedição' SUBSTITUAM o valor anterior em vez de somar, zerando o saldo da máquina antes de aplicar a nova contagem total informada no input.
+    - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que as ações de 'Recontar palete e manter na máquina' ou 'Lançar para expedição' SUBSTITUAM o valor anterior em vez de somar, utilizando o saldo LÍQUIDO (entradas - saídas) para zerar a máquina com precisão absoluta antes de aplicar a nova contagem informada.
+
     - Corrigido o texto de ajuda no `ManualStockEntryModal.tsx` para refletir o novo comportamento de substituição total.
     - Consolidada a lógica de segurança RLS e isolamento multi-tenant para a tabela `manual_stock_movements`.
     - Criado documento de memória `mem://features/manual-stock-logic.md` para garantir a persistência das regras de negócio do módulo.
