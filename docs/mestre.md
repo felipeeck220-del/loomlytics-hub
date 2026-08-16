@@ -1,3 +1,9 @@
+- **16/08/2026 (Brasília) — Controle de Paletes em Máquina no Estoque Malha (Manual):**
+    - Implementada função "Em máquina" para separar peças em produção do estoque de expedição.
+    - Adicionado KPI "Em maq." e colunas correspondentes nas listagens.
+    - Criado botão "Palete" para máquinas que permite recontar saldo em máquina ou lançar para expedição.
+    - Refatoradas as RPCs para considerar `on_machine` no cálculo do Saldo Disponível.
+
 - **16/08/2026 (Brasília) — Ajustes Visuais e Mobile no Estoque Malha (Manual):**
     - Refatorados os KPIs de estoque para priorizar a visualização em **Peças** (número maior) sobre o Peso (número menor).
     - Removida a coluna "Disp. kg" das listagens para despoluir a interface, mantendo apenas "Disp. Peças".

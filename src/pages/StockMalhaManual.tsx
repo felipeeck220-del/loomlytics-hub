@@ -38,6 +38,8 @@ export default function StockMalhaManual() {
   const { role } = usePermissions();
   const isAdmin = role === 'admin';
   const [manualOpen, setManualOpen] = useState(false);
+  const [palletModalOpen, setPalletModalOpen] = useState(false);
+  const [selectedPalletData, setSelectedPalletData] = useState<any>(null);
   const [activeStockTab, setActiveStockTab] = useState<'estoque' | 'movimentos'>('estoque');
   const queryClient = useQueryClient();
 
@@ -67,7 +69,7 @@ export default function StockMalhaManual() {
   });
 
   const malhaEstoque = stockData?.groups || [];
-  const kpis = stockData?.kpis || { inKg: 0, inPc: 0, outKg: 0, outPc: 0, stockKg: 0, stockRolls: 0 };
+  const kpis = stockData?.kpis || { inKg: 0, inPc: 0, outKg: 0, outPc: 0, onMachineKg: 0, onMachinePc: 0, stockKg: 0, stockRolls: 0 };
 
   // Aba Movimentações (get_manual_stock_movements_independent)
   const [movPage, setMovPage] = useState(1);
@@ -135,7 +137,7 @@ export default function StockMalhaManual() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card><CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido (Manual)</div>
           {stockLoading ? (<Skeleton className="h-6 w-24" />) : (
@@ -151,6 +153,15 @@ export default function StockMalhaManual() {
             <div className="flex flex-col">
               <p className="text-xl font-bold text-foreground">{kpis.outPc} peças</p>
               <p className="text-[10px] text-muted-foreground">{formatWeight(kpis.outKg)}</p>
+            </div>
+          )}
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <div className="flex items-center gap-2 text-indigo-500 text-xs mb-1"><Layers className="h-3.5 w-3.5" />Em maq.</div>
+          {stockLoading ? (<Skeleton className="h-6 w-24" />) : (
+            <div className="flex flex-col">
+              <p className="text-xl font-bold text-indigo-600">{kpis.onMachinePc} peças</p>
+              <p className="text-[10px] text-indigo-400">{formatWeight(kpis.onMachineKg)}</p>
             </div>
           )}
         </CardContent></Card>
@@ -243,8 +254,9 @@ export default function StockMalhaManual() {
                           <CardTitle className="text-sm font-semibold">{group.clientName}</CardTitle>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Produzido: <span className="font-semibold text-foreground">{formatWeight(group.totalInKg)}</span></span>
-                          <span>Disponível: <span className={cn('font-semibold', group.totalStockKg < 0 ? 'text-destructive' : 'text-primary')}>{formatWeight(group.totalStockKg)}</span></span>
+                          <span>Produzido: <span className="font-semibold text-foreground">{group.totalInPc} pç</span></span>
+                          <span className="text-indigo-600">Em maq.: <span className="font-semibold">{group.totalOnMachinePc} pç</span></span>
+                          <span>Disponível: <span className={cn('font-semibold', group.totalStockRolls < 0 ? 'text-destructive' : 'text-primary')}>{group.totalStockRolls} pç</span></span>
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
@@ -279,6 +291,7 @@ export default function StockMalhaManual() {
                                     <TableCell className="text-xs text-right">{a.inPc}</TableCell>
                                     <TableCell className="text-xs text-right">{formatWeight(a.outKg)}</TableCell>
                                     <TableCell className="text-xs text-right">{a.outPc}</TableCell>
+                                    <TableCell className="text-xs text-right font-bold text-indigo-600">{a.onMachinePc}</TableCell>
                                     <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
                                       {a.stockRolls}
                                     </TableCell>
@@ -299,7 +312,33 @@ export default function StockMalhaManual() {
                                             <TableCell className="text-[11px] text-right text-muted-foreground">{m.inPc}</TableCell>
                                             <TableCell className="text-[11px] text-right text-muted-foreground">{formatWeight(m.outKg)}</TableCell>
                                             <TableCell className="text-[11px] text-right text-muted-foreground">{m.outPc}</TableCell>
+                                            <TableCell className="text-[11px] text-right font-bold text-indigo-600/70">{m.onMachinePc}</TableCell>
                                             <TableCell className="text-[11px] text-right font-bold text-primary/70">{m.stockRolls}</TableCell>
+                                            <TableCell className="text-[11px] text-right pr-4">
+                                              {isAdmin && (
+                                                <Button 
+                                                  variant="outline" 
+                                                  size="xs" 
+                                                  className="h-6 text-[9px] px-2"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedPalletData({
+                                                      clientId: group.clientId,
+                                                      clientName: group.clientName,
+                                                      articleId: a.articleId,
+                                                      articleName: a.articleName,
+                                                      machineId: m.machineId,
+                                                      machineName: m.machineName,
+                                                      currentPc: m.onMachinePc,
+                                                      currentKg: m.onMachineKg
+                                                    });
+                                                    setPalletModalOpen(true);
+                                                  }}
+                                                >
+                                                  Palete
+                                                </Button>
+                                              )}
+                                            </TableCell>
                                           </TableRow>
                                         ))
                                       )}
@@ -323,8 +362,11 @@ export default function StockMalhaManual() {
                                   <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
                                   <span className="text-xs font-medium">{a.articleName}</span>
                                 </div>
-                                <div className={cn('text-xs font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
-                                  {a.stockRolls} peças
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-indigo-600 font-medium">{a.onMachinePc} maq.</span>
+                                  <div className={cn('text-xs font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
+                                    {a.stockRolls} peças
+                                  </div>
                                 </div>
                               </div>
                               
@@ -351,10 +393,36 @@ export default function StockMalhaManual() {
                                     <div className="text-[10px] text-muted-foreground italic">Sem quebra por máquina.</div>
                                   ) : (
                                     a.byMachine.map((m: any) => (
-                                      <div key={`${a.articleId}-${m.machineId}`} className="space-y-1">
+                                      <div key={`${a.articleId}-${m.machineId}`} className="space-y-1 bg-muted/20 p-2 rounded">
                                         <div className="flex justify-between items-center text-[10px] font-medium text-muted-foreground">
                                           <span>↳ {m.machineName}</span>
-                                          <span className="text-primary/70">{m.stockRolls} pç</span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-indigo-600">{m.onMachinePc} maq.</span>
+                                            <span className="text-primary/70">{m.stockRolls} pç</span>
+                                            {isAdmin && (
+                                              <Button 
+                                                variant="outline" 
+                                                size="xs" 
+                                                className="h-5 text-[8px] px-1"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedPalletData({
+                                                    clientId: group.clientId,
+                                                    clientName: group.clientName,
+                                                    articleId: a.articleId,
+                                                    articleName: a.articleName,
+                                                    machineId: m.machineId,
+                                                    machineName: m.machineName,
+                                                    currentPc: m.onMachinePc,
+                                                    currentKg: m.onMachineKg
+                                                  });
+                                                  setPalletModalOpen(true);
+                                                }}
+                                              >
+                                                Palete
+                                              </Button>
+                                            )}
+                                          </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 text-[9px] opacity-80">
                                           <div className="flex justify-between px-1">
@@ -490,6 +558,17 @@ export default function StockMalhaManual() {
         onOpenChange={setManualOpen}
         onSuccess={() => {
           refreshManualStock();
+        }}
+      />
+
+      <ManualStockEntryModal 
+        open={palletModalOpen} 
+        onOpenChange={setPalletModalOpen}
+        palletMode={true}
+        initialData={selectedPalletData}
+        onSuccess={() => {
+          refreshManualStock();
+          setSelectedPalletData(null);
         }}
       />
     </div>
