@@ -363,7 +363,10 @@ export default function StockMalhaManual() {
       <ManualStockEntryModal 
         open={entryModalOpen}
         onOpenChange={setEntryModalOpen}
-        onSuccess={refreshAll}
+        clients={clients}
+        articles={articles}
+        machines={getMachines()}
+        onSaved={refreshAll}
       />
     </div>
   );
