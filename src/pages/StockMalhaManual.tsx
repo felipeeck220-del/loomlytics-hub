@@ -271,7 +271,9 @@ export default function StockMalhaManual() {
                                 <TableHead className="text-xs text-right">Produzido (pç)</TableHead>
                                 <TableHead className="text-xs text-right">Saída (kg)</TableHead>
                                 <TableHead className="text-xs text-right">Saída (pç)</TableHead>
+                                <TableHead className="text-xs text-right font-bold text-indigo-600">Em maq.</TableHead>
                                 <TableHead className="text-xs text-right font-bold text-primary">Disp. Peças</TableHead>
+                                <TableHead className="text-xs text-right w-16"></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
