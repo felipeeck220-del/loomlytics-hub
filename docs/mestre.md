@@ -1,3 +1,6 @@
+- **16/08/2026 (Brasília) — Limpeza de Sidebar:**
+    - Removida a entrada "Estoque Malha (Manual)" do Sidebar, consolidando a exclusão do módulo.
+
 - **16/08/2026 (Brasília) — Auditoria Técnica e Pente Fino de Inconsistências:**
     - Realizada auditoria completa em todas as RPCs de Faturamento (OF) para garantir o padrão de 6 argumentos na função `_of_audit`.
     - Validada a integridade referencial em `collect_billing_order` e `cancel_billing_order` (Profile ID UUID vs User ID).
