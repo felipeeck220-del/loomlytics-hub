@@ -19,7 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
-import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
+
 import { OwnStockManualModal } from '@/components/OwnStockManualModal';
 import { Plus, CalendarDays, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';

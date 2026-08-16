@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { key: 'contas-pagar', label: 'Contas a Pagar' },
   { key: 'residuos', label: 'Vendas de Resíduos' },
   { key: 'estoque-malha', label: 'Estoque Malha' },
-  { key: 'estoque-malha-manual', label: 'Estoque Malha (Manual)' },
+  
   { key: 'billing-orders', label: 'Ordem de Faturamento (OF)' },
   { key: 'freight-orders', label: 'Ordem de Frete (OFR)' },
   { key: 'invoices', label: 'Notas Fiscais' },
