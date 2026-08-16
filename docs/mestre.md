@@ -85,4 +85,9 @@
 
 - **14/08/2026 (Brasília) — Limpeza de Dados de Teste (OF):**
     - Removidas permanentemente do banco de dados 32 ordens de faturamento de teste (OF #628, #626, #627, #624, #623, #622, #615, #614, #613, #612, #611, #599, #597, #596, #595, #594, #625, #598, #565, #552, #551, #550, #549, #548, #547, #546, #545, #544, #543, #530, #529, #421) e seus respectivos paletes.
-    - A limpeza visa garantir a precisão dos relatórios de faturamento e logísticos, eliminando registros inconsistentes gerados durante a fase de estabilização.
+- **16/08/2026 (Brasília) — Ajustes Finais de Design Estoque Malha (Manual):**
+    - Refatoração completa da página `StockMalhaManual.tsx` para seguir o design do arquivo fornecido e print de referência (Estoque de Malha principal).
+    - Inclusão de colunas detalhadas de peso e peças na tabela hierárquica (Produzido, Entregue, Físico, Reservado, Disponível).
+    - Ajuste de labels de KPIs para CAIXA ALTA (ENTRADAS, ENTREGUE, RESERVADO, DISPONÍVEL).
+    - Inclusão de banner informativo sobre a independência do módulo manual.
+
