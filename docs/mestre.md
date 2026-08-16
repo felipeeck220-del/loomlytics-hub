@@ -1,3 +1,9 @@
+- **16/08/2026 (Brasília) — Ajustes Visuais e Mobile no Estoque Malha (Manual):**
+    - Refatorados os KPIs de estoque para priorizar a visualização em **Peças** (número maior) sobre o Peso (número menor).
+    - Removida a coluna "Disp. kg" das listagens para despoluir a interface, mantendo apenas "Disp. Peças".
+    - Implementada visualização responsiva em **Cards** para mobile, eliminando scroll horizontal excessivo.
+    - Sincronizado o mapeamento da coluna `description` no histórico de movimentações.
+
 - **16/08/2026 (Brasília) — Estabilização de RLS no Estoque Malha (Manual):**
     - Refatoradas as políticas de segurança (RLS) da tabela `manual_stock_movements` para utilizar o padrão `user_active_company`.
     - Corrigido o erro de permissão que impedia administradores de realizar lançamentos manuais.
