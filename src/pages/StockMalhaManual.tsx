@@ -366,7 +366,7 @@ export default function StockMalhaManual() {
         onOpenChange={setEntryModalOpen}
         clients={clients}
         articles={articles}
-        machines={getMachines()}
+        machines={machines}
         onSaved={refreshAll}
       />
     </div>
