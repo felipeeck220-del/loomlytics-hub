@@ -3595,27 +3595,18 @@ export default function MecanicaPage() {
             ))}
 
             {loading && detailsData.length === 0 && (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <Card key={i}>
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                        <Skeleton className="h-5 w-32" />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Skeleton className="h-24 rounded-lg" />
-                        <Skeleton className="h-24 rounded-lg" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Carregando máquinas...</span>
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="relative">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+                  <Loader2 className="h-10 w-10 animate-spin text-primary absolute inset-0 animate-pulse" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">Carregando máquinas...</p>
+                  <p className="text-xs text-muted-foreground">Sincronizando dados em tempo real</p>
                 </div>
               </div>
             )}
+
 
             {!loading && detailsData.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma máquina ativa encontrada.</p>
