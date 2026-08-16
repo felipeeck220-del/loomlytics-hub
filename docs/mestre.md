@@ -1,4 +1,5 @@
-- **16/08/2026 (Brasília) — Correção no Zeramento de Máquina e Layout:**
+- **16/08/2026 (Brasília) — Refinamento de Lógica de Palete:**
+    - Ajustada a RPC `adjust_manual_machine_pallet` para que a recontagem de palete na máquina substitua o valor atual (zerando o saldo anterior) e para que o lançamento para expedição adicione apenas a diferença incremental ao estoque disponível, evitando duplicidade de contagem (já que peças em máquina já compõem o saldo disponível).
     - Corrigida a RPC `adjust_manual_machine_pallet` que falhava ao zerar o saldo em máquina por não filtrar corretamente os movimentos de expedição durante o cálculo do saldo atual da máquina.
     - Restaurado o layout horizontal para as opções de "Destino" (Expedição / Em máquina) no modal de lançamento manual, posicionando-as ao lado do "Tipo".
 
