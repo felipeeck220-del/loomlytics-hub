@@ -225,15 +225,13 @@ export default function StockMalhaManual() {
                           <tr className="border-b border-border/50 text-[10px] uppercase tracking-wider text-muted-foreground">
                             <th className="py-3 font-medium">Artigo</th>
                             <th className="py-3 font-medium text-center">Entradas (kg)</th>
-                            <th className="py-3 font-medium text-center">Rolos entrados</th>
+                            <th className="py-3 font-medium text-center">Peças entradas</th>
                             <th className="py-3 font-medium text-center">Entregue (kg)</th>
-                            <th className="py-3 font-medium text-center">Rolos entregues</th>
+                            <th className="py-3 font-medium text-center">Peças entregues</th>
                             <th className="py-3 font-medium text-center">Físico kg</th>
-                            <th className="py-3 font-medium text-center text-amber-500">Rolos reservados</th>
-                            <th className="py-3 font-medium text-center text-amber-500">Reservado kg</th>
-                            <th className="py-3 font-medium text-center">Disponível kg</th>
+                            <th className="py-3 font-medium text-center text-primary">Disponível kg</th>
                             <th className="py-3 font-medium text-center">Em maq.</th>
-                            <th className="py-3 font-medium text-center text-primary">Disp. Rolos</th>
+                            <th className="py-3 font-medium text-center text-primary">Disp. Peças</th>
                           </tr>
                         </thead>
                         <tbody>
