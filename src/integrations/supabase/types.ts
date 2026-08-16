@@ -2989,6 +2989,77 @@ export type Database = {
           },
         ]
       }
+      manual_stock_movements: {
+        Row: {
+          article_id: string
+          client_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          machine_id: string | null
+          pieces: number
+          type: string
+          weight_kg: number
+        }
+        Insert: {
+          article_id: string
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          machine_id?: string | null
+          pieces?: number
+          type: string
+          weight_kg?: number
+        }
+        Update: {
+          article_id?: string
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          machine_id?: string | null
+          pieces?: number
+          type?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_stock_movements_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_stock_movements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_stock_movements_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_provider_prices: {
         Row: {
           company_id: string
