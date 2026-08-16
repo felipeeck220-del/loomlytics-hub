@@ -82,7 +82,7 @@ export function ManualStockEntryModal({ open, onOpenChange, onSuccess }: Props) 
         type,
         pieces: piecesNum,
         weight_kg: weightNum,
-        description: description.trim() || null,
+        reason: description.trim() || null,
         created_by: user?.id
       });
 
