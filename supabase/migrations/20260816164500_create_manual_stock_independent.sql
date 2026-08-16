@@ -162,3 +162,56 @@ BEGIN
 END;
 $fn$;
 GRANT EXECUTE ON FUNCTION public.get_manual_stock_estoque_independent(uuid,uuid,uuid,text) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.get_manual_stock_movements_independent(
+  p_company_id uuid,
+  p_page integer DEFAULT 1,
+  p_page_size integer DEFAULT 20
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $fn$
+DECLARE
+  v_caller uuid;
+  v_total bigint;
+  v_rows jsonb;
+BEGIN
+  v_caller := public.get_user_company_id();
+  IF v_caller IS NULL OR v_caller <> p_company_id THEN
+    RETURN jsonb_build_object('rows','[]'::jsonb,'total_count',0);
+  END IF;
+
+  SELECT COUNT(*) INTO v_total FROM public.manual_stock_movements WHERE company_id = p_company_id;
+
+  SELECT COALESCE(jsonb_agg(row_json ORDER BY created_at DESC), '[]'::jsonb)
+  INTO v_rows
+  FROM (
+    SELECT 
+      jsonb_build_object(
+        'id', m.id,
+        'created_at', m.created_at,
+        'type', m.type,
+        'weight_kg', m.weight_kg,
+        'pieces', m.pieces,
+        'reason', m.reason,
+        'client', cl.name,
+        'article', ar.name,
+        'machine', mac.name,
+        'author', pr.name
+      ) AS row_json
+    FROM public.manual_stock_movements m
+    LEFT JOIN public.profiles pr ON pr.id = m.created_by
+    LEFT JOIN public.clients cl ON cl.id = m.client_id
+    LEFT JOIN public.articles ar ON ar.id = m.article_id
+    LEFT JOIN public.machines mac ON mac.id = m.machine_id
+    WHERE m.company_id = p_company_id
+    ORDER BY m.created_at DESC
+    LIMIT p_page_size OFFSET (p_page - 1) * p_page_size
+  ) sub;
+
+  RETURN jsonb_build_object('rows', v_rows, 'total_count', v_total);
+END;
+$fn$;
+GRANT EXECUTE ON FUNCTION public.get_manual_stock_movements_independent(uuid,integer,integer) TO authenticated, service_role;
