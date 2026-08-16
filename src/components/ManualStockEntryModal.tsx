@@ -172,7 +172,7 @@ export function ManualStockEntryModal({ open, onOpenChange, onSuccess, palletMod
 
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Destino</Label>
-                <RadioGroup value={destination} onValueChange={(v) => setDestination(v as any)} className="flex flex-col gap-2">
+                <RadioGroup value={destination} onValueChange={(v) => setDestination(v as any)} className="flex gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <RadioGroupItem value="expedition" /> Expedição
                   </label>
