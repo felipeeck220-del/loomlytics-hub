@@ -1,3 +1,9 @@
+- **16/08/2026 (Brasília) — Recriação do Módulo Estoque Malha (Manual) Independente:**
+    - Recriado o módulo "Estoque Malha (Manual)" como ferramenta 100% independente, sem gatilhos automáticos de produção ou faturamento.
+    - Implementada tabela `manual_stock_movements` e RPC `get_manual_stock_estoque_independent`.
+    - Design unificado com o estoque principal (Estoque Clientes), incluindo KPIs e visualização colapsável por Cliente > Artigo > Máquina.
+    - Mantida a independência logística para controle puramente manual de saldos.
+
 - **16/08/2026 (Brasília) — Limpeza de Sidebar:**
     - Removida a entrada "Estoque Malha (Manual)" do Sidebar, consolidando a exclusão do módulo.
 
