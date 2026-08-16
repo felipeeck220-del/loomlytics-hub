@@ -1,3 +1,6 @@
+- **16/08/2026 (Brasília) — Ajuste de Layout no Lançamento Manual:**
+    - Corrigido vazamento visual no modal de lançamento manual, alterando a disposição das opções de "Destino" (Expedição / Em máquina) de horizontal para vertical.
+
 - **16/08/2026 (Brasília) — Controle de Paletes em Máquina no Estoque Malha (Manual):**
     - Implementada função "Em máquina" para separar peças em produção do estoque de expedição.
     - Adicionado KPI "Em maq." e colunas correspondentes nas listagens.
