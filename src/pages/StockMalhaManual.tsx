@@ -61,7 +61,7 @@ export default function StockMalhaManual() {
         </Button>
       </div>
 
-      <Alert variant="info" className="bg-primary/5 border-primary/20">
+      <Alert className="bg-primary/5 border-primary/20">
         <Info className="h-4 w-4 text-primary" />
         <AlertDescription className="text-xs text-primary/80">
           Este estoque é <strong>100% independente</strong>. Entradas e saídas são registradas apenas manualmente aqui, sem ligação com Produção ou Ordens de Faturamento (OF).
