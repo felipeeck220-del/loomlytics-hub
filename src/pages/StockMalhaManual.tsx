@@ -255,8 +255,9 @@ export default function StockMalhaManual() {
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>Produzido: <span className="font-semibold text-foreground">{group.totalInPc} pç</span></span>
-                          <span className="text-indigo-600">Em maq.: <span className="font-semibold">{group.totalOnMachinePc} pç</span></span>
-                          <span>Disponível: <span className={cn('font-semibold', group.totalStockRolls < 0 ? 'text-destructive' : 'text-primary')}>{group.totalStockRolls} pç</span></span>
+                          <span className="text-indigo-600">Em maq.: <span className="font-semibold">{group.totalOnMachinePc || 0} pç</span></span>
+                          <span>Disponível: <span className={cn('font-semibold', (group.totalStockRolls || 0) < 0 ? 'text-destructive' : 'text-primary')}>{group.totalStockRolls || 0} pç</span></span>
+
                         </div>
                       </CardHeader>
                     </CollapsibleTrigger>
@@ -293,9 +294,10 @@ export default function StockMalhaManual() {
                                     <TableCell className="text-xs text-right">{a.inPc}</TableCell>
                                     <TableCell className="text-xs text-right">{formatWeight(a.outKg)}</TableCell>
                                     <TableCell className="text-xs text-right">{a.outPc}</TableCell>
-                                    <TableCell className="text-xs text-right font-bold text-indigo-600">{a.onMachinePc}</TableCell>
-                                    <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
-                                      {a.stockRolls}
+                                    <TableCell className="text-xs text-right font-bold text-indigo-600">{a.onMachinePc || 0}</TableCell>
+                                    <TableCell className={cn('text-xs text-right font-bold', (a.stockRolls || 0) < 0 ? 'text-destructive' : 'text-primary')}>
+                                      {a.stockRolls || 0}
+
                                     </TableCell>
                                   </TableRow>
                                   {expandedArticle === `${group.clientId}::${a.articleId}` && (
