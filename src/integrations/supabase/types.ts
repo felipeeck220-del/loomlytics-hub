@@ -2989,100 +2989,6 @@ export type Database = {
           },
         ]
       }
-      manual_stock_movements: {
-        Row: {
-          article_id: string
-          billing_order_id: string | null
-          client_id: string | null
-          company_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          machine_id: string | null
-          on_machine: boolean
-          pieces: number
-          reason: string | null
-          source_movement_id: string | null
-          type: string
-          weight_kg: number
-        }
-        Insert: {
-          article_id: string
-          billing_order_id?: string | null
-          client_id?: string | null
-          company_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          machine_id?: string | null
-          on_machine?: boolean
-          pieces?: number
-          reason?: string | null
-          source_movement_id?: string | null
-          type: string
-          weight_kg?: number
-        }
-        Update: {
-          article_id?: string
-          billing_order_id?: string | null
-          client_id?: string | null
-          company_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          machine_id?: string | null
-          on_machine?: boolean
-          pieces?: number
-          reason?: string | null
-          source_movement_id?: string | null
-          type?: string
-          weight_kg?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "manual_stock_movements_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_stock_movements_billing_order_id_fkey"
-            columns: ["billing_order_id"]
-            isOneToOne: false
-            referencedRelation: "billing_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_stock_movements_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_stock_movements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_stock_movements_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_stock_movements_machine_id_fkey"
-            columns: ["machine_id"]
-            isOneToOne: false
-            referencedRelation: "machines"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       material_provider_prices: {
         Row: {
           company_id: string
@@ -5577,24 +5483,14 @@ export type Database = {
         }
         Returns: Json
       }
-      get_manual_stock_estoque_independent:
-        | {
-            Args: {
-              p_article_id?: string
-              p_client_id?: string
-              p_company_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_article_id?: string
-              p_client_id?: string
-              p_company_id: string
-              p_month?: string
-            }
-            Returns: Json
-          }
+      get_manual_stock_estoque_independent: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+        }
+        Returns: Json
+      }
       get_manual_stock_movements: {
         Args: {
           p_article_id?: string
@@ -5607,10 +5503,6 @@ export type Database = {
           p_to?: string
           p_type?: string
         }
-        Returns: Json
-      }
-      get_manual_stock_movements_independent: {
-        Args: { p_company_id: string; p_page?: number; p_page_size?: number }
         Returns: Json
       }
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
@@ -6102,7 +5994,6 @@ export type Database = {
         }
         Returns: Json
       }
-      save_manual_stock_entry: { Args: { p_payload: Json }; Returns: string }
       save_manual_stock_machine_adjust: {
         Args: { p_payload: Json }
         Returns: string
