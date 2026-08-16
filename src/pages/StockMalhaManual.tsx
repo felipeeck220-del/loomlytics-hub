@@ -140,8 +140,8 @@ export default function StockMalhaManual() {
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido (Manual)</div>
           {stockLoading ? (<Skeleton className="h-6 w-24" />) : (
             <div className="flex flex-col">
-              <p className="text-xl font-bold text-foreground">{formatWeight(kpis.inKg)} kg</p>
-              <p className="text-[10px] text-muted-foreground">{kpis.inPc} peças</p>
+              <p className="text-xl font-bold text-foreground">{kpis.inPc} peças</p>
+              <p className="text-[10px] text-muted-foreground">{formatWeight(kpis.inKg)}</p>
             </div>
           )}
         </CardContent></Card>
@@ -149,8 +149,8 @@ export default function StockMalhaManual() {
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saída (Manual)</div>
           {stockLoading ? (<Skeleton className="h-6 w-24" />) : (
             <div className="flex flex-col">
-              <p className="text-xl font-bold text-foreground">{formatWeight(kpis.outKg)} kg</p>
-              <p className="text-[10px] text-muted-foreground">{kpis.outPc} peças</p>
+              <p className="text-xl font-bold text-foreground">{kpis.outPc} peças</p>
+              <p className="text-[10px] text-muted-foreground">{formatWeight(kpis.outKg)}</p>
             </div>
           )}
         </CardContent></Card>
@@ -159,8 +159,8 @@ export default function StockMalhaManual() {
             <div className="flex items-center gap-2 text-primary text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
             {stockLoading ? (<Skeleton className="h-6 w-24" />) : (
               <div className="flex flex-col">
-                <p className={cn('text-xl font-bold', kpis.stockKg < 0 ? 'text-destructive' : 'text-primary')}>{formatWeight(kpis.stockKg)} kg</p>
-                <p className="text-[10px] text-primary/80">{kpis.stockRolls} peças</p>
+                <p className={cn('text-xl font-bold', kpis.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>{kpis.stockRolls} peças</p>
+                <p className="text-[10px] text-primary/80">{formatWeight(kpis.stockKg)}</p>
               </div>
             )}
           </CardContent>
@@ -249,70 +249,131 @@ export default function StockMalhaManual() {
                       </CardHeader>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className="p-0">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="text-xs">Artigo</TableHead>
-                              <TableHead className="text-xs text-right">Produzido (kg)</TableHead>
-                              <TableHead className="text-xs text-right">Produzido (pç)</TableHead>
-                              <TableHead className="text-xs text-right">Saída (kg)</TableHead>
-                              <TableHead className="text-xs text-right">Saída (pç)</TableHead>
-                              <TableHead className="text-xs text-right font-bold text-primary">Disp. kg</TableHead>
-                              <TableHead className="text-xs text-right font-bold text-primary">Disp. Peças</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.articles.map((a: any) => (
-                              <React.Fragment key={a.articleId}>
-                                <TableRow 
-                                  className="cursor-pointer hover:bg-muted/50" 
-                                  onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}
-                                >
-                                  <TableCell className="text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                      <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
-                                      <span className="flex-1">{a.articleName}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-xs text-right">{formatWeight(a.inKg)}</TableCell>
-                                  <TableCell className="text-xs text-right">{a.inPc}</TableCell>
-                                  <TableCell className="text-xs text-right">{formatWeight(a.outKg)}</TableCell>
-                                  <TableCell className="text-xs text-right">{a.outPc}</TableCell>
-                                  <TableCell className={cn('text-xs text-right font-bold', a.stockKg < 0 ? 'text-destructive' : 'text-primary')}>
-                                    {formatWeight(a.stockKg)}
-                                  </TableCell>
-                                  <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
-                                    {a.stockRolls}
-                                  </TableCell>
-                                </TableRow>
-                                {expandedArticle === `${group.clientId}::${a.articleId}` && (
-                                  <React.Fragment>
-                                    {a.byMachine.length === 0 ? (
-                                      <TableRow>
-                                        <TableCell colSpan={7} className="text-[11px] text-muted-foreground italic bg-muted/30 py-2 pl-8">
-                                          Sem quebra por máquina registrada.
-                                        </TableCell>
-                                      </TableRow>
-                                    ) : (
-                                      a.byMachine.map((m: any) => (
-                                        <TableRow key={`${a.articleId}-${m.machineId}`} className="bg-muted/30">
-                                          <TableCell className="text-[11px] pl-8 text-muted-foreground">↳ {m.machineName}</TableCell>
-                                          <TableCell className="text-[11px] text-right text-muted-foreground">{formatWeight(m.inKg)}</TableCell>
-                                          <TableCell className="text-[11px] text-right text-muted-foreground">{m.inPc}</TableCell>
-                                          <TableCell className="text-[11px] text-right text-muted-foreground">{formatWeight(m.outKg)}</TableCell>
-                                          <TableCell className="text-[11px] text-right text-muted-foreground">{m.outPc}</TableCell>
-                                          <TableCell className="text-[11px] text-right font-bold text-primary/70">{formatWeight(m.stockKg)}</TableCell>
-                                          <TableCell className="text-[11px] text-right font-bold text-primary/70">{m.stockRolls}</TableCell>
+                      <CardContent className="p-0 overflow-hidden">
+                        <div className="hidden md:block overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">Artigo</TableHead>
+                                <TableHead className="text-xs text-right">Produzido (kg)</TableHead>
+                                <TableHead className="text-xs text-right">Produzido (pç)</TableHead>
+                                <TableHead className="text-xs text-right">Saída (kg)</TableHead>
+                                <TableHead className="text-xs text-right">Saída (pç)</TableHead>
+                                <TableHead className="text-xs text-right font-bold text-primary">Disp. Peças</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {group.articles.map((a: any) => (
+                                <React.Fragment key={a.articleId}>
+                                  <TableRow 
+                                    className="cursor-pointer hover:bg-muted/50" 
+                                    onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}
+                                  >
+                                    <TableCell className="text-xs">
+                                      <div className="flex items-center gap-1.5">
+                                        <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
+                                        <span className="flex-1">{a.articleName}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-right">{formatWeight(a.inKg)}</TableCell>
+                                    <TableCell className="text-xs text-right">{a.inPc}</TableCell>
+                                    <TableCell className="text-xs text-right">{formatWeight(a.outKg)}</TableCell>
+                                    <TableCell className="text-xs text-right">{a.outPc}</TableCell>
+                                    <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
+                                      {a.stockRolls}
+                                    </TableCell>
+                                  </TableRow>
+                                  {expandedArticle === `${group.clientId}::${a.articleId}` && (
+                                    <React.Fragment>
+                                      {a.byMachine.length === 0 ? (
+                                        <TableRow>
+                                          <TableCell colSpan={6} className="text-[11px] text-muted-foreground italic bg-muted/30 py-2 pl-8">
+                                            Sem quebra por máquina registrada.
+                                          </TableCell>
                                         </TableRow>
-                                      ))
-                                    )}
-                                  </React.Fragment>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </TableBody>
-                        </Table>
+                                      ) : (
+                                        a.byMachine.map((m: any) => (
+                                          <TableRow key={`${a.articleId}-${m.machineId}`} className="bg-muted/30">
+                                            <TableCell className="text-[11px] pl-8 text-muted-foreground">↳ {m.machineName}</TableCell>
+                                            <TableCell className="text-[11px] text-right text-muted-foreground">{formatWeight(m.inKg)}</TableCell>
+                                            <TableCell className="text-[11px] text-right text-muted-foreground">{m.inPc}</TableCell>
+                                            <TableCell className="text-[11px] text-right text-muted-foreground">{formatWeight(m.outKg)}</TableCell>
+                                            <TableCell className="text-[11px] text-right text-muted-foreground">{m.outPc}</TableCell>
+                                            <TableCell className="text-[11px] text-right font-bold text-primary/70">{m.stockRolls}</TableCell>
+                                          </TableRow>
+                                        ))
+                                      )}
+                                    </React.Fragment>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {/* Mobile Cards */}
+                        <div className="md:hidden divide-y">
+                          {group.articles.map((a: any) => (
+                            <div key={a.articleId} className="p-3 space-y-2">
+                              <div 
+                                className="flex items-center justify-between cursor-pointer"
+                                onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
+                                  <span className="text-xs font-medium">{a.articleName}</span>
+                                </div>
+                                <div className={cn('text-xs font-bold', a.stockRolls < 0 ? 'text-destructive' : 'text-primary')}>
+                                  {a.stockRolls} peças
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                <div className="bg-muted/30 p-1.5 rounded">
+                                  <div className="text-muted-foreground mb-0.5 uppercase tracking-tighter font-semibold">Produzido</div>
+                                  <div className="flex justify-between">
+                                    <span>{formatWeight(a.inKg)}</span>
+                                    <span>{a.inPc} pç</span>
+                                  </div>
+                                </div>
+                                <div className="bg-muted/30 p-1.5 rounded">
+                                  <div className="text-muted-foreground mb-0.5 uppercase tracking-tighter font-semibold">Saída</div>
+                                  <div className="flex justify-between">
+                                    <span>{formatWeight(a.outKg)}</span>
+                                    <span>{a.outPc} pç</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {expandedArticle === `${group.clientId}::${a.articleId}` && (
+                                <div className="mt-2 space-y-2 pl-4 border-l-2 border-primary/20">
+                                  {a.byMachine.length === 0 ? (
+                                    <div className="text-[10px] text-muted-foreground italic">Sem quebra por máquina.</div>
+                                  ) : (
+                                    a.byMachine.map((m: any) => (
+                                      <div key={`${a.articleId}-${m.machineId}`} className="space-y-1">
+                                        <div className="flex justify-between items-center text-[10px] font-medium text-muted-foreground">
+                                          <span>↳ {m.machineName}</span>
+                                          <span className="text-primary/70">{m.stockRolls} pç</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-[9px] opacity-80">
+                                          <div className="flex justify-between px-1">
+                                            <span>Ent: {formatWeight(m.inKg)}</span>
+                                            <span>{m.inPc} pç</span>
+                                          </div>
+                                          <div className="flex justify-between px-1 border-l border-muted-foreground/20">
+                                            <span>Saí: {formatWeight(m.outKg)}</span>
+                                            <span>{m.outPc} pç</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </CardContent>
                     </CollapsibleContent>
                   </Card>
@@ -333,43 +394,81 @@ export default function StockMalhaManual() {
               ) : paginatedMovements.length === 0 ? (
                 <div className="py-12 text-center text-sm text-muted-foreground">Nenhuma movimentação registrada.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Data</TableHead>
-                        <TableHead className="text-xs">Tipo</TableHead>
-                        <TableHead className="text-xs">Cliente / Artigo</TableHead>
-                        <TableHead className="text-xs text-right">Peso (kg)</TableHead>
-                        <TableHead className="text-xs text-right">Peças</TableHead>
-                        <TableHead className="text-xs">Autor / Obs</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedMovements.map(m => (
-                        <TableRow key={m.id}>
-                          <TableCell className="text-[11px] whitespace-nowrap">
-                            {format(new Date(m.created_at), 'dd/MM/yy HH:mm')}
-                          </TableCell>
-                          <TableCell className="text-[11px]">
-                            <Badge variant={m.type === 'in' ? 'default' : 'destructive'} className="text-[9px] px-1 py-0 uppercase">
-                              {m.type === 'in' ? 'Entrada' : 'Saída'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-[11px]">
-                            <div className="font-medium">{m.client}</div>
-                            <div className="text-muted-foreground">{m.article} {m.machine && `(${m.machine})`}</div>
-                          </TableCell>
-                          <TableCell className="text-[11px] text-right">{formatWeight(m.weight_kg)}</TableCell>
-                          <TableCell className="text-[11px] text-right">{m.pieces}</TableCell>
-                          <TableCell className="text-[11px]">
-                            <div className="font-medium text-[10px]">{m.author}</div>
-                            {m.reason && <div className="text-muted-foreground italic truncate max-w-[150px]">{m.reason}</div>}
-                          </TableCell>
+                <div className="overflow-hidden">
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Data</TableHead>
+                          <TableHead className="text-xs">Tipo</TableHead>
+                          <TableHead className="text-xs">Cliente / Artigo</TableHead>
+                          <TableHead className="text-xs text-right">Peso (kg)</TableHead>
+                          <TableHead className="text-xs text-right">Peças</TableHead>
+                          <TableHead className="text-xs">Autor / Obs</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedMovements.map(m => (
+                          <TableRow key={m.id}>
+                            <TableCell className="text-[11px] whitespace-nowrap">
+                              {format(new Date(m.created_at), 'dd/MM/yy HH:mm')}
+                            </TableCell>
+                            <TableCell className="text-[11px]">
+                              <Badge variant={m.type === 'in' ? 'default' : 'destructive'} className="text-[9px] px-1 py-0 uppercase">
+                                {m.type === 'in' ? 'Entrada' : 'Saída'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-[11px]">
+                              <div className="font-medium">{m.client}</div>
+                              <div className="text-muted-foreground">{m.article} {m.machine && `(${m.machine})`}</div>
+                            </TableCell>
+                            <TableCell className="text-[11px] text-right">{formatWeight(m.weight_kg)}</TableCell>
+                            <TableCell className="text-[11px] text-right">{m.pieces}</TableCell>
+                            <TableCell className="text-[11px]">
+                              <div className="font-medium text-[10px]">{m.author}</div>
+                              {m.description && <div className="text-muted-foreground italic truncate max-w-[150px]">{m.description}</div>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards for Movements */}
+                  <div className="md:hidden divide-y">
+                    {paginatedMovements.map(m => (
+                      <div key={m.id} className="p-3 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-0.5">
+                            <div className="text-[10px] text-muted-foreground">
+                              {format(new Date(m.created_at), 'dd/MM/yy HH:mm')}
+                            </div>
+                            <div className="text-xs font-bold">{m.client}</div>
+                            <div className="text-[10px] text-muted-foreground">{m.article} {m.machine && `(${m.machine})`}</div>
+                          </div>
+                          <Badge variant={m.type === 'in' ? 'default' : 'destructive'} className="text-[9px] px-1 py-0 uppercase">
+                            {m.type === 'in' ? 'Entrada' : 'Saída'}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-[11px] bg-muted/30 p-2 rounded">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground uppercase text-[9px] font-semibold">Peso:</span>
+                            <span className="font-medium">{formatWeight(m.weight_kg)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground uppercase text-[9px] font-semibold">Peças:</span>
+                            <span className="font-medium">{m.pieces} pç</span>
+                          </div>
+                        </div>
+
+                        <div className="text-[10px] flex items-center justify-between">
+                          <span className="font-medium">{m.author}</span>
+                          {m.description && <span className="text-muted-foreground italic truncate max-w-[180px]">{m.description}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
