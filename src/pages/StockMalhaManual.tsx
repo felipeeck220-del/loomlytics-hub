@@ -31,8 +31,9 @@ export default function StockMalhaManual() {
   const [filterArticle, setFilterArticle] = useState('all');
   const [searchMov, setSearchMov] = useState('');
   
-  const clients = getClients();
-  const articles = getArticles();
+  const clients = getClients() || [];
+  const articles = getArticles() || [];
+  const machines = getMachines() || [];
 
   const { data: stockData, isLoading: stockLoading } = useQuery({
     queryKey: ['manual_stock_estoque_independent', companyId, filterClient, filterArticle],
@@ -365,7 +366,7 @@ export default function StockMalhaManual() {
         onOpenChange={setEntryModalOpen}
         clients={clients}
         articles={articles}
-        machines={getMachines()}
+        machines={machines}
         onSaved={refreshAll}
       />
     </div>

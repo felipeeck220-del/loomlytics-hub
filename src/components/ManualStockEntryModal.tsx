@@ -48,7 +48,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
   }, [open]);
 
   const filteredArticles = useMemo(
-    () => articles.filter(a => a.client_id === clientId).sort((a, b) => a.name.localeCompare(b.name)),
+    () => (articles || []).filter(a => a.client_id === clientId).sort((a, b) => a.name.localeCompare(b.name)),
     [articles, clientId]
   );
 
