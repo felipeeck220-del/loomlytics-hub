@@ -1,8 +1,9 @@
+- **16/08/2026 (Brasília) — Correção no Zeramento de Máquina e Layout:**
+    - Corrigida a RPC `adjust_manual_machine_pallet` que falhava ao zerar o saldo em máquina por não filtrar corretamente os movimentos de expedição durante o cálculo do saldo atual da máquina.
+    - Restaurado o layout horizontal para as opções de "Destino" (Expedição / Em máquina) no modal de lançamento manual, posicionando-as ao lado do "Tipo".
+
 - **16/08/2026 (Brasília) — Ajuste no Lançamento para Expedição:**
     - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que, ao lançar um palete para expedição, o saldo atual em máquina seja zerado e o novo valor recontado seja inserido diretamente no estoque disponível (expedição).
-
-- **16/08/2026 (Brasília) — Ajuste de Layout no Lançamento Manual:**
-    - Corrigido vazamento visual no modal de lançamento manual, alterando a disposição das opções de "Destino" (Expedição / Em máquina) de horizontal para vertical.
 
 - **16/08/2026 (Brasília) — Controle de Paletes em Máquina no Estoque Malha (Manual):**
     - Implementada função "Em máquina" para separar peças em produção do estoque de expedição.
