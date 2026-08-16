@@ -1470,27 +1470,6 @@ export default function StockMalha() {
         </TabsContent>
       </Tabs>
 
-      {isAdmin && (
-        <ManualStockEntryModal
-          open={manualOpen}
-          onOpenChange={setManualOpen}
-          clients={clients}
-          articles={articles as any}
-          machines={machines}
-          onSaved={refreshAllStock}
-        />
-      )}
-      {isAdmin && (
-        <ManualStockEntryModal
-          open={manual2qOpen}
-          onOpenChange={setManual2qOpen}
-          clients={clients}
-          articles={articles as any}
-          machines={machines}
-          isSecondQuality
-          onSaved={refreshAllStock}
-        />
-      )}
       {canOwnStock && (
         <OwnStockManualModal
           open={ownManualOpen}
