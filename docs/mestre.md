@@ -78,6 +78,7 @@
     - Refatorada a página `StockMalhaManual.tsx` para replicar o estilo visual do "Estoque Clientes" (conforme print de referência).
     - Implementadas tabelas colapsáveis (Cliente > Artigo > Máquina) e KPIs detalhados (Entradas, Saídas, Reservados, Disponível).
     - Realizado o reset completo dos dados de movimentação manual para garantir um "zero start" e lógica de saldo 100% independente.
+    - Otimizados os KPIs de topo para focar em **Peças (pç)** como unidade primária, removendo colunas de reserva redundantes para este módulo manual.
     - Atualizada a RPC `get_manual_stock_estoque_independent` para suportar o novo layout hierárquico e cálculos de saldo por máquina.
 
 - **14/08/2026 (Brasília) — Limpeza de Dados de Teste (OF):**
