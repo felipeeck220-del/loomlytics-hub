@@ -1,8 +1,10 @@
+- **16/08/2026 (Brasília) — Estabilização de RLS no Estoque Malha (Manual):**
+    - Refatoradas as políticas de segurança (RLS) da tabela `manual_stock_movements` para utilizar o padrão `user_active_company`.
+    - Corrigido o erro de permissão que impedia administradores de realizar lançamentos manuais.
+    - Sincronizada a lógica de isolamento multi-tenant com o restante do sistema (Faturamento/Mecânica).
+
 - **16/08/2026 (Brasília) — Correção no Lançamento Manual de Estoque:**
     - Corrigido o erro no modal de lançamento manual onde tentava inserir na coluna inexistente `reason`. A coluna correta no banco é `description`.
-
-- **16/08/2026 (Brasília) — Recriação do Módulo Estoque Malha (Manual) com Design Unificado:**
-    - Recriado o módulo "Estoque Malha (Manual)" como ferramenta 100% independente, com design espelhado em `StockMalha.tsx`.
     - Atualizada a RPC `get_manual_stock_estoque_independent` para suportar KPIs de Entrada e Saída.
     - Implementado layout colapsável Cliente > Artigo > Máquina e aba de Movimentações.
     - Restaurado item no Sidebar.
