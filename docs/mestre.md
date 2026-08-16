@@ -74,20 +74,8 @@
     - Validada a integridade do controle de múltiplos: trava de finalização no frontend e persistência no banco.
     - Sincronizadas as assinaturas de auditoria em todo o fluxo logístico para o padrão de 6 argumentos.
     - O módulo de Ordem de Faturamento (OF) está estabilizado como sistema logístico puro, sem dependências de triggers de estoque.
-- **16/08/2026 (Brasília) — Estilização do Estoque Malha (Manual) Independente:**
-    - Refatorada a página `StockMalhaManual.tsx` para replicar o estilo visual do "Estoque Clientes" (conforme print de referência).
-    - Implementadas tabelas colapsáveis (Cliente > Artigo > Máquina) e KPIs detalhados (Entradas, Saídas, Reservados, Disponível).
-    - Realizado o reset completo dos dados de movimentação manual para garantir um "zero start" e lógica de saldo 100% independente.
-    - Otimizados os KPIs de topo para focar em **Peças (pç)** como unidade primária, removendo colunas de reserva redundantes para este módulo manual.
-    - Alinhado o design do módulo **Estoque Malha (Manual)** com o padrão do "Estoque de Malha" principal (abas, cores e colunas), mantendo a independência funcional.
-    - Corrigido erro de execução (TypeError) no modal de lançamento manual adicionando verificações de nulidade nos filtros de artigos.
-    - Atualizada a RPC `get_manual_stock_estoque_independent` para suportar o novo layout hierárquico e cálculos de saldo por máquina.
+- **16/08/2026 (Brasília) — Remoção do Módulo Estoque Malha (Manual):**
+    - Excluído integralmente o módulo independente de Estoque Malha (Manual), incluindo tabelas (`manual_stock_movements`), RPCs e componentes de interface.
+    - Revertidas referências no `AppLayout`, `Admin` e `StockMalha`.
 
-- **14/08/2026 (Brasília) — Limpeza de Dados de Teste (OF):**
-    - Removidas permanentemente do banco de dados 32 ordens de faturamento de teste (OF #628, #626, #627, #624, #623, #622, #615, #614, #613, #612, #611, #599, #597, #596, #595, #594, #625, #598, #565, #552, #551, #550, #549, #548, #547, #546, #545, #544, #543, #530, #529, #421) e seus respectivos paletes.
-- **16/08/2026 (Brasília) — Ajustes Finais de Design Estoque Malha (Manual):**
-    - Refatoração completa da página `StockMalhaManual.tsx` para seguir o design do arquivo fornecido e print de referência (Estoque de Malha principal).
-    - Inclusão de colunas detalhadas de peso e peças na tabela hierárquica (Produzido, Entregue, Físico, Reservado, Disponível).
-    - Ajuste de labels de KPIs para CAIXA ALTA (ENTRADAS, ENTREGUE, RESERVADO, DISPONÍVEL).
-    - Inclusão de banner informativo sobre a independência do módulo manual.
 

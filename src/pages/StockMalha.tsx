@@ -19,7 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
-import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
+
 import { OwnStockManualModal } from '@/components/OwnStockManualModal';
 import { Plus, CalendarDays, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -1470,27 +1470,6 @@ export default function StockMalha() {
         </TabsContent>
       </Tabs>
 
-      {isAdmin && (
-        <ManualStockEntryModal
-          open={manualOpen}
-          onOpenChange={setManualOpen}
-          clients={clients}
-          articles={articles as any}
-          machines={machines}
-          onSaved={refreshAllStock}
-        />
-      )}
-      {isAdmin && (
-        <ManualStockEntryModal
-          open={manual2qOpen}
-          onOpenChange={setManual2qOpen}
-          clients={clients}
-          articles={articles as any}
-          machines={machines}
-          isSecondQuality
-          onSaved={refreshAllStock}
-        />
-      )}
       {canOwnStock && (
         <OwnStockManualModal
           open={ownManualOpen}
