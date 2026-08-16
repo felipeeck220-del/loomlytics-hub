@@ -5577,6 +5577,15 @@ export type Database = {
         }
         Returns: Json
       }
+      get_manual_stock_estoque_independent: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_month?: string
+        }
+        Returns: Json
+      }
       get_manual_stock_movements: {
         Args: {
           p_article_id?: string
@@ -5589,6 +5598,10 @@ export type Database = {
           p_to?: string
           p_type?: string
         }
+        Returns: Json
+      }
+      get_manual_stock_movements_independent: {
+        Args: { p_company_id: string; p_page?: number; p_page_size?: number }
         Returns: Json
       }
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
@@ -6080,6 +6093,7 @@ export type Database = {
         }
         Returns: Json
       }
+      save_manual_stock_entry: { Args: { p_payload: Json }; Returns: string }
       save_manual_stock_machine_adjust: {
         Args: { p_payload: Json }
         Returns: string
