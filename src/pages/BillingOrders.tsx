@@ -986,9 +986,9 @@ const BillingOrders = () => {
       ]);
 
       if (mode === 'client') {
-        drawSection('QUANTIDADES', [
-          ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
-          ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+        drawSection('QUANTIDADES REAIS', [
+          ['Peças', order.pieces_real != null ? String(order.pieces_real) : '—'],
+          ['Peso Total', order.weight_real ? `${order.weight_real} kg` : '—'],
         ]);
       } else {
         drawSection('QUANTIDADES', [
@@ -997,7 +997,7 @@ const BillingOrders = () => {
           ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
           ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
           ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
-          ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
+          ['Média Real', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
         ]);
       }
 
