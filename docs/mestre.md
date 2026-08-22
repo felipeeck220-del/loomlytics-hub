@@ -1,3 +1,9 @@
+- **22/08/2026 (Brasília) — Reformulação da Impressão de OF:**
+    - Refatorado o sistema de geração de PDF (admin e cliente) para um design mais profissional e legível.
+    - Implementado cabeçalho dinâmico com logo da empresa e status atual da OF em todas as modalidades de impressão.
+    - Otimizada a impressão para Cliente: agora oculta dados de auditoria, quantidades previstas e médias, mantendo o status fixo como "PRONTO PARA COLETA".
+    - Padronizados os textos descritivos no modal de escolha de impressão para máxima clareza operacional.
+
 - **22/08/2026 (Brasília) — Ajustes Visuais em Troca de Artigo (OT):**
     - Adicionada a exibição do nome do cliente entre parênteses nos artigos (atual e próximo) na listagem de OTs, seguindo o padrão 'Artigo (Cliente)'.
 

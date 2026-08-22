@@ -2446,27 +2446,37 @@ const BillingOrders = () => {
             <p className="text-xs text-muted-foreground">Escolha o tipo de impressão:</p>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-all"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'internal'); setShowPrintChoice(null); }}
             >
-              <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="bg-primary/10 p-2 rounded-lg shrink-0 mt-0.5">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
               <div className="text-left min-w-0 flex-1">
-                <div className="font-semibold text-sm">Controle Interno</div>
-                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
-                  PDF completo: quantidades previstas/reais, prioridade e auditoria.
+                <div className="font-bold text-sm text-primary flex items-center gap-2">
+                  Controle Interno
+                  <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">COMPLETO</Badge>
+                </div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-relaxed mt-1">
+                  PDF profissional com quantidades previstas e reais, prioridade, médias e auditoria detalhada de separação.
                 </div>
               </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-all"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'client'); setShowPrintChoice(null); }}
             >
-              <UserIcon className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-lg shrink-0 mt-0.5">
+                <UserIcon className="h-5 w-5 text-emerald-600" />
+              </div>
               <div className="text-left min-w-0 flex-1">
-                <div className="font-semibold text-sm">Cliente</div>
-                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
-                  PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".
+                <div className="font-bold text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                  Cliente
+                  <Badge variant="outline" className="text-[9px] h-4 border-emerald-300 text-emerald-600">RESUMIDO</Badge>
+                </div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-relaxed mt-1">
+                  PDF resumido para faturamento e transportadora. Sem auditoria e médias. Status sempre "Pronto para Coleta".
                 </div>
               </div>
             </Button>
