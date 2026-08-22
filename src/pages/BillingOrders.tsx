@@ -831,18 +831,23 @@ const BillingOrders = () => {
     printWindow.document.close();
   };
 
-  const handleAdminPrintPdf = async (order: any, mode: 'internal' | 'client' = 'internal') => {
+  const handleAdminPrintPdf = async (order: any, mode: string) => {
     try {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pw = pdf.internal.pageSize.getWidth();
-      const margin = 15;
+      const margin = 12;
 
       const colors = {
-        grayBg: [249, 250, 251] as [number, number, number],
-        border: [229, 231, 235] as [number, number, number],
-        textDark: [17, 24, 39] as [number, number, number],
-        textMid: [75, 85, 99] as [number, number, number],
+        grayBg: [248, 250, 252] as [number, number, number],
+        border: [203, 213, 225] as [number, number, number],
+        textDark: [15, 23, 42] as [number, number, number],
+        textMid: [71, 85, 105] as [number, number, number],
         primary: [13, 148, 136] as [number, number, number],
+        emerald: [5, 150, 105] as [number, number, number],
+        amber: [217, 119, 6] as [number, number, number],
+        sky: [2, 132, 199] as [number, number, number],
+        violet: [124, 58, 237] as [number, number, number],
+        red: [220, 38, 38] as [number, number, number],
       };
 
       // Logo + nome da empresa
@@ -920,30 +925,33 @@ const BillingOrders = () => {
 
       // Status badge
       const statusMap: Record<string, { label: string; color: [number, number, number] }> = {
-        open: { label: 'ABERTO', color: [2, 132, 199] },
-        separating: { label: 'SEPARANDO', color: [217, 119, 6] },
-        ready: { label: order.delivery_doc_number ? 'PRONTO' : 'PRONTO PARA COLETA', color: order.delivery_doc_number ? [5, 150, 105] : [124, 58, 237] },
+        open: { label: 'ABERTO', color: colors.sky },
+        separating: { label: 'SEPARANDO', color: colors.amber },
+        ready: { label: order.delivery_doc_number ? 'PRONTO PARA COLETA' : 'AGUARDANDO NF/ROM', color: order.delivery_doc_number ? colors.emerald : colors.violet },
         collected: { label: 'COLETADA', color: [71, 85, 105] },
         cancelled: { label: 'CANCELADA', color: [113, 113, 122] },
       };
+      
       let st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      
       // PDF para cliente: sempre exibe "PRONTO PARA COLETA"
       if (mode === 'client') {
-        st = { label: 'PRONTO PARA COLETA', color: [5, 150, 105] };
+        st = { label: 'PRONTO PARA COLETA', color: colors.emerald };
       }
+      
       pdf.setFillColor(...st.color);
-      const badgeW = mode === 'client' ? 70 : 50;
-      pdf.roundedRect(margin, y, badgeW, 9, 1.5, 1.5, 'F');
-      pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
-      pdf.text(sanitizePdfText(st.label), margin + badgeW / 2 - pdf.getTextWidth(st.label) / 2, y + 6.2);
+      const badgeW = pdf.getTextWidth(st.label) + 10;
+      pdf.roundedRect(margin, y, badgeW, 8, 1, 1, 'F');
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+      pdf.text(sanitizePdfText(st.label), margin + 5, y + 5.5);
 
-      if (order.priority && order.status !== 'collected') {
-        pdf.setFillColor(220, 38, 38);
-        pdf.roundedRect(margin + 55, y, 40, 9, 1.5, 1.5, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.text('PRIORIDADE', margin + 75 - pdf.getTextWidth('PRIORIDADE') / 2, y + 6.2);
+      if (mode !== 'client' && order.priority && order.status !== 'collected') {
+        pdf.setFillColor(...colors.red);
+        const prioW = pdf.getTextWidth('PRIORIDADE') + 10;
+        pdf.roundedRect(margin + badgeW + 3, y, prioW, 8, 1, 1, 'F');
+        pdf.text('PRIORIDADE', margin + badgeW + 8, y + 5.5);
       }
-      y += 15;
+      y += 14;
 
       // Bloco: Dados principais
       const drawSection = (title: string, rows: Array<[string, string]>) => {
@@ -978,9 +986,9 @@ const BillingOrders = () => {
       ]);
 
       if (mode === 'client') {
-        drawSection('QUANTIDADES', [
-          ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
-          ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+        drawSection('QUANTIDADES REAIS', [
+          ['Peças', order.pieces_real != null ? String(order.pieces_real) : '—'],
+          ['Peso Total', order.weight_real ? `${order.weight_real} kg` : '—'],
         ]);
       } else {
         drawSection('QUANTIDADES', [
@@ -989,7 +997,7 @@ const BillingOrders = () => {
           ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
           ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
           ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
-          ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
+          ['Média Real', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
         ]);
       }
 
@@ -1037,14 +1045,23 @@ const BillingOrders = () => {
           pdf.setFillColor(...colors.primary);
           pdf.rect(margin, y, pw - 2 * margin, 7, 'F');
           pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
-          pdf.text(sanitizePdfText(`PALETES (${palletRows.length}) - AUDITORIA`), margin + 3, y + 5);
+          const palletTitle = mode === 'client' ? `LISTAGEM DE PALETES (${palletRows.length})` : `PALETES (${palletRows.length}) - AUDITORIA`;
+          pdf.text(sanitizePdfText(palletTitle), margin + 3, y + 5);
           y += 7;
 
-          const cols = [margin + 3, margin + 22, margin + 42, margin + 62, margin + 88, margin + 120];
+          const cols = mode === 'client' 
+            ? [margin + 3, margin + 40, margin + 80, margin + 130]
+            : [margin + 3, margin + 22, margin + 42, margin + 62, margin + 88, margin + 120];
+            
           pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
           pdf.setFillColor(...colors.grayBg);
           pdf.rect(margin, y, pw - 2 * margin, 6, 'F');
-          ['Palete', 'Peças', 'Peso (kg)', 'Média', 'Máquina', 'Registrado por / em'].forEach((h, i) => {
+          
+          const headers = mode === 'client'
+            ? ['Palete', 'Peças', 'Peso (kg)', 'Máquina']
+            : ['Palete', 'Peças', 'Peso (kg)', 'Média', 'Máquina', 'Registrado por / em'];
+            
+          headers.forEach((h, i) => {
             pdf.text(sanitizePdfText(h), cols[i], y + 4);
           });
           y += 6;
@@ -1064,12 +1081,17 @@ const BillingOrders = () => {
             pdf.text(String(p.pallet_number), cols[0], y + 4);
             pdf.text(String(pieces), cols[1], y + 4);
             pdf.text(weight.toFixed(2), cols[2], y + 4);
-            pdf.text(pieces > 0 ? `${(weight / pieces).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
-            pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[4], y + 4);
-            pdf.text(sanitizePdfText(p.creator ? `${p.creator.name} #${p.creator.code}` : '-'), cols[5], y + 4);
-            pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
-            pdf.text(p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR }) : '-', cols[5], y + 7.5);
-            pdf.setTextColor(...colors.textDark);
+            
+            if (mode === 'client') {
+              pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[3], y + 4);
+            } else {
+              pdf.text(pieces > 0 ? `${(weight / pieces).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+              pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[4], y + 4);
+              pdf.text(sanitizePdfText(p.creator ? `${p.creator.name} #${p.creator.code}` : '-'), cols[5], y + 4);
+              pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
+              pdf.text(p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR }) : '-', cols[5], y + 7.5);
+              pdf.setTextColor(...colors.textDark);
+            }
             y += 9;
           });
 
@@ -1078,7 +1100,9 @@ const BillingOrders = () => {
           pdf.text('TOTAL', cols[0], y + 4);
           pdf.text(String(tp), cols[1], y + 4);
           pdf.text(tw2.toFixed(2), cols[2], y + 4);
-          pdf.text(tp > 0 ? `${(tw2 / tp).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+          if (mode !== 'client' && tp > 0) {
+            pdf.text(`${(tw2 / tp).toFixed(2)} kg/pc`, cols[3], y + 4);
+          }
           y += 10;
         }
       }
@@ -2446,27 +2470,37 @@ const BillingOrders = () => {
             <p className="text-xs text-muted-foreground">Escolha o tipo de impressão:</p>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-all"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'internal'); setShowPrintChoice(null); }}
             >
-              <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="bg-primary/10 p-2 rounded-lg shrink-0 mt-0.5">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
               <div className="text-left min-w-0 flex-1">
-                <div className="font-semibold text-sm">Controle Interno</div>
-                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
-                  PDF completo: quantidades previstas/reais, prioridade e auditoria.
+                <div className="font-bold text-sm text-primary flex items-center gap-2">
+                  Controle Interno
+                  <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">COMPLETO</Badge>
+                </div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-relaxed mt-1">
+                  PDF profissional com quantidades previstas e reais, prioridade, médias e auditoria detalhada de separação.
                 </div>
               </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-all"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'client'); setShowPrintChoice(null); }}
             >
-              <UserIcon className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-lg shrink-0 mt-0.5">
+                <UserIcon className="h-5 w-5 text-emerald-600" />
+              </div>
               <div className="text-left min-w-0 flex-1">
-                <div className="font-semibold text-sm">Cliente</div>
-                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
-                  PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".
+                <div className="font-bold text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                  Cliente
+                  <Badge variant="outline" className="text-[9px] h-4 border-emerald-300 text-emerald-600">RESUMIDO</Badge>
+                </div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-relaxed mt-1">
+                  PDF resumido para faturamento e transportadora. Sem auditoria e médias. Status sempre "Pronto para Coleta".
                 </div>
               </div>
             </Button>
