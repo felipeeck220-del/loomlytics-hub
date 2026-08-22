@@ -439,6 +439,7 @@ export default function ArticleChangeOrdersTab() {
                   isLider={isLider}
                   isMecanico={isMecanico}
                   isLiderMecanica={role === 'lider_mecanica'}
+                  articleById={articleById}
                   onStartYarn={() => startYarnChange(o)}
                   onFinishYarn={() => finishYarnChange(o)}
                   onStartAdj={() => startAdjustment(o)}
@@ -612,6 +613,7 @@ function OTCard(props: {
   isLider: boolean;
   isMecanico: boolean;
   isLiderMecanica: boolean;
+  articleById: Record<string, any>;
   onStartYarn: () => void;
   onFinishYarn: () => void;
   onStartAdj: () => void;
@@ -623,7 +625,7 @@ function OTCard(props: {
   onEdit: () => void;
   onViewPhotos: () => void;
 }) {
-  const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico, isLiderMecanica } = props;
+  const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico, isLiderMecanica, articleById } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
   const yarnTimer = useLiveTimer(o.status === 'troca_fio_em_curso' ? o.yarn_change_started_at : null);
   const awaitAdjTimer = useLiveTimer(o.status === 'aguardando_regulagem' ? o.yarn_change_ended_at : null);
@@ -695,9 +697,23 @@ function OTCard(props: {
             {/* Linha 3: Artigo atual → próximo */}
             <div className="flex items-center gap-2 text-sm p-2 rounded-md bg-muted/40 flex-wrap">
               <span className="text-[10px] uppercase text-muted-foreground font-semibold">Artigo</span>
-              <span className="font-medium truncate">{currentArticleName}</span>
+              <span className="font-medium truncate">
+                {currentArticleName}
+                {o.current_article_id && articleById[o.current_article_id]?.client_name && (
+                  <span className="text-[10px] text-muted-foreground ml-1">
+                    ({articleById[o.current_article_id].client_name})
+                  </span>
+                )}
+              </span>
               <ArrowRight className="h-4 w-4 text-amber-600 shrink-0" />
-              <span className="font-semibold text-amber-700 dark:text-amber-400 truncate">{nextArticleName}</span>
+              <span className="font-semibold text-amber-700 dark:text-amber-400 truncate">
+                {nextArticleName}
+                {o.next_article_id && articleById[o.next_article_id]?.client_name && (
+                  <span className="text-[10px] text-muted-foreground ml-1 font-normal">
+                    ({articleById[o.next_article_id].client_name})
+                  </span>
+                )}
+              </span>
             </div>
 
             {/* Fitas */}
