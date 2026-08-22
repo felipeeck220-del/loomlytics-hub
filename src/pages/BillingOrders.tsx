@@ -954,7 +954,10 @@ const BillingOrders = () => {
       y += 14;
 
       // Bloco: Dados principais
-      const drawSection = (title: string, rows: Array<[string, string]>) => {
+      const drawSection = (title: string, rows: Array<[string, string]>, options: { columns?: number } = {}) => {
+        const columns = options.columns || 1;
+        const colWidth = (pw - 2 * margin) / columns;
+        
         pdf.setFillColor(...colors.primary);
         pdf.rect(margin, y, pw - 2 * margin, 7, 'F');
         pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
@@ -963,18 +966,43 @@ const BillingOrders = () => {
 
         pdf.setDrawColor(...colors.border);
         const rowH = 8;
-        rows.forEach((r, idx) => {
-          if (idx % 2 === 0) {
-            pdf.setFillColor(...colors.grayBg);
-            pdf.rect(margin, y, pw - 2 * margin, rowH, 'F');
+        
+        if (columns === 1) {
+          rows.forEach((r, idx) => {
+            if (idx % 2 === 0) {
+              pdf.setFillColor(...colors.grayBg);
+              pdf.rect(margin, y, pw - 2 * margin, rowH, 'F');
+            }
+            pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
+            pdf.text(sanitizePdfText(r[0]), margin + 3, y + 5.5);
+            pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textDark);
+            pdf.text(sanitizePdfText(r[1] || '—'), margin + 60, y + 5.5);
+            y += rowH;
+          });
+          pdf.rect(margin, y - rows.length * rowH - 7, pw - 2 * margin, rows.length * rowH + 7, 'S');
+        } else {
+          // Renderização em colunas profissionais
+          const rowCount = Math.ceil(rows.length / columns);
+          for (let rIdx = 0; rIdx < rowCount; rIdx++) {
+            if (rIdx % 2 === 0) {
+              pdf.setFillColor(...colors.grayBg);
+              pdf.rect(margin, y, pw - 2 * margin, rowH, 'F');
+            }
+            for (let cIdx = 0; cIdx < columns; cIdx++) {
+              const itemIdx = rIdx + cIdx * rowCount;
+              if (itemIdx < rows.length) {
+                const r = rows[itemIdx];
+                const startX = margin + cIdx * colWidth;
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
+                pdf.text(sanitizePdfText(r[0]), startX + 3, y + 5.5);
+                pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textDark);
+                pdf.text(sanitizePdfText(r[1] || '—'), startX + 35, y + 5.5);
+              }
+            }
+            y += rowH;
           }
-          pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
-          pdf.text(sanitizePdfText(r[0]), margin + 3, y + 5.5);
-          pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textDark);
-          pdf.text(sanitizePdfText(r[1] || '—'), margin + 60, y + 5.5);
-          y += rowH;
-        });
-        pdf.rect(margin, y - rows.length * rowH - 7, pw - 2 * margin, rows.length * rowH + 7, 'S');
+          pdf.rect(margin, y - rowCount * rowH - 7, pw - 2 * margin, rowCount * rowH + 7, 'S');
+        }
         y += 6;
       };
 
@@ -983,13 +1011,13 @@ const BillingOrders = () => {
         ['Tinturaria', order.dyehouse || ''],
         ['Artigo', order.article?.name || ''],
         ['Máquina', order.machine?.name || '—'],
-      ]);
+      ], { columns: 2 });
 
       if (mode === 'client') {
         drawSection('QUANTIDADES REAIS', [
           ['Peças', order.pieces_real != null ? String(order.pieces_real) : '—'],
           ['Peso Total', order.weight_real ? `${order.weight_real} kg` : '—'],
-        ]);
+        ], { columns: 2 });
       } else {
         drawSection('QUANTIDADES', [
           ['Peças Previstas', String(order.pieces_expected ?? '—')],
@@ -998,13 +1026,13 @@ const BillingOrders = () => {
           ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
           ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
           ['Média Real', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
-        ]);
+        ], { columns: 2 });
       }
 
       if (order.delivery_doc_number) {
         drawSection(order.delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NOTA FISCAL', [
           [order.delivery_doc_type === 'romaneio' ? 'Romaneio Nº' : 'NF Nº', order.delivery_doc_number],
-        ]);
+        ], { columns: 2 });
       }
 
       if (order.priority_reason) {
@@ -1026,7 +1054,7 @@ const BillingOrders = () => {
           ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
           ['Coletado em', order.collected_at ? format(new Date(order.collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
           ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-        ]);
+        ], { columns: 2 });
 
         // Auditoria detalhada dos paletes
         const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
