@@ -1045,14 +1045,23 @@ const BillingOrders = () => {
           pdf.setFillColor(...colors.primary);
           pdf.rect(margin, y, pw - 2 * margin, 7, 'F');
           pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
-          pdf.text(sanitizePdfText(`PALETES (${palletRows.length}) - AUDITORIA`), margin + 3, y + 5);
+          const palletTitle = mode === 'client' ? `LISTAGEM DE PALETES (${palletRows.length})` : `PALETES (${palletRows.length}) - AUDITORIA`;
+          pdf.text(sanitizePdfText(palletTitle), margin + 3, y + 5);
           y += 7;
 
-          const cols = [margin + 3, margin + 22, margin + 42, margin + 62, margin + 88, margin + 120];
+          const cols = mode === 'client' 
+            ? [margin + 3, margin + 40, margin + 80, margin + 130]
+            : [margin + 3, margin + 22, margin + 42, margin + 62, margin + 88, margin + 120];
+            
           pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
           pdf.setFillColor(...colors.grayBg);
           pdf.rect(margin, y, pw - 2 * margin, 6, 'F');
-          ['Palete', 'Peças', 'Peso (kg)', 'Média', 'Máquina', 'Registrado por / em'].forEach((h, i) => {
+          
+          const headers = mode === 'client'
+            ? ['Palete', 'Peças', 'Peso (kg)', 'Máquina']
+            : ['Palete', 'Peças', 'Peso (kg)', 'Média', 'Máquina', 'Registrado por / em'];
+            
+          headers.forEach((h, i) => {
             pdf.text(sanitizePdfText(h), cols[i], y + 4);
           });
           y += 6;
@@ -1072,12 +1081,17 @@ const BillingOrders = () => {
             pdf.text(String(p.pallet_number), cols[0], y + 4);
             pdf.text(String(pieces), cols[1], y + 4);
             pdf.text(weight.toFixed(2), cols[2], y + 4);
-            pdf.text(pieces > 0 ? `${(weight / pieces).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
-            pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[4], y + 4);
-            pdf.text(sanitizePdfText(p.creator ? `${p.creator.name} #${p.creator.code}` : '-'), cols[5], y + 4);
-            pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
-            pdf.text(p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR }) : '-', cols[5], y + 7.5);
-            pdf.setTextColor(...colors.textDark);
+            
+            if (mode === 'client') {
+              pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[3], y + 4);
+            } else {
+              pdf.text(pieces > 0 ? `${(weight / pieces).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+              pdf.text(sanitizePdfText(p.machine?.name || '-'), cols[4], y + 4);
+              pdf.text(sanitizePdfText(p.creator ? `${p.creator.name} #${p.creator.code}` : '-'), cols[5], y + 4);
+              pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
+              pdf.text(p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR }) : '-', cols[5], y + 7.5);
+              pdf.setTextColor(...colors.textDark);
+            }
             y += 9;
           });
 
@@ -1086,7 +1100,9 @@ const BillingOrders = () => {
           pdf.text('TOTAL', cols[0], y + 4);
           pdf.text(String(tp), cols[1], y + 4);
           pdf.text(tw2.toFixed(2), cols[2], y + 4);
-          pdf.text(tp > 0 ? `${(tw2 / tp).toFixed(2)} kg/pc` : '-', cols[3], y + 4);
+          if (mode !== 'client' && tp > 0) {
+            pdf.text(`${(tw2 / tp).toFixed(2)} kg/pc`, cols[3], y + 4);
+          }
           y += 10;
         }
       }
