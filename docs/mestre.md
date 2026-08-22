@@ -1,3 +1,6 @@
+- **22/08/2026 (Brasília) — Ajustes Visuais em Troca de Artigo (OT):**
+    - Adicionada a exibição do nome do cliente entre parênteses nos artigos (atual e próximo) na listagem de OTs, seguindo o padrão 'Artigo (Cliente)'.
+
 - **16/08/2026 (Brasília) — Estabilização do Estoque de Malha (Manual):**
     - Refatorada a RPC `adjust_manual_machine_pallet` para garantir que as ações de 'Recontar palete e manter na máquina' ou 'Lançar para expedição' SUBSTITUAM o valor anterior em vez de somar, utilizando o saldo LÍQUIDO (entradas - saídas) para zerar a máquina com precisão absoluta antes de aplicar a nova contagem informada.
 
@@ -51,7 +54,3 @@
     - O módulo agora funciona como um controle logístico e de faturamento puro, eliminando o "efeito fantasma" e latências causadas por triggers de estoque pesadas.
     - Removidas opções de "Origem do Estoque" (Cliente, Outro Artigo, Estoque Trama) do modal de paletes.
     - Reduzido o delay de sincronização no hook `useBillingOrders.ts` para **500ms**, tornando a interface muito mais rápida.
-...
-
-
-
