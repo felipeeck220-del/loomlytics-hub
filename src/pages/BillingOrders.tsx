@@ -835,14 +835,19 @@ const BillingOrders = () => {
     try {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pw = pdf.internal.pageSize.getWidth();
-      const margin = 15;
+      const margin = 12;
 
       const colors = {
-        grayBg: [249, 250, 251] as [number, number, number],
-        border: [229, 231, 235] as [number, number, number],
-        textDark: [17, 24, 39] as [number, number, number],
-        textMid: [75, 85, 99] as [number, number, number],
+        grayBg: [248, 250, 252] as [number, number, number],
+        border: [203, 213, 225] as [number, number, number],
+        textDark: [15, 23, 42] as [number, number, number],
+        textMid: [71, 85, 105] as [number, number, number],
         primary: [13, 148, 136] as [number, number, number],
+        emerald: [5, 150, 105] as [number, number, number],
+        amber: [217, 119, 6] as [number, number, number],
+        sky: [2, 132, 199] as [number, number, number],
+        violet: [124, 58, 237] as [number, number, number],
+        red: [220, 38, 38] as [number, number, number],
       };
 
       // Logo + nome da empresa
