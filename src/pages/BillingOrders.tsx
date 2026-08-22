@@ -925,30 +925,33 @@ const BillingOrders = () => {
 
       // Status badge
       const statusMap: Record<string, { label: string; color: [number, number, number] }> = {
-        open: { label: 'ABERTO', color: [2, 132, 199] },
-        separating: { label: 'SEPARANDO', color: [217, 119, 6] },
-        ready: { label: order.delivery_doc_number ? 'PRONTO' : 'PRONTO PARA COLETA', color: order.delivery_doc_number ? [5, 150, 105] : [124, 58, 237] },
+        open: { label: 'ABERTO', color: colors.sky },
+        separating: { label: 'SEPARANDO', color: colors.amber },
+        ready: { label: order.delivery_doc_number ? 'PRONTO PARA COLETA' : 'AGUARDANDO NF/ROM', color: order.delivery_doc_number ? colors.emerald : colors.violet },
         collected: { label: 'COLETADA', color: [71, 85, 105] },
         cancelled: { label: 'CANCELADA', color: [113, 113, 122] },
       };
+      
       let st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      
       // PDF para cliente: sempre exibe "PRONTO PARA COLETA"
       if (mode === 'client') {
-        st = { label: 'PRONTO PARA COLETA', color: [5, 150, 105] };
+        st = { label: 'PRONTO PARA COLETA', color: colors.emerald };
       }
+      
       pdf.setFillColor(...st.color);
-      const badgeW = mode === 'client' ? 70 : 50;
-      pdf.roundedRect(margin, y, badgeW, 9, 1.5, 1.5, 'F');
-      pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
-      pdf.text(sanitizePdfText(st.label), margin + badgeW / 2 - pdf.getTextWidth(st.label) / 2, y + 6.2);
+      const badgeW = pdf.getTextWidth(st.label) + 10;
+      pdf.roundedRect(margin, y, badgeW, 8, 1, 1, 'F');
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+      pdf.text(sanitizePdfText(st.label), margin + 5, y + 5.5);
 
-      if (order.priority && order.status !== 'collected') {
-        pdf.setFillColor(220, 38, 38);
-        pdf.roundedRect(margin + 55, y, 40, 9, 1.5, 1.5, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.text('PRIORIDADE', margin + 75 - pdf.getTextWidth('PRIORIDADE') / 2, y + 6.2);
+      if (mode !== 'client' && order.priority && order.status !== 'collected') {
+        pdf.setFillColor(...colors.red);
+        const prioW = pdf.getTextWidth('PRIORIDADE') + 10;
+        pdf.roundedRect(margin + badgeW + 3, y, prioW, 8, 1, 1, 'F');
+        pdf.text('PRIORIDADE', margin + badgeW + 8, y + 5.5);
       }
-      y += 15;
+      y += 14;
 
       // Bloco: Dados principais
       const drawSection = (title: string, rows: Array<[string, string]>) => {
