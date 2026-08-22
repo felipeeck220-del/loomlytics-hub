@@ -439,6 +439,7 @@ export default function ArticleChangeOrdersTab() {
                   isLider={isLider}
                   isMecanico={isMecanico}
                   isLiderMecanica={role === 'lider_mecanica'}
+                  articleById={articleById}
                   onStartYarn={() => startYarnChange(o)}
                   onFinishYarn={() => finishYarnChange(o)}
                   onStartAdj={() => startAdjustment(o)}
@@ -612,6 +613,7 @@ function OTCard(props: {
   isLider: boolean;
   isMecanico: boolean;
   isLiderMecanica: boolean;
+  articleById: Record<string, any>;
   onStartYarn: () => void;
   onFinishYarn: () => void;
   onStartAdj: () => void;
@@ -623,7 +625,7 @@ function OTCard(props: {
   onEdit: () => void;
   onViewPhotos: () => void;
 }) {
-  const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico, isLiderMecanica } = props;
+  const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico, isLiderMecanica, articleById } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
   const yarnTimer = useLiveTimer(o.status === 'troca_fio_em_curso' ? o.yarn_change_started_at : null);
   const awaitAdjTimer = useLiveTimer(o.status === 'aguardando_regulagem' ? o.yarn_change_ended_at : null);
