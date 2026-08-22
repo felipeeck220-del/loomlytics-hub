@@ -831,7 +831,7 @@ const BillingOrders = () => {
     printWindow.document.close();
   };
 
-  const handleAdminPrintPdf = async (order: any, mode: 'internal' | 'client' = 'internal') => {
+  const handleAdminPrintPdf = async (order: any, mode: 'internal' | 'client') => {
     try {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pw = pdf.internal.pageSize.getWidth();
