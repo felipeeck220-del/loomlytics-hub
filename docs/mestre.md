@@ -1,3 +1,6 @@
+- **24/08/2026 (Brasília) — Ajuste Visual de Artigos na OT (Mobile):**
+    - Reorganizada a exibição do artigo atual e do próximo artigo em colunas equilibradas, com rótulos claros, seta centralizada e quebra natural de nomes longos no mobile.
+
 - **22/08/2026 (Brasília) — Reformulação da Impressão de OF (Estabilização Visual):**
     - Refatorado o sistema de geração de PDF para um design profissional em colunas, otimizando o aproveitamento de espaço e a legibilidade.
     - Implementado cabeçalho dinâmico com logo da empresa e status atual da OF (cor semântica) em todas as modalidades de impressão.

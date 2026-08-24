@@ -695,25 +695,32 @@ function OTCard(props: {
             <div className="text-xl font-bold text-foreground leading-tight break-words">{machineName}</div>
 
             {/* Linha 3: Artigo atual → próximo */}
-            <div className="flex items-start gap-2 text-sm p-2 rounded-md bg-muted/40 flex-wrap min-w-0">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold shrink-0">Artigo</span>
-              <span className="font-medium min-w-0 flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">
-                {currentArticleName}
-                {o.current_article_id && articleById[o.current_article_id]?.client_name && (
-                  <span className="text-[10px] text-muted-foreground ml-1 font-normal whitespace-normal break-words">
-                    ({articleById[o.current_article_id].client_name})
-                  </span>
-                )}
-              </span>
-              <ArrowRight className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <span className="font-semibold text-amber-700 dark:text-amber-400 min-w-0 flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">
-                {nextArticleName}
-                {o.next_article_id && articleById[o.next_article_id]?.client_name && (
-                  <span className="text-[10px] text-muted-foreground ml-1 font-normal whitespace-normal break-words">
-                    ({articleById[o.next_article_id].client_name})
-                  </span>
-                )}
-              </span>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2 rounded-md bg-muted/40 p-3 text-sm min-w-0">
+              <div className="min-w-0 space-y-1">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Artigo atual</div>
+                <div className="font-medium leading-snug whitespace-normal break-words [overflow-wrap:anywhere]">
+                  {currentArticleName}
+                  {o.current_article_id && articleById[o.current_article_id]?.client_name && (
+                    <span className="block text-[10px] leading-snug text-muted-foreground font-normal whitespace-normal break-words">
+                      ({articleById[o.current_article_id].client_name})
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-center px-1" aria-hidden="true">
+                <ArrowRight className="h-4 w-4 text-amber-600" />
+              </div>
+              <div className="min-w-0 space-y-1 text-right">
+                <div className="text-[10px] uppercase tracking-wide text-amber-700 dark:text-amber-400 font-semibold">Próximo artigo</div>
+                <div className="font-semibold leading-snug text-amber-700 dark:text-amber-400 whitespace-normal break-words [overflow-wrap:anywhere]">
+                  {nextArticleName}
+                  {o.next_article_id && articleById[o.next_article_id]?.client_name && (
+                    <span className="block text-[10px] leading-snug text-muted-foreground font-normal whitespace-normal break-words">
+                      ({articleById[o.next_article_id].client_name})
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Fitas */}
