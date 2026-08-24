@@ -695,21 +695,21 @@ function OTCard(props: {
             <div className="text-xl font-bold text-foreground leading-tight break-words">{machineName}</div>
 
             {/* Linha 3: Artigo atual → próximo */}
-            <div className="flex items-center gap-2 text-sm p-2 rounded-md bg-muted/40 flex-wrap">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold">Artigo</span>
-              <span className="font-medium truncate">
+            <div className="flex items-start gap-2 text-sm p-2 rounded-md bg-muted/40 flex-wrap min-w-0">
+              <span className="text-[10px] uppercase text-muted-foreground font-semibold shrink-0">Artigo</span>
+              <span className="font-medium min-w-0 flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">
                 {currentArticleName}
                 {o.current_article_id && articleById[o.current_article_id]?.client_name && (
-                  <span className="text-[10px] text-muted-foreground ml-1">
+                  <span className="text-[10px] text-muted-foreground ml-1 font-normal whitespace-normal break-words">
                     ({articleById[o.current_article_id].client_name})
                   </span>
                 )}
               </span>
-              <ArrowRight className="h-4 w-4 text-amber-600 shrink-0" />
-              <span className="font-semibold text-amber-700 dark:text-amber-400 truncate">
+              <ArrowRight className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <span className="font-semibold text-amber-700 dark:text-amber-400 min-w-0 flex-1 whitespace-normal break-words [overflow-wrap:anywhere]">
                 {nextArticleName}
                 {o.next_article_id && articleById[o.next_article_id]?.client_name && (
-                  <span className="text-[10px] text-muted-foreground ml-1 font-normal">
+                  <span className="text-[10px] text-muted-foreground ml-1 font-normal whitespace-normal break-words">
                     ({articleById[o.next_article_id].client_name})
                   </span>
                 )}
