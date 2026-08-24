@@ -60,3 +60,6 @@
     - O módulo agora funciona como um controle logístico e de faturamento puro, eliminando o "efeito fantasma" e latências causadas por triggers de estoque pesadas.
     - Removidas opções de "Origem do Estoque" (Cliente, Outro Artigo, Estoque Trama) do modal de paletes.
     - Reduzido o delay de sincronização no hook `useBillingOrders.ts` para **500ms**, tornando a interface muito mais rápida.
+
+- **24/08/2026 (Brasília) — Responsividade na listagem de OTs:**
+    - Ajustada a exibição de artigo e cliente na aba de Mecânica OT para permitir quebra natural de linha no mobile, evitando truncamento de nomes longos.
