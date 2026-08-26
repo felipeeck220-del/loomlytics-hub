@@ -1,3 +1,9 @@
+- **26/08/2026 (Brasília) — Pente fino (Artigos em Produção / OT):**
+    - Validados o trigger `trg_promote_machine_article_on_ot_conclude` e a função `recompute_machine_article_from_latest_ot` (promoção do próximo artigo ao concluir/excluir OT) — sem falhas lógicas.
+    - Auditoria de divergências `machines.article_id` x última OT concluída: apenas 2 registros antigos (agosto/05 e 07) de outra empresa, decorrentes de edição manual posterior — mantidos.
+    - Aumentado o histórico carregado de trocas de 200 para 1000 registros, evitando que máquinas com OT antiga fossem exibidas como "Sem OT finalizada registrada".
+    - Typecheck do projeto executado sem erros.
+
 - **26/08/2026 (Brasília) — Artigos em Produção (Clientes & Artigos):**
     - O artigo exibido por máquina passa a considerar o "Próximo artigo" da última OT finalizada (fallback para o artigo da máquina).
     - Padronizado o rodapé dos cards: máquinas sem OT finalizada agora exibem "Sem OT finalizada registrada" em vez de ficarem sem informação.
