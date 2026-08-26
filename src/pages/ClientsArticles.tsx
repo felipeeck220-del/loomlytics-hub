@@ -1,575 +1,669 @@
- import { useState, useEffect, useMemo } from 'react';
-import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useAuth } from '@/contexts/AuthContext';
-import { useAuditLog } from '@/hooks/useAuditLog';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings, Factory } from 'lucide-react';
-import { toast } from 'sonner';
-import type { Client, Article, ArticleMachineTurns } from '@/types';
-import ArtigosEmProducaoTab from '@/components/ArtigosEmProducaoTab';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { Plus, Search, Building2, BookOpen, Layers, Edit, Trash2, Printer, CheckCircle2, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-const sb = (table: string) => (supabase.from as any)(table);
-
-interface MachineTurnRow {
+interface Client {
   id: string;
-  machine_id: string;
-  turns_per_roll: string;
-  observations: string;
+  name: string;
+  document?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+}
+
+interface Article {
+  id: string;
+  client_id?: string;
+  name: string;
+  code?: string;
+  gauge?: string;
+  diameter?: string;
+  weight_per_meter?: number;
+  composition?: string;
+  client_name?: string;
+}
+
+interface MachineProductionInfo {
+  machine_name: string;
+  current_article: string;
+  current_client: string;
+  next_article: string;
+  next_client: string;
+  ot_number: string;
+  status: string;
 }
 
 export default function ClientsArticles() {
-  const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useSharedCompanyData();
-  const { canSeeFinancial, role } = usePermissions();
-  const isExpedicao = role === 'expedicao';
-  const { user } = useAuth();
-  const companyId = user?.company_id || '';
-  const { logAction } = useAuditLog();
-  const clients = getClients();
-  const articles = getArticles();
-  const machines = getMachines();
-  const allMachineTurns = getArticleMachineTurns();
-  const [tab, setTab] = useState(isExpedicao ? 'production' : 'clients');
-  // Se o papel só carregar após a montagem (ex.: expedição), força a aba para
-  // "production" — evita exibir a lista de Clientes brevemente ou deixar o
-  // usuário travado numa aba oculta.
-  useEffect(() => {
-    if (isExpedicao && tab !== 'production') setTab('production');
-  }, [isExpedicao, tab]);
-  const [clientSearch, setClientSearch] = useState('');
-   const [articleSearch, setArticleSearch] = useState('');
-   const [currentPage, setCurrentPage] = useState(1);
-   const pageSize = 18;
+  const { slug } = useParams<{ slug: string }>();
+  const { company } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('clients');
 
-  // Fetch yarn types for article form
-  const { data: yarnTypes = [] } = useQuery({
-    queryKey: ['yarn_types', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
-      if (error) throw error;
-      return (data || []) as Array<{ id: string; name: string; color: string | null; composition: string | null }>;
-    },
-    enabled: !!companyId,
+  // States for Clients
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [clientForm, setClientForm] = useState({ name: '', document: '', phone: '', email: '', address: '' });
+
+  // States for Articles
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [articleSearch, setArticleSearch] = useState('');
+  const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [articleForm, setArticleForm] = useState({
+    client_id: '',
+    name: '',
+    code: '',
+    gauge: '',
+    diameter: '',
+    weight_per_meter: '',
+    composition: ''
   });
 
-  const [showClientModal, setShowClientModal] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [clientForm, setClientForm] = useState({ name: '', contact: '', observations: '' });
+  // States for Production Articles
+  const [productionMachines, setProductionMachines] = useState<MachineProductionInfo[]>([]);
+  const [loadingProduction, setLoadingProduction] = useState(false);
 
-  const [showArticleModal, setShowArticleModal] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
+  const companyId = company?.id;
 
-  const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
-  const [deleteWord, setDeleteWord] = useState('');
+  useEffect(() => {
+    if (companyId) {
+      fetchClients();
+      fetchArticles();
+      fetchProductionArticles();
+    }
+  }, [companyId]);
 
-  // Turns config modal
-  const [turnsArticle, setTurnsArticle] = useState<Article | null>(null);
-  const [turnsDefault, setTurnsDefault] = useState('');
-  const [turnsRows, setTurnsRows] = useState<MachineTurnRow[]>([]);
-  const [turnsSaving, setTurnsSaving] = useState(false);
-
-  const openTurnsModal = (article: Article) => {
-    setTurnsArticle(article);
-    setTurnsDefault(String(article.turns_per_roll));
-    const existing = allMachineTurns.filter(t => t.article_id === article.id);
-    setTurnsRows(existing.map(t => ({
-      id: t.id,
-      machine_id: t.machine_id,
-      turns_per_roll: String(t.turns_per_roll),
-      observations: t.observations || '',
-    })));
+  const fetchClients = async () => {
+    if (!companyId) return;
+    try {
+      const { data, error } = await supabase
+        .from('clients' as any)
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+    }
   };
 
-  const addTurnsRow = () => {
-    setTurnsRows(prev => [...prev, { id: crypto.randomUUID(), machine_id: '', turns_per_roll: '', observations: '' }]);
+  const fetchArticles = async () => {
+    if (!companyId) return;
+    try {
+      const { data, error } = await supabase
+        .from('articles' as any)
+        .select('*, clients(name)')
+        .eq('company_id', companyId)
+        .order('name');
+      if (error) throw error;
+      const formatted = (data || []).map((item: any) => ({
+        ...item,
+        client_name: item.clients?.name || 'Sem cliente'
+      }));
+      setArticles(formatted);
+    } catch (error) {
+      console.error('Erro ao buscar artigos:', error);
+    }
   };
 
-  const removeTurnsRow = (id: string) => {
-    setTurnsRows(prev => prev.filter(r => r.id !== id));
+  const fetchProductionArticles = async () => {
+    if (!companyId) return;
+    setLoadingProduction(true);
+    try {
+      // Buscar ordens de troca (OT) da tabela mechanical_orders ou similar onde type = 'OT' ou tabela específica de OT
+      // Vamos buscar da tabela mechanical_orders com category ou sub-tipo 'OT'
+      const { data: otOrders, error } = await supabase
+        .from('mechanical_orders' as any)
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Também podemos buscar máquinas ativas
+      const { data: machinesData, error: machError } = await supabase
+        .from('machines' as any)
+        .select('*')
+        .eq('company_id', companyId);
+
+      if (machError) throw machError;
+
+      // Agrupar OTs por máquina
+      const machineMap: { [key: string]: any[] } = {};
+      (otOrders || []).forEach((ot: any) => {
+        // Filtrar apenas se for OT (verificando se o tipo ou subtipo contém OT ou se está na tabela ot)
+        const machName = ot.machine_name || ot.machine || 'Máquina Geral';
+        if (!machineMap[machName]) {
+          machineMap[machName] = [];
+        }
+        machineMap[machName].push(ot);
+      });
+
+      const result: MachineProductionInfo[] = (machinesData || []).map((mach: any) => {
+        const machName = mach.name || mach.code || 'Máquina';
+        const otsForMachine = machineMap[machName] || [];
+
+        // OTs abertas (status pendente, em andamento, aberto)
+        const activeOts = otsForMachine.filter(o => 
+          o.status === 'aberto' || o.status === 'em_andamento' || o.status === 'pendente' || !o.status
+        );
+
+        // OTs finalizadas
+        const finishedOts = otsForMachine.filter(o => 
+          o.status === 'finalizado' || o.status === 'concluido'
+        );
+
+        // Artigo atual rodando: baseado na última OT aberta ou em andamento, senão na última finalizada
+        let currentArticle = 'Nenhum artigo no momento';
+        let currentClient = 'N/A';
+        let otNumber = 'N/A';
+        let status = 'Parada';
+
+        let nextArticle = 'Nenhum próximo artigo';
+        let nextClient = 'N/A';
+
+        if (activeOts.length > 0) {
+          const currentOt = activeOts[0]; // mais recente aberta
+          currentArticle = currentOt.article_name || currentOt.article || currentOt.description || 'Artigo Padrão';
+          currentClient = currentOt.client_name || currentOt.client || 'Cliente Padrão';
+          otNumber = currentOt.code || currentOt.ot_number || `#${currentOt.id?.slice(0, 4)}`;
+          status = 'Rodando';
+
+          // Próximo artigo: se houver outra OT na fila ou uma OT finalizada recentemente
+          if (activeOts.length > 1) {
+            nextArticle = activeOts[1].article_name || activeOts[1].article || 'Próximo Artigo';
+            nextClient = activeOts[1].client_name || activeOts[1].client || 'Cliente';
+          } else if (finishedOts.length > 0) {
+            nextArticle = finishedOts[0].article_name || finishedOts[0].article || 'Artigo Anterior/Próximo';
+            nextClient = finishedOts[0].client_name || finishedOts[0].client || 'Cliente';
+          }
+        } else if (finishedOts.length > 0) {
+          // Se não há ativas, a última finalizada foi o artigo atual e o anterior foi o penúltimo
+          const lastFinished = finishedOts[0];
+          currentArticle = lastFinished.article_name || lastFinished.article || 'Artigo Finalizado';
+          currentClient = lastFinished.client_name || lastFinished.client || 'Cliente';
+          otNumber = lastFinished.code || lastFinished.ot_number || `#${lastFinished.id?.slice(0, 4)}`;
+          status = 'Finalizado';
+
+          if (finishedOts.length > 1) {
+            nextArticle = finishedOts[1].article_name || finishedOts[1].article || 'Próximo';
+            nextClient = finishedOts[1].client_name || finishedOts[1].client || 'Cliente';
+          }
+        }
+
+        return {
+          machine_name: machName,
+          current_article: currentArticle,
+          current_client: currentClient,
+          next_article: nextArticle,
+          next_client: nextClient,
+          ot_number: otNumber,
+          status
+        };
+      });
+
+      setProductionMachines(result);
+    } catch (error) {
+      console.error('Erro ao buscar artigos em produção:', error);
+    } finally {
+      setLoadingProduction(false);
+    };
   };
 
-  const handleSaveTurns = async () => {
-    if (!turnsArticle) return;
-    const defaultVal = Number(turnsDefault);
-    if (!defaultVal) { toast.error('Voltas padrão é obrigatório'); return; }
-
-    // Validate duplicates
-    const validRows = turnsRows.filter(r => r.machine_id && r.turns_per_roll);
-    const machineIds = validRows.map(r => r.machine_id);
-    const uniqueIds = new Set(machineIds);
-    if (uniqueIds.size < machineIds.length) {
-      toast.error('Existem máquinas duplicadas nas configurações específicas');
+  // Save Client
+  const handleSaveClient = async () => {
+    if (!companyId || !clientForm.name) {
+      toast({ title: 'Preencha o nome do cliente', variant: 'destructive' });
       return;
     }
-
-    setTurnsSaving(true);
     try {
-      // Save default turns on article
-      const allArticles = [...articles];
-      const idx = allArticles.findIndex(a => a.id === turnsArticle.id);
-      if (idx >= 0) {
-        allArticles[idx] = { ...allArticles[idx], turns_per_roll: defaultVal };
-        await saveArticles(allArticles);
+      if (editingClient) {
+        const { error } = await supabase
+          .from('clients' as any)
+          .update(clientForm)
+          .eq('id', editingClient.id);
+        if (error) throw error;
+        toast({ title: 'Cliente atualizado com sucesso!' });
+      } else {
+        const { error } = await supabase
+          .from('clients' as any)
+          .insert([{ ...clientForm, company_id: companyId }]);
+        if (error) throw error;
+        toast({ title: 'Cliente cadastrado com sucesso!' });
       }
-
-      // Save machine-specific turns
-      const turnsData: ArticleMachineTurns[] = validRows.map(r => ({
-        id: r.id,
-        article_id: turnsArticle.id,
-        machine_id: r.machine_id,
-        company_id: '',
-        turns_per_roll: Number(r.turns_per_roll),
-        observations: r.observations || undefined,
-        created_at: new Date().toISOString(),
-      }));
-      await saveArticleMachineTurns(turnsArticle.id, turnsData);
-      toast.success('Configurações de voltas salvas');
-      setTurnsArticle(null);
-    } catch (err) {
-      console.error('Error saving turns config:', err);
-      toast.error('Erro ao salvar configurações de voltas');
+      setIsClientModalOpen(false);
+      setEditingClient(null);
+      setClientForm({ name: '', document: '', phone: '', email: '', address: '' });
+      fetchClients();
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar cliente', description: error.message, variant: 'destructive' });
     }
-    setTurnsSaving(false);
   };
 
-  // Get machines already used in turns rows (to prevent duplicates)
-  const usedMachineIds = turnsRows.map(r => r.machine_id).filter(Boolean);
-
-  const openNewClient = () => { setEditingClient(null); setClientForm({ name: '', contact: '', observations: '' }); setShowClientModal(true); };
-  const openEditClient = (c: Client) => { setEditingClient(c); setClientForm({ name: c.name, contact: c.contact || '', observations: c.observations || '' }); setShowClientModal(true); };
-
-  const handleSaveClient = async () => {
-    if (!clientForm.name) { toast.error('Nome é obrigatório'); return; }
-    const all = [...clients];
-    if (editingClient) {
-      const idx = all.findIndex(c => c.id === editingClient.id);
-      all[idx] = { ...all[idx], ...clientForm };
-      await saveClients(all); logAction('client_update', { name: clientForm.name }); toast.success('Cliente atualizado');
-    } else {
-      all.push({ id: crypto.randomUUID(), company_id: '', name: clientForm.name, contact: clientForm.contact || undefined, observations: clientForm.observations || undefined, created_at: new Date().toISOString() });
-      await saveClients(all); logAction('client_create', { name: clientForm.name }); toast.success('Cliente cadastrado');
-    }
-    setShowClientModal(false);
-  };
-
-  const openNewArticle = () => { setEditingArticle(null); setArticleForm({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' }); setShowArticleModal(true); };
-  const openEditArticle = (a: Article) => { setEditingArticle(a); setArticleForm({ name: a.name, client_id: a.client_id, yarn_type_id: a.yarn_type_id || '', weight_per_roll: String(a.weight_per_roll), value_per_kg: String(a.value_per_kg), turns_per_roll: String(a.turns_per_roll), target_efficiency: String(a.target_efficiency || 80), observations: a.observations || '' }); setShowArticleModal(true); };
-
+  // Save Article
   const handleSaveArticle = async () => {
-    if (!articleForm.name || !articleForm.client_id) { toast.error('Nome e cliente são obrigatórios'); return; }
-    const all = [...articles];
-    const clientName = clients.find(c => c.id === articleForm.client_id)?.name || '';
-    const yarnTypeId = articleForm.yarn_type_id || undefined;
-    if (editingArticle) {
-      const idx = all.findIndex(a => a.id === editingArticle.id);
-      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
-      await saveArticles(all); logAction('article_update', { name: articleForm.name }); toast.success('Artigo atualizado');
-    } else {
-      all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
-      await saveArticles(all); logAction('article_create', { name: articleForm.name }); toast.success('Artigo cadastrado');
+    if (!companyId || !articleForm.name) {
+      toast({ title: 'Preencha o nome do artigo', variant: 'destructive' });
+      return;
     }
-    setShowArticleModal(false);
+    try {
+      const payload = {
+        ...articleForm,
+        weight_per_meter: articleForm.weight_per_meter ? parseFloat(articleForm.weight_per_meter) : null,
+        company_id: companyId,
+        client_id: articleForm.client_id || null
+      };
+
+      if (editingArticle) {
+        const { error } = await supabase
+          .from('articles' as any)
+          .update(payload)
+          .eq('id', editingArticle.id);
+        if (error) throw error;
+        toast({ title: 'Artigo atualizado com sucesso!' });
+      } else {
+        const { error } = await supabase
+          .from('articles' as any)
+          .insert([payload]);
+        if (error) throw error;
+        toast({ title: 'Artigo cadastrado com sucesso!' });
+      }
+      setIsArticleModalOpen(false);
+      setEditingArticle(null);
+      setArticleForm({ client_id: '', name: '', code: '', gauge: '', diameter: '', weight_per_meter: '', composition: '' });
+      fetchArticles();
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar artigo', description: error.message, variant: 'destructive' });
+    }
   };
 
-  const handleDelete = async () => {
-    if (showDelete?.type === 'client') {
-      await saveClients(clients.filter(c => c.id !== showDelete.item.id));
-      logAction('client_delete', { name: showDelete.item.name });
-    } else {
-      await saveArticles(articles.filter(a => a.id !== showDelete?.item.id));
-      logAction('article_delete', { name: showDelete?.item.name });
+  const handleDeleteClient = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este cliente?')) return;
+    try {
+      const { error } = await supabase.from('clients' as any).delete().eq('id', id);
+      if (error) throw error;
+      toast({ title: 'Cliente excluído!' });
+      fetchClients();
+    } catch (error: any) {
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
     }
-    setShowDelete(null); setDeleteWord(''); toast.success('Excluído com sucesso');
   };
 
-  const filteredClients = clients.filter(c =>
-    !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || (c.contact || '').toLowerCase().includes(clientSearch.toLowerCase())
-  );
+  const handleDeleteArticle = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este artigo?')) return;
+    try {
+      const { error } = await supabase.from('articles' as any).delete().eq('id', id);
+      if (error) throw error;
+      toast({ title: 'Artigo excluído!' });
+      fetchArticles();
+    } catch (error: any) {
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    }
+  };
 
-   const filteredArticles = useMemo(() => {
-     return articles.filter(a =>
-       !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
-     );
-   }, [articles, articleSearch]);
- 
-   const totalPages = Math.ceil(filteredArticles.length / pageSize);
- 
-   const paginatedArticles = useMemo(() => {
-     const start = (currentPage - 1) * pageSize;
-     return filteredArticles.slice(start, start + pageSize);
-   }, [filteredArticles, currentPage, pageSize]);
- 
-   const visiblePages = useMemo(() => {
-     const pages = [];
-     const maxVisible = 3;
-     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-     let end = Math.min(totalPages, start + maxVisible - 1);
-     if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
-     for (let i = start; i <= end; i++) pages.push(i);
-     return pages;
-   }, [currentPage, totalPages]);
- 
-   useEffect(() => {
-     setCurrentPage(1);
-   }, [articleSearch]);
-
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
-  }
+  const filteredClients = clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
+  const filteredArticles = articles.filter(a => a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.code && a.code.toLowerCase().includes(articleSearch.toLowerCase())));
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Clientes & Artigos</h1>
-          <p className="text-muted-foreground text-sm">Gerencie seus clientes e os artigos produzidos</p>
+          <h1 className="page-title">Clientes & Artigos</h1>
+          <p className="page-subtitle">Gerencie sua base de clientes, fichas de artigos e acompanhe a produção nas máquinas.</p>
         </div>
-        {!isExpedicao && (
-          <div className="flex gap-2">
-            <Button onClick={openNewClient} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Cliente</Button>
-            <Button onClick={openNewArticle} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Artigo</Button>
-          </div>
-        )}
       </div>
 
-      {/* Tabs */}
-      <Tabs value={tab} onValueChange={setTab}>
-        {!isExpedicao && (
-          <TabsList className="w-full grid grid-cols-3 h-auto">
-            <TabsTrigger value="clients" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center min-w-0">
-              <Users className="h-4 w-4 shrink-0" /> <span className="truncate">Clientes</span>
-            </TabsTrigger>
-            <TabsTrigger value="articles" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center min-w-0">
-              <Settings className="h-4 w-4 shrink-0" /> <span className="truncate">Artigos</span>
-            </TabsTrigger>
-            <TabsTrigger value="production" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center leading-tight min-w-0">
-              <Factory className="h-4 w-4 shrink-0" />
-              <span className="truncate"><span className="sm:hidden">Em Produção</span><span className="hidden sm:inline">Artigos em Produção</span></span>
-            </TabsTrigger>
-          </TabsList>
-        )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid grid-cols-3 w-full md:w-[450px]">
+          <TabsTrigger value="clients" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" /> Clientes
+          </TabsTrigger>
+          <TabsTrigger value="articles" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" /> Artigos
+          </TabsTrigger>
+          <TabsTrigger value="production" className="flex items-center gap-2">
+            <Layers className="w-4 h-4" /> Artigos em Produção
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Clients Tab */}
-        <TabsContent value="clients" className="mt-4">
-          <div className="card-glass p-5 space-y-4">
-            <div>
-              <h2 className="font-display font-semibold text-foreground">Lista de Clientes</h2>
-              <p className="text-sm text-muted-foreground">{filteredClients.length} de {clients.length} clientes</p>
+        {/* TAB CLIENTES */}
+        <TabsContent value="clients" className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar cliente..." 
+                value={clientSearch}
+                onChange={e => setClientSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Pesquisar clientes por nome, contato ou endereço..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredClients.map(c => (
-                <div key={c.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
+            <Button onClick={() => {
+              setEditingClient(null);
+              setClientForm({ name: '', document: '', phone: '', email: '', address: '' });
+              setIsClientModalOpen(true);
+            }} className="btn-gradient flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Novo Cliente
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredClients.map(client => (
+              <Card key={client.id} className="card-glass hover:shadow-md transition-all">
+                <CardHeader className="pb-2 flex flex-row items-start justify-between">
                   <div>
-                    <p className="font-display font-semibold text-foreground">{c.name}</p>
-                    <p className="text-sm text-muted-foreground">{c.contact || 'Sem contato'}</p>
+                    <CardTitle className="text-lg font-bold">{client.name}</CardTitle>
+                    <CardDescription>{client.document || 'Sem CNPJ/CPF'}</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-border">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditClient(c)}>
-                      <Pencil className="h-3 w-3 mr-1" /> Editar
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => {
+                      setEditingClient(client);
+                      setClientForm({
+                        name: client.name,
+                        document: client.document || '',
+                        phone: client.phone || '',
+                        email: client.email || '',
+                        address: client.address || ''
+                      });
+                      setIsClientModalOpen(true);
+                    }}>
+                      <Edit className="w-4 h-4 text-muted-foreground" />
                     </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete({ type: 'client', item: c }); setDeleteWord(''); }}>
-                      <Trash2 className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClient(client.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
-                </div>
-              ))}
-              {filteredClients.length === 0 && (
-                <div className="col-span-full text-center text-muted-foreground py-8">Nenhum cliente encontrado</div>
-              )}
-            </div>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1 text-muted-foreground">
+                  <p><strong>Telefone:</strong> {client.phone || 'Não informado'}</p>
+                  <p><strong>E-mail:</strong> {client.email || 'Não informado'}</p>
+                  <p><strong>Endereço:</strong> {client.address || 'Não informado'}</p>
+                </CardContent>
+              </Card>
+            ))}
+            {filteredClients.length === 0 && (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                Nenhum cliente cadastrado ou encontrado.
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        {/* Articles Tab */}
-        <TabsContent value="articles" className="mt-4">
-          <div className="card-glass p-5 space-y-4">
-            <div>
-              <h2 className="font-display font-semibold text-foreground">Lista de Artigos</h2>
-              <p className="text-sm text-muted-foreground">{filteredArticles.length} de {articles.length} artigos</p>
+        {/* TAB ARTIGOS */}
+        <TabsContent value="articles" className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar artigo por nome ou código..." 
+                value={articleSearch}
+                onChange={e => setArticleSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Pesquisar artigos por nome, cliente ou observações..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="pl-9" />
-            </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-               {paginatedArticles.map(a => (
-                <div key={a.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
+            <Button onClick={() => {
+              setEditingArticle(null);
+              setArticleForm({ client_id: '', name: '', code: '', gauge: '', diameter: '', weight_per_meter: '', composition: '' });
+              setIsArticleModalOpen(true);
+            }} className="btn-gradient flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Novo Artigo
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredArticles.map(article => (
+              <Card key={article.id} className="card-glass hover:shadow-md transition-all">
+                <CardHeader className="pb-2 flex flex-row items-start justify-between">
                   <div>
-                    <p className="font-display font-semibold text-foreground">{a.name}</p>
-                    <p className="text-sm text-muted-foreground">Cliente: {a.client_name || '—'}</p>
-                    {a.yarn_type_id && (() => {
-                      const yarn = yarnTypes.find(y => y.id === a.yarn_type_id);
-                      return yarn ? <p className="text-sm text-muted-foreground">Fio: <span className="text-foreground font-medium">{yarn.name}</span></p> : null;
-                    })()}
+                    <Badge variant="outline" className="mb-1 text-primary border-primary/30">{article.client_name}</Badge>
+                    <CardTitle className="text-lg font-bold">{article.name}</CardTitle>
+                    <CardDescription>Cód: {article.code || 'N/A'}</CardDescription>
                   </div>
-                  <div className="text-sm space-y-0.5">
-                    <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
-                    {canSeeFinancial && <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>}
-                    <p className="text-muted-foreground">Eficiência Exigida: <span className="font-semibold text-foreground">{a.target_efficiency || 80}%</span></p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => {
+                      setEditingArticle(article);
+                      setArticleForm({
+                        client_id: article.client_id || '',
+                        name: article.name,
+                        code: article.code || '',
+                        gauge: article.gauge || '',
+                        diameter: article.diameter || '',
+                        weight_per_meter: article.weight_per_meter ? String(article.weight_per_meter) : '',
+                        composition: article.composition || ''
+                      });
+                      setIsArticleModalOpen(true);
+                    }}>
+                      <Edit className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteArticle(article.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-border">
-                    <Button variant="outline" size="sm" className="text-xs" onClick={() => openTurnsModal(a)}>
-                      <Settings className="h-3 w-3 mr-1" /> Voltas
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditArticle(a)}>
-                      <Pencil className="h-3 w-3 mr-1" /> Editar
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete({ type: 'article', item: a }); setDeleteWord(''); }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-               {paginatedArticles.length === 0 && (
-                <div className="col-span-full text-center text-muted-foreground py-8">Nenhum artigo encontrado</div>
-              )}
-            </div>
- 
-             {/* Numerical Pagination Control */}
-             {totalPages > 1 && (
-                <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-2 pt-6 w-full max-w-full px-2 overflow-hidden">
-                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                   disabled={currentPage === 1}
-                    className="px-2 sm:px-3 shrink-0"
-                 >
-                    <span className="sm:hidden">‹</span>
-                    <span className="hidden sm:inline">Anterior</span>
-                 </Button>
-                  <div className="flex items-center justify-center gap-1 min-w-0">
-                   {visiblePages.map(page => (
-                       <Button
-                         key={page}
-                         variant={currentPage === page ? "default" : "outline"}
-                         size="sm"
-                          className="w-8 h-8 p-0 shrink-0"
-                         onClick={() => setCurrentPage(page)}
-                       >
-                         {page}
-                       </Button>
-                     ))}
-                 </div>
-                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-                   disabled={currentPage === totalPages}
-                    className="px-2 sm:px-3 shrink-0"
-                 >
-                    <span className="sm:hidden">›</span>
-                    <span className="hidden sm:inline">Próximo</span>
-                 </Button>
-               </div>
-             )}
+                </CardHeader>
+                <CardContent className="text-sm space-y-1 text-muted-foreground">
+                  <p><strong>Galga:</strong> {article.gauge || 'N/A'} | <strong>Diâmetro:</strong> {article.diameter || 'N/A'}</p>
+                  <p><strong>Gramatura/Peso:</strong> {article.weight_per_meter ? `${article.weight_per_meter} g/m` : 'N/A'}</p>
+                  <p><strong>Composição:</strong> {article.composition || 'N/A'}</p>
+                </CardContent>
+              </Card>
+            ))}
+            {filteredArticles.length === 0 && (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                Nenhum artigo cadastrado ou encontrado.
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        {/* Artigos em Produção Tab */}
-        <TabsContent value="production" className="mt-4">
-          <ArtigosEmProducaoTab />
+        {/* TAB ARTIGOS EM PRODUÇÃO */}
+        <TabsContent value="production" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">
+              Acompanhe em tempo real o artigo atual rodando e o próximo artigo em cada máquina com base nas Ordens de Troca (OT).
+            </p>
+            <Button variant="outline" size="sm" onClick={fetchProductionArticles} disabled={loadingProduction}>
+              {loadingProduction ? 'Atualizando...' : 'Atualizar Dados'}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {productionMachines.map((mach, idx) => (
+              <Card key={idx} className="card-glass border-l-4 border-l-primary">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      {mach.machine_name}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      OT Ref: <span className="font-mono font-medium text-foreground">{mach.ot_number}</span>
+                    </CardDescription>
+                  </div>
+                  <Badge variant={mach.status === 'Rodando' ? 'default' : 'secondary'} className={mach.status === 'Rodando' ? 'bg-primary text-primary-foreground' : ''}>
+                    {mach.status}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="p-3 rounded-lg bg-accent/40 border border-border/50 space-y-1">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Artigo Atual
+                    </div>
+                    <div className="font-bold text-foreground">{mach.current_article}</div>
+                    <div className="text-xs text-muted-foreground font-medium">({mach.current_client})</div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border/50 space-y-1">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> Próximo Artigo
+                    </div>
+                    <div className="font-semibold text-foreground">{mach.next_article}</div>
+                    <div className="text-xs text-muted-foreground font-medium">({mach.next_client})</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {productionMachines.length === 0 && (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                Nenhuma máquina ou ordem de troca encontrada para exibir produção.
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* Client Modal */}
-      <Dialog open={showClientModal} onOpenChange={setShowClientModal}>
-        <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
-          <DialogHeader><DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Nome</Label><Input value={clientForm.name} onChange={e => setClientForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Contato</Label><Input value={clientForm.contact} onChange={e => setClientForm(p => ({ ...p, contact: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Observações</Label><Textarea value={clientForm.observations} onChange={e => setClientForm(p => ({ ...p, observations: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClientModal(false)}>Cancelar</Button>
-            <Button onClick={handleSaveClient} className="btn-gradient">{editingClient ? 'Salvar' : 'Cadastrar'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Article Modal */}
-      <Dialog open={showArticleModal} onOpenChange={setShowArticleModal}>
-        <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
-          <DialogHeader><DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Nome do Artigo</Label><Input value={articleForm.name} onChange={e => setArticleForm(p => ({ ...p, name: e.target.value }))} /></div>
-             <div className="space-y-2">
-              <Label>Cliente</Label>
-              <Select value={articleForm.client_id} onValueChange={v => setArticleForm(p => ({ ...p, client_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
+      {/* Modal Cliente */}
+      <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome do Cliente *</Label>
+              <Input 
+                value={clientForm.name} 
+                onChange={e => setClientForm({ ...clientForm, name: e.target.value })}
+                placeholder="Ex: Malhas Wilson"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Tipo de Fio</Label>
-              <Select value={articleForm.yarn_type_id} onValueChange={v => setArticleForm(p => ({ ...p, yarn_type_id: v === '__none__' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhum</SelectItem>
-                  {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}{y.color ? ` — ${y.color}` : ''}{y.composition ? ` (${y.composition})` : ''}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>CNPJ / CPF</Label>
+              <Input 
+                value={clientForm.document} 
+                onChange={e => setClientForm({ ...clientForm, document: e.target.value })}
+                placeholder="00.000.000/0001-00"
+              />
             </div>
-            <div className={`grid ${canSeeFinancial ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
-              <div className="space-y-2"><Label>Peso/Rolo (kg)</Label><Input type="number" value={articleForm.weight_per_roll} onChange={e => setArticleForm(p => ({ ...p, weight_per_roll: e.target.value }))} /></div>
-              {canSeeFinancial && <div className="space-y-2"><Label>Valor/kg (R$)</Label><Input type="number" step="0.01" value={articleForm.value_per_kg} onChange={e => setArticleForm(p => ({ ...p, value_per_kg: e.target.value }))} /></div>}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Voltas/Rolo</Label><Input type="number" value={articleForm.turns_per_roll} onChange={e => setArticleForm(p => ({ ...p, turns_per_roll: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Eficiência Média Exigida (%)</Label><Input type="number" min="0" max="100" value={articleForm.target_efficiency} onChange={e => setArticleForm(p => ({ ...p, target_efficiency: e.target.value }))} /></div>
-            </div>
-            <div className="space-y-2"><Label>Observações</Label><Textarea value={articleForm.observations} onChange={e => setArticleForm(p => ({ ...p, observations: e.target.value }))} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowArticleModal(false)}>Cancelar</Button>
-            <Button onClick={handleSaveArticle} className="btn-gradient">{editingArticle ? 'Salvar' : 'Cadastrar'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Turns Config Modal */}
-      <Dialog open={!!turnsArticle} onOpenChange={() => setTurnsArticle(null)}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-display">Configurar Voltas por Máquina</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Gerencie as voltas por rolo para o artigo "{turnsArticle?.name}" em cada máquina.
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Default turns section */}
-            <div className="rounded-lg border border-border bg-muted/30 p-5 space-y-3">
-              <div>
-                <p className="font-semibold text-foreground">Voltas por Rolo (Padrão)</p>
-                <p className="text-sm text-muted-foreground">Este valor será usado como padrão para máquinas que não tenham configuração específica.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input 
+                  value={clientForm.phone} 
+                  onChange={e => setClientForm({ ...clientForm, phone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
               </div>
               <div className="space-y-2">
-                <Label className="font-semibold">Voltas por Rolo (Padrão) <span className="text-destructive">*</span></Label>
-                <Input
-                  type="number"
-                  value={turnsDefault}
-                  onChange={e => setTurnsDefault(e.target.value)}
-                  placeholder="Ex: 800"
+                <Label>E-mail</Label>
+                <Input 
+                  value={clientForm.email} 
+                  onChange={e => setClientForm({ ...clientForm, email: e.target.value })}
+                  placeholder="contato@cliente.com"
                 />
               </div>
             </div>
-
-            {/* Machine-specific section */}
-            <div className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-semibold text-foreground">Configurações Específicas por Máquina</p>
-                  <p className="text-sm text-muted-foreground">Defina voltas específicas para cada máquina. Se não configurado, o valor padrão será usado.</p>
-                </div>
-              </div>
-
-              {turnsRows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Settings className="h-12 w-12 text-muted-foreground/40 mb-3" />
-                  <p className="font-semibold text-foreground">Nenhuma configuração específica</p>
-                  <p className="text-sm text-muted-foreground mb-4">Todas as máquinas usarão o valor padrão de voltas por rolo.</p>
-                  <Button variant="outline" onClick={addTurnsRow}>
-                    <Plus className="h-4 w-4 mr-1" /> Adicionar Configuração para Máquina
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {turnsRows.map((row) => (
-                    <div key={row.id} className="rounded-lg border border-border bg-background p-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold">Máquina <span className="text-destructive">*</span></Label>
-                          <Select
-                            value={row.machine_id}
-                            onValueChange={v => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, machine_id: v } : r))}
-                          >
-                            <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
-                            <SelectContent>
-                              {machines.map(m => (
-                                <SelectItem
-                                  key={m.id}
-                                  value={m.id}
-                                  disabled={usedMachineIds.includes(m.id) && row.machine_id !== m.id}
-                                >
-                                  {m.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold">Voltas por Rolo <span className="text-destructive">*</span></Label>
-                          <Input
-                            type="number"
-                            value={row.turns_per_roll}
-                            onChange={e => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, turns_per_roll: e.target.value } : r))}
-                            placeholder="Ex: 850"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs font-semibold">Observações</Label>
-                          <Input
-                            value={row.observations}
-                            onChange={e => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, observations: e.target.value } : r))}
-                            placeholder="Observações específicas"
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
-                          onClick={() => removeTurnsRow(row.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <Button variant="outline" className="w-full" onClick={addTurnsRow}>
-                    <Plus className="h-4 w-4 mr-1" /> Adicionar Outra Máquina
-                  </Button>
-                </div>
-              )}
+            <div className="space-y-2">
+              <Label>Endereço</Label>
+              <Input 
+                value={clientForm.address} 
+                onChange={e => setClientForm({ ...clientForm, address: e.target.value })}
+                placeholder="Rua, Número, Bairro, Cidade - UF"
+              />
             </div>
           </div>
-
-          <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
-            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
-              {turnsSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Salvar Configurações
-            </Button>
-            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
-              Cancelar
-            </Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsClientModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveClient} className="btn-gradient">Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Modal */}
-      <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Excluir {showDelete?.item?.name}?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este {showDelete?.type === 'client' ? 'cliente' : 'artigo'}? Esta ação não pode ser desfeita.</p>
+      {/* Modal Artigo */}
+      <Dialog open={isArticleModalOpen} onOpenChange={setIsArticleModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select 
+                value={articleForm.client_id} 
+                onValueChange={val => setArticleForm({ ...articleForm, client_id: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-2 space-y-2">
+                <Label>Nome do Artigo *</Label>
+                <Input 
+                  value={articleForm.name} 
+                  onChange={e => setArticleForm({ ...articleForm, name: e.target.value })}
+                  placeholder="Ex: MALHA EXCLUSIVE LIGHT"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Código</Label>
+                <Input 
+                  value={articleForm.code} 
+                  onChange={e => setArticleForm({ ...articleForm, code: e.target.value })}
+                  placeholder="ART-01"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Galga</Label>
+                <Input 
+                  value={articleForm.gauge} 
+                  onChange={e => setArticleForm({ ...articleForm, gauge: e.target.value })}
+                  placeholder="Ex: 28G"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Diâmetro</Label>
+                <Input 
+                  value={articleForm.diameter} 
+                  onChange={e => setArticleForm({ ...articleForm, diameter: e.target.value })}
+                  placeholder="Ex: 30"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Gramatura / Peso (g/m)</Label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={articleForm.weight_per_meter} 
+                  onChange={e => setArticleForm({ ...articleForm, weight_per_meter: e.target.value })}
+                  placeholder="Ex: 180"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Composição</Label>
+                <Input 
+                  value={articleForm.composition} 
+                  onChange={e => setArticleForm({ ...articleForm, composition: e.target.value })}
+                  placeholder="Ex: 100% Algodão"
+                />
+              </div>
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDelete(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Sim, Excluir</Button>
+            <Button variant="outline" onClick={() => setIsArticleModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveArticle} className="btn-gradient">Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
