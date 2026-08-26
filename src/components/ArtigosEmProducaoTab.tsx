@@ -70,7 +70,7 @@ export default function ArtigosEmProducaoTab() {
       .eq('status', 'concluida')
       .not('concluded_at', 'is', null)
       .order('concluded_at', { ascending: false })
-      .limit(200);
+      .limit(1000);
     if (error) {
       console.error('[ArtigosEmProducaoTab.fetchChanges] failed', error);
     } else {
