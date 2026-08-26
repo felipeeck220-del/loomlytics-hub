@@ -110,7 +110,8 @@ export default function ArtigosEmProducaoTab() {
     const sorted = [...machines].sort((a: any, b: any) => (a.number || 0) - (b.number || 0));
     if (!s) return sorted;
     return sorted.filter((m: any) => {
-      const art = m.article_id ? articleById[m.article_id] : null;
+      const eff = lastChangeByMachine[m.id]?.next_article_id || m.article_id || null;
+      const art = eff ? articleById[eff] : null;
       const artName = art?.name?.toLowerCase() || '';
       const cliName = (art?.client_name || (art?.client_id ? clientById[art.client_id]?.name : '') || '').toLowerCase();
       return (m.name || '').toLowerCase().includes(s) || artName.includes(s) || cliName.includes(s);
