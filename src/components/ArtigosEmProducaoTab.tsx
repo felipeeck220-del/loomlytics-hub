@@ -17,6 +17,8 @@ interface ChangeRow {
   ot_number: number | null;
 }
 
+const CHANGE_HISTORY_PAGE_SIZE = 1000;
+
 const fmtDateTime = (iso: string | null | undefined) => {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -63,19 +65,39 @@ export default function ArtigosEmProducaoTab() {
   };
 
   const fetchChanges = async () => {
-    if (!companyId) return;
-    const { data, error } = await sb('article_change_orders')
-      .select('id, machine_id, current_article_id, next_article_id, concluded_at, ot_number, status')
-      .eq('company_id', companyId)
-      .eq('status', 'concluida')
-      .not('concluded_at', 'is', null)
-      .order('concluded_at', { ascending: false })
-      .limit(1000);
-    if (error) {
-      console.error('[ArtigosEmProducaoTab.fetchChanges] failed', error);
-    } else {
-      setChanges((data || []) as ChangeRow[]);
+    if (!companyId) {
+      setChanges([]);
+      setLoading(false);
+      return;
     }
+
+    setLoading(true);
+    const allChanges: ChangeRow[] = [];
+    let from = 0;
+
+    while (true) {
+      const { data, error } = await sb('article_change_orders')
+        .select('id, machine_id, current_article_id, next_article_id, concluded_at, ot_number, status')
+        .eq('company_id', companyId)
+        .eq('status', 'concluida')
+        .not('concluded_at', 'is', null)
+        .order('concluded_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, from + CHANGE_HISTORY_PAGE_SIZE - 1);
+
+      if (error) {
+        console.error('[ArtigosEmProducaoTab.fetchChanges] failed', error);
+        break;
+      }
+
+      const page = (data || []) as ChangeRow[];
+      allChanges.push(...page);
+
+      if (page.length < CHANGE_HISTORY_PAGE_SIZE) break;
+      from += CHANGE_HISTORY_PAGE_SIZE;
+    }
+
+    setChanges(allChanges);
     setLoading(false);
   };
 
