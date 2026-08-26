@@ -155,6 +155,15 @@ export default function ArtigosEmProducaoTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [changes, machines, search, articleById, clientById]);
 
+  const historyTotalPages = Math.max(1, Math.ceil(filteredChanges.length / HISTORY_PAGE_SIZE));
+  const safeHistoryPage = Math.min(historyPage, historyTotalPages);
+  const pagedChanges = useMemo(
+    () => filteredChanges.slice((safeHistoryPage - 1) * HISTORY_PAGE_SIZE, safeHistoryPage * HISTORY_PAGE_SIZE),
+    [filteredChanges, safeHistoryPage]
+  );
+
+  useEffect(() => { setHistoryPage(1); }, [search]);
+
   if (loading) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
