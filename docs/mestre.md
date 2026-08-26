@@ -1,3 +1,7 @@
+- **26/08/2026 (Brasília) — Paginação no Histórico de Trocas (Artigos em Produção):**
+    - Adicionada paginação de 20 em 20 registros na aba "Histórico de Trocas de Artigo" com controles (Anterior, 1, 2, 3…, Próximo) e elipse para intervalos grandes.
+    - Página reinicia para 1 ao alterar a busca.
+
 - **26/08/2026 (Brasília) — Histórico ilimitado de OTs (Artigos em Produção):**
     - Removido o teto fixo de 1000 OTs finalizadas; o histórico agora é carregado integralmente por paginação automática em lotes, sem limite total.
     - Adicionada ordenação estável por data de conclusão e ID para preservar a sequência entre páginas.
