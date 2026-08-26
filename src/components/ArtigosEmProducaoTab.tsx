@@ -110,12 +110,13 @@ export default function ArtigosEmProducaoTab() {
     const sorted = [...machines].sort((a: any, b: any) => (a.number || 0) - (b.number || 0));
     if (!s) return sorted;
     return sorted.filter((m: any) => {
-      const art = m.article_id ? articleById[m.article_id] : null;
+      const eff = lastChangeByMachine[m.id]?.next_article_id || m.article_id || null;
+      const art = eff ? articleById[eff] : null;
       const artName = art?.name?.toLowerCase() || '';
       const cliName = (art?.client_name || (art?.client_id ? clientById[art.client_id]?.name : '') || '').toLowerCase();
       return (m.name || '').toLowerCase().includes(s) || artName.includes(s) || cliName.includes(s);
     });
-  }, [machines, articleById, clientById, search]);
+  }, [machines, articleById, clientById, search, lastChangeByMachine]);
 
   const filteredChanges = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -163,8 +164,9 @@ export default function ArtigosEmProducaoTab() {
         {/* Machines grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredMachines.map((m: any) => {
-            const art = m.article_id ? articleById[m.article_id] : null;
             const last = lastChangeByMachine[m.id];
+            const effectiveArticleId = last?.next_article_id || m.article_id || null;
+            const art = effectiveArticleId ? articleById[effectiveArticleId] : null;
             const cliName = art?.client_name || (art?.client_id ? clientById[art.client_id]?.name : '') || '—';
             return (
               <div key={m.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-2">
