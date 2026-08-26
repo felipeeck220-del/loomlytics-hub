@@ -1,215 +1,578 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+ import { useState, useEffect, useMemo } from 'react';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabaseClient';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Layers, Play, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings, Factory } from 'lucide-react';
+import { toast } from 'sonner';
+import type { Client, Article, ArticleMachineTurns } from '@/types';
+import ArtigosEmProducaoTab from '@/components/ArtigosEmProducaoTab';
 
-interface MachineProductionInfo {
-  machine_number: string;
-  current_article: string;
-  current_client: string;
-  next_article: string;
-  next_client: string;
-  ot_number: string;
-  ot_status: string;
+const sb = (table: string) => (supabase.from as any)(table);
+
+interface MachineTurnRow {
+  id: string;
+  machine_id: string;
+  turns_per_roll: string;
+  observations: string;
 }
 
 export default function ClientsArticles() {
-  const { slug } = useParams<{ slug: string }>();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useSharedCompanyData();
+  const { canSeeFinancial, role } = usePermissions();
+  const isExpedicao = role === 'expedicao';
+  const { user } = useAuth();
+  const companyId = user?.company_id || '';
+  const { logAction } = useAuditLog();
+  const clients = getClients();
+  const articles = getArticles();
+  const machines = getMachines();
+  const allMachineTurns = getArticleMachineTurns();
+  const [tab, setTab] = useState(isExpedicao ? 'production' : 'clients');
+  // Se o papel só carregar após a montagem (ex.: expedição), força a aba para
+  // "production" — evita exibir a lista de Clientes brevemente ou deixar o
+  // usuário travado numa aba oculta.
+  useEffect(() => {
+    if (isExpedicao && tab !== 'production') setTab('production');
+  }, [isExpedicao, tab]);
+  const [clientSearch, setClientSearch] = useState('');
+   const [articleSearch, setArticleSearch] = useState('');
+   const [currentPage, setCurrentPage] = useState(1);
+   const pageSize = 18;
 
-  // Buscar máquinas e OTs (Ordem de Troca - mecânica) para determinar artigos atuais e próximos
-  const { data: productionArticles = [], isLoading } = useQuery({
-    queryKey: ['clients-articles-production', slug],
+  // Fetch yarn types for article form
+  const { data: yarnTypes = [] } = useQuery({
+    queryKey: ['yarn_types', companyId],
     queryFn: async () => {
-      if (!slug) return [];
-
-      // Buscar máquinas cadastradas
-      const { data: machinesData, error: machErr } = await supabase
-        .from('machines')
-        .select('id, machine_number, current_article, client')
-        .eq('company_slug', slug);
-
-      if (machErr) throw machErr;
-
-      // Buscar ordens de troca (OT) em mecanica
-      const { data: otData, error: otErr } = await supabase
-        .from('mecanica_ot')
-        .select('*')
-        .eq('company_slug', slug)
-        .order('created_at', { ascending: false });
-
-      if (otErr) {
-        console.warn('Erro ao carregar mecanica_ot:', otErr);
-      }
-
-      // Mapear por número de máquina
-      const result: MachineProductionInfo[] = (machinesData || []).map((m) => {
-        const machineOts = (otData || []).filter(
-          (ot) => 
-            String(ot.machine_number || ot.machine_id) === String(m.machine_number) ||
-            String(ot.machine_number) === String(m.id)
-        );
-
-        // Encontrar OT aberta (atual) e OT finalizada ou posterior (próxima)
-        const openOt = machineOts.find((ot) => ot.status === 'aberto' || ot.status === 'em_andamento' || ot.status === 'pendente');
-        const finishedOts = machineOts.filter((ot) => ot.status === 'finalizado' || ot.status === 'concluido');
-
-        // Artigo atual baseado na OT aberta ou na máquina
-        let currentArticle = m.current_article || 'Nenhum artigo';
-        let currentClient = m.client || 'Cliente Padrão';
-        let otNumber = openOt?.ot_number || openOt?.id || '#-';
-        let otStatus = openOt?.status || 'finalizado';
-
-        if (openOt) {
-          currentArticle = openOt.new_article || openOt.article || currentArticle;
-          currentClient = openOt.client || currentClient;
-        }
-
-        // Próximo artigo: pegar o próximo da lista de OTs ou histórico
-        // Se a OT atual for finalizada, o artigo atual vira o próximo, etc.
-        let nextArticle = 'Nenhum próximo';
-        let nextClient = '-';
-
-        const upcomingOt = machineOts.find((ot) => 
-          ot.id !== openOt?.id && (ot.status === 'pendente' || ot.status === 'aberto' || ot.status === 'agendado')
-        );
-
-        if (upcomingOt) {
-          nextArticle = upcomingOt.new_article || upcomingOt.article || 'Artigo Futuro';
-          nextClient = upcomingOt.client || 'Cliente Futuro';
-        } else if (finishedOts.length > 0) {
-          // Se houver histórico, o mais recente finalizado pode servir de referência ou próxima programação
-          const latestFinished = finishedOts[0];
-          if (!openOt) {
-            // Se não há aberto, o último finalizado era o atual, e procuramos outro
-            currentArticle = latestFinished.new_article || latestFinished.article || currentArticle;
-            currentClient = latestFinished.client || currentClient;
-            otNumber = latestFinished.ot_number || latestFinished.id || otNumber;
-          } else {
-            nextArticle = latestFinished.new_article || latestFinished.article || 'Próximo programado';
-            nextClient = latestFinished.client || 'Cliente programado';
-          }
-        }
-
-        return {
-          machine_number: m.machine_number,
-          current_article: currentArticle,
-          current_client: currentClient,
-          next_article: nextArticle,
-          next_client: nextClient,
-          ot_number: String(otNumber),
-          ot_status: otStatus
-        };
-      });
-
-      return result;
+      const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string; color: string | null; composition: string | null }>;
     },
-    enabled: !!slug,
+    enabled: !!companyId,
   });
 
-  const filteredMachines = productionArticles.filter((item) => 
-    item.machine_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.current_article.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.current_client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.next_article.toLowerCase().includes(searchTerm.toLowerCase())
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [clientForm, setClientForm] = useState({ name: '', contact: '', observations: '' });
+
+  const [showArticleModal, setShowArticleModal] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
+
+  const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
+  const [deleteWord, setDeleteWord] = useState('');
+
+  // Turns config modal
+  const [turnsArticle, setTurnsArticle] = useState<Article | null>(null);
+  const [turnsDefault, setTurnsDefault] = useState('');
+  const [turnsRows, setTurnsRows] = useState<MachineTurnRow[]>([]);
+  const [turnsSaving, setTurnsSaving] = useState(false);
+
+  const openTurnsModal = (article: Article) => {
+    setTurnsArticle(article);
+    setTurnsDefault(String(article.turns_per_roll));
+    const existing = allMachineTurns.filter(t => t.article_id === article.id);
+    setTurnsRows(existing.map(t => ({
+      id: t.id,
+      machine_id: t.machine_id,
+      turns_per_roll: String(t.turns_per_roll),
+      observations: t.observations || '',
+    })));
+  };
+
+  const addTurnsRow = () => {
+    setTurnsRows(prev => [...prev, { id: crypto.randomUUID(), machine_id: '', turns_per_roll: '', observations: '' }]);
+  };
+
+  const removeTurnsRow = (id: string) => {
+    setTurnsRows(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleSaveTurns = async () => {
+    if (!turnsArticle) return;
+    const defaultVal = Number(turnsDefault);
+    if (!defaultVal) { toast.error('Voltas padrão é obrigatório'); return; }
+
+    // Validate duplicates
+    const validRows = turnsRows.filter(r => r.machine_id && r.turns_per_roll);
+    const machineIds = validRows.map(r => r.machine_id);
+    const uniqueIds = new Set(machineIds);
+    if (uniqueIds.size < machineIds.length) {
+      toast.error('Existem máquinas duplicadas nas configurações específicas');
+      return;
+    }
+
+    setTurnsSaving(true);
+    try {
+      // Save default turns on article
+      const allArticles = [...articles];
+      const idx = allArticles.findIndex(a => a.id === turnsArticle.id);
+      if (idx >= 0) {
+        allArticles[idx] = { ...allArticles[idx], turns_per_roll: defaultVal };
+        await saveArticles(allArticles);
+      }
+
+      // Save machine-specific turns
+      const turnsData: ArticleMachineTurns[] = validRows.map(r => ({
+        id: r.id,
+        article_id: turnsArticle.id,
+        machine_id: r.machine_id,
+        company_id: '',
+        turns_per_roll: Number(r.turns_per_roll),
+        observations: r.observations || undefined,
+        created_at: new Date().toISOString(),
+      }));
+      await saveArticleMachineTurns(turnsArticle.id, turnsData);
+      toast.success('Configurações de voltas salvas');
+      setTurnsArticle(null);
+    } catch (err) {
+      console.error('Error saving turns config:', err);
+      toast.error('Erro ao salvar configurações de voltas');
+    }
+    setTurnsSaving(false);
+  };
+
+  // Get machines already used in turns rows (to prevent duplicates)
+  const usedMachineIds = turnsRows.map(r => r.machine_id).filter(Boolean);
+
+  const openNewClient = () => { setEditingClient(null); setClientForm({ name: '', contact: '', observations: '' }); setShowClientModal(true); };
+  const openEditClient = (c: Client) => { setEditingClient(c); setClientForm({ name: c.name, contact: c.contact || '', observations: c.observations || '' }); setShowClientModal(true); };
+
+  const handleSaveClient = async () => {
+    if (!clientForm.name) { toast.error('Nome é obrigatório'); return; }
+    const all = [...clients];
+    if (editingClient) {
+      const idx = all.findIndex(c => c.id === editingClient.id);
+      all[idx] = { ...all[idx], ...clientForm };
+      await saveClients(all); logAction('client_update', { name: clientForm.name }); toast.success('Cliente atualizado');
+    } else {
+      all.push({ id: crypto.randomUUID(), company_id: '', name: clientForm.name, contact: clientForm.contact || undefined, observations: clientForm.observations || undefined, created_at: new Date().toISOString() });
+      await saveClients(all); logAction('client_create', { name: clientForm.name }); toast.success('Cliente cadastrado');
+    }
+    setShowClientModal(false);
+  };
+
+  const openNewArticle = () => { setEditingArticle(null); setArticleForm({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' }); setShowArticleModal(true); };
+  const openEditArticle = (a: Article) => { setEditingArticle(a); setArticleForm({ name: a.name, client_id: a.client_id, yarn_type_id: a.yarn_type_id || '', weight_per_roll: String(a.weight_per_roll), value_per_kg: String(a.value_per_kg), turns_per_roll: String(a.turns_per_roll), target_efficiency: String(a.target_efficiency || 80), observations: a.observations || '' }); setShowArticleModal(true); };
+
+  const handleSaveArticle = async () => {
+    if (!articleForm.name || !articleForm.client_id) { toast.error('Nome e cliente são obrigatórios'); return; }
+    const all = [...articles];
+    const clientName = clients.find(c => c.id === articleForm.client_id)?.name || '';
+    const yarnTypeId = articleForm.yarn_type_id || undefined;
+    if (editingArticle) {
+      const idx = all.findIndex(a => a.id === editingArticle.id);
+      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
+      await saveArticles(all); logAction('article_update', { name: articleForm.name }); toast.success('Artigo atualizado');
+    } else {
+      all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
+      await saveArticles(all); logAction('article_create', { name: articleForm.name }); toast.success('Artigo cadastrado');
+    }
+    setShowArticleModal(false);
+  };
+
+  const handleDelete = async () => {
+    if (showDelete?.type === 'client') {
+      await saveClients(clients.filter(c => c.id !== showDelete.item.id));
+      logAction('client_delete', { name: showDelete.item.name });
+    } else {
+      await saveArticles(articles.filter(a => a.id !== showDelete?.item.id));
+      logAction('article_delete', { name: showDelete?.item.name });
+    }
+    setShowDelete(null); setDeleteWord(''); toast.success('Excluído com sucesso');
+  };
+
+  const filteredClients = clients.filter(c =>
+    !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || (c.contact || '').toLowerCase().includes(clientSearch.toLowerCase())
   );
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="page-title flex items-center gap-2">
-            <Layers className="h-7 w-7 text-primary" />
-            Artigos em Produção
-          </h1>
-          <p className="page-subtitle">
-            Acompanhe o artigo atual rodando em cada máquina com base nas trocas de OT (Mecânica OT) e o próximo artigo programado.
-          </p>
-        </div>
+   const filteredArticles = useMemo(() => {
+     return articles.filter(a =>
+       !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
+     );
+   }, [articles, articleSearch]);
+ 
+   const totalPages = Math.ceil(filteredArticles.length / pageSize);
+ 
+   const paginatedArticles = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return filteredArticles.slice(start, start + pageSize);
+   }, [filteredArticles, currentPage, pageSize]);
+ 
+   const visiblePages = useMemo(() => {
+     const pages = [];
+     const maxVisible = 3;
+     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+     let end = Math.min(totalPages, start + maxVisible - 1);
+     if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+     for (let i = start; i <= end; i++) pages.push(i);
+     return pages;
+   }, [currentPage, totalPages]);
+ 
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [articleSearch]);
 
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar máquina, artigo ou cliente..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Clientes & Artigos</h1>
+          <p className="text-muted-foreground text-sm">Gerencie seus clientes e os artigos produzidos</p>
         </div>
+        {!isExpedicao && (
+          <div className="flex gap-2">
+            <Button onClick={openNewClient} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Cliente</Button>
+            <Button onClick={openNewArticle} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Artigo</Button>
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <Card key={n} className="animate-pulse card-glass h-48">
-              <CardContent className="p-6" />
-            </Card>
-          ))}
-        </div>
-      ) : filteredMachines.length === 0 ? (
-        <Card className="card-glass p-12 text-center">
-          <Layers className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
-          <h3 className="text-lg font-semibold">Nenhuma máquina encontrada</h3>
-          <p className="text-sm text-muted-foreground">
-            Não há registros de máquinas ou OTs correspondentes à busca.
-          </p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredMachines.map((item) => (
-            <Card key={item.machine_number} className="card-glass overflow-hidden border-border/60 hover:border-primary/40 transition-all">
-              <div className="bg-primary/10 px-5 py-3 border-b border-border/50 flex items-center justify-between">
-                <span className="font-bold text-primary flex items-center gap-2">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
-                  Máquina {item.machine_number}
-                </span>
-                <Badge variant={item.ot_status === 'aberto' ? 'default' : 'secondary'} className="text-xs font-mono">
-                  OT #{item.ot_number}
-                </Badge>
+      {/* Tabs */}
+      <Tabs value={tab} onValueChange={setTab}>
+        {!isExpedicao && (
+          <TabsList className="w-full grid grid-cols-3 h-auto">
+            <TabsTrigger value="clients" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center min-w-0">
+              <Users className="h-4 w-4 shrink-0" /> <span className="truncate">Clientes</span>
+            </TabsTrigger>
+            <TabsTrigger value="articles" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center min-w-0">
+              <Settings className="h-4 w-4 shrink-0" /> <span className="truncate">Artigos</span>
+            </TabsTrigger>
+            <TabsTrigger value="production" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center leading-tight min-w-0">
+              <Factory className="h-4 w-4 shrink-0" />
+              <span className="truncate"><span className="sm:hidden">Em Produção</span><span className="hidden sm:inline">Artigos em Produção</span></span>
+            </TabsTrigger>
+          </TabsList>
+        )}
+
+        {/* Clients Tab */}
+        <TabsContent value="clients" className="mt-4">
+          <div className="card-glass p-5 space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-foreground">Lista de Clientes</h2>
+              <p className="text-sm text-muted-foreground">{filteredClients.length} de {clients.length} clientes</p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Pesquisar clientes por nome, contato ou endereço..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredClients.map(c => (
+                <div key={c.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
+                  <div>
+                    <p className="font-display font-semibold text-foreground">{c.name}</p>
+                    <p className="text-sm text-muted-foreground">{c.contact || 'Sem contato'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditClient(c)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete({ type: 'client', item: c }); setDeleteWord(''); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {filteredClients.length === 0 && (
+                <div className="col-span-full text-center text-muted-foreground py-8">Nenhum cliente encontrado</div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Articles Tab */}
+        <TabsContent value="articles" className="mt-4">
+          <div className="card-glass p-5 space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-foreground">Lista de Artigos</h2>
+              <p className="text-sm text-muted-foreground">{filteredArticles.length} de {articles.length} artigos</p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Pesquisar artigos por nome, cliente ou observações..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="pl-9" />
+            </div>
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+               {paginatedArticles.map(a => (
+                <div key={a.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
+                  <div>
+                    <p className="font-display font-semibold text-foreground">{a.name}</p>
+                    <p className="text-sm text-muted-foreground">Cliente: {a.client_name || '—'}</p>
+                    {a.yarn_type_id && (() => {
+                      const yarn = yarnTypes.find(y => y.id === a.yarn_type_id);
+                      return yarn ? <p className="text-sm text-muted-foreground">Fio: <span className="text-foreground font-medium">{yarn.name}</span></p> : null;
+                    })()}
+                  </div>
+                  <div className="text-sm space-y-0.5">
+                    <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
+                    {canSeeFinancial && <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>}
+                    <p className="text-muted-foreground">Eficiência Exigida: <span className="font-semibold text-foreground">{a.target_efficiency || 80}%</span></p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => openTurnsModal(a)}>
+                      <Settings className="h-3 w-3 mr-1" /> Voltas
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditArticle(a)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete({ type: 'article', item: a }); setDeleteWord(''); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+               {paginatedArticles.length === 0 && (
+                <div className="col-span-full text-center text-muted-foreground py-8">Nenhum artigo encontrado</div>
+              )}
+            </div>
+ 
+             {/* Numerical Pagination Control */}
+             {totalPages > 1 && (
+                <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-2 pt-6 w-full max-w-full px-2 overflow-hidden">
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                   disabled={currentPage === 1}
+                    className="px-2 sm:px-3 shrink-0"
+                 >
+                    <span className="sm:hidden">‹</span>
+                    <span className="hidden sm:inline">Anterior</span>
+                 </Button>
+                  <div className="flex items-center justify-center gap-1 min-w-0">
+                   {visiblePages.map(page => (
+                       <Button
+                         key={page}
+                         variant={currentPage === page ? "default" : "outline"}
+                         size="sm"
+                          className="w-8 h-8 p-0 shrink-0"
+                         onClick={() => setCurrentPage(page)}
+                       >
+                         {page}
+                       </Button>
+                     ))}
+                 </div>
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                   disabled={currentPage === totalPages}
+                    className="px-2 sm:px-3 shrink-0"
+                 >
+                    <span className="sm:hidden">›</span>
+                    <span className="hidden sm:inline">Próximo</span>
+                 </Button>
+               </div>
+             )}
+          </div>
+        </TabsContent>
+
+        {/* Artigos em Produção Tab */}
+        <TabsContent value="production" className="mt-4">
+          <ArtigosEmProducaoTab />
+        </TabsContent>
+      </Tabs>
+
+      {/* Client Modal */}
+      <Dialog open={showClientModal} onOpenChange={setShowClientModal}>
+        <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader><DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Nome</Label><Input value={clientForm.name} onChange={e => setClientForm(p => ({ ...p, name: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Contato</Label><Input value={clientForm.contact} onChange={e => setClientForm(p => ({ ...p, contact: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Observações</Label><Textarea value={clientForm.observations} onChange={e => setClientForm(p => ({ ...p, observations: e.target.value }))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClientModal(false)}>Cancelar</Button>
+            <Button onClick={handleSaveClient} className="btn-gradient">{editingClient ? 'Salvar' : 'Cadastrar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Article Modal */}
+      <Dialog open={showArticleModal} onOpenChange={setShowArticleModal}>
+        <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader><DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Nome do Artigo</Label><Input value={articleForm.name} onChange={e => setArticleForm(p => ({ ...p, name: e.target.value }))} /></div>
+             <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select value={articleForm.client_id} onValueChange={v => setArticleForm(p => ({ ...p, client_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Fio</Label>
+              <Select value={articleForm.yarn_type_id} onValueChange={v => setArticleForm(p => ({ ...p, yarn_type_id: v === '__none__' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}{y.color ? ` — ${y.color}` : ''}{y.composition ? ` (${y.composition})` : ''}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={`grid ${canSeeFinancial ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+              <div className="space-y-2"><Label>Peso/Rolo (kg)</Label><Input type="number" value={articleForm.weight_per_roll} onChange={e => setArticleForm(p => ({ ...p, weight_per_roll: e.target.value }))} /></div>
+              {canSeeFinancial && <div className="space-y-2"><Label>Valor/kg (R$)</Label><Input type="number" step="0.01" value={articleForm.value_per_kg} onChange={e => setArticleForm(p => ({ ...p, value_per_kg: e.target.value }))} /></div>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Voltas/Rolo</Label><Input type="number" value={articleForm.turns_per_roll} onChange={e => setArticleForm(p => ({ ...p, turns_per_roll: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Eficiência Média Exigida (%)</Label><Input type="number" min="0" max="100" value={articleForm.target_efficiency} onChange={e => setArticleForm(p => ({ ...p, target_efficiency: e.target.value }))} /></div>
+            </div>
+            <div className="space-y-2"><Label>Observações</Label><Textarea value={articleForm.observations} onChange={e => setArticleForm(p => ({ ...p, observations: e.target.value }))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowArticleModal(false)}>Cancelar</Button>
+            <Button onClick={handleSaveArticle} className="btn-gradient">{editingArticle ? 'Salvar' : 'Cadastrar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Turns Config Modal */}
+      <Dialog open={!!turnsArticle} onOpenChange={() => setTurnsArticle(null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-display">Configurar Voltas por Máquina</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Gerencie as voltas por rolo para o artigo "{turnsArticle?.name}" em cada máquina.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Default turns section */}
+            <div className="rounded-lg border border-border bg-muted/30 p-5 space-y-3">
+              <div>
+                <p className="font-semibold text-foreground">Voltas por Rolo (Padrão)</p>
+                <p className="text-sm text-muted-foreground">Este valor será usado como padrão para máquinas que não tenham configuração específica.</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Voltas por Rolo (Padrão) <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  value={turnsDefault}
+                  onChange={e => setTurnsDefault(e.target.value)}
+                  placeholder="Ex: 800"
+                />
+              </div>
+            </div>
+
+            {/* Machine-specific section */}
+            <div className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-semibold text-foreground">Configurações Específicas por Máquina</p>
+                  <p className="text-sm text-muted-foreground">Defina voltas específicas para cada máquina. Se não configurado, o valor padrão será usado.</p>
+                </div>
               </div>
 
-              <CardContent className="p-5 space-y-4">
-                {/* Artigo Atual */}
-                <div className="space-y-1.5 p-3 rounded-lg bg-muted/40 border border-border/40">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1 font-medium text-foreground">
-                      <Play className="h-3.5 w-3.5 text-primary fill-primary" /> Artigo Atual
-                    </span>
-                    <span className="italic">({item.current_client})</span>
-                  </div>
-                  <p className="text-sm font-bold text-foreground uppercase tracking-wide">
-                    {item.current_article}
-                  </p>
+              {turnsRows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Settings className="h-12 w-12 text-muted-foreground/40 mb-3" />
+                  <p className="font-semibold text-foreground">Nenhuma configuração específica</p>
+                  <p className="text-sm text-muted-foreground mb-4">Todas as máquinas usarão o valor padrão de voltas por rolo.</p>
+                  <Button variant="outline" onClick={addTurnsRow}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar Configuração para Máquina
+                  </Button>
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  {turnsRows.map((row) => (
+                    <div key={row.id} className="rounded-lg border border-border bg-background p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">Máquina <span className="text-destructive">*</span></Label>
+                          <Select
+                            value={row.machine_id}
+                            onValueChange={v => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, machine_id: v } : r))}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                            <SelectContent>
+                              {machines.map(m => (
+                                <SelectItem
+                                  key={m.id}
+                                  value={m.id}
+                                  disabled={usedMachineIds.includes(m.id) && row.machine_id !== m.id}
+                                >
+                                  {m.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">Voltas por Rolo <span className="text-destructive">*</span></Label>
+                          <Input
+                            type="number"
+                            value={row.turns_per_roll}
+                            onChange={e => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, turns_per_roll: e.target.value } : r))}
+                            placeholder="Ex: 850"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">Observações</Label>
+                          <Input
+                            value={row.observations}
+                            onChange={e => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, observations: e.target.value } : r))}
+                            placeholder="Observações específicas"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
+                          onClick={() => removeTurnsRow(row.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="outline" className="w-full" onClick={addTurnsRow}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar Outra Máquina
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
 
-                {/* Seta indicativa */}
-                <div className="flex justify-center -my-2">
-                  <div className="bg-background border border-border rounded-full p-1 text-muted-foreground">
-                    <ArrowRight className="h-3.5 w-3.5 rotate-90" />
-                  </div>
-                </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
+            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
+              {turnsSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Salvar Configurações
+            </Button>
+            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-                {/* Próximo Artigo */}
-                <div className="space-y-1.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1 font-medium text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" /> Próximo Artigo
-                    </span>
-                    <span className="italic">({item.next_client})</span>
-                  </div>
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    {item.next_article}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Delete Modal */}
+      <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Excluir {showDelete?.item?.name}?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este {showDelete?.type === 'client' ? 'cliente' : 'artigo'}? Esta ação não pode ser desfeita.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDelete(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Sim, Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
