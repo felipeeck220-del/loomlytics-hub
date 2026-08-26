@@ -116,7 +116,7 @@ export default function ArtigosEmProducaoTab() {
       const cliName = (art?.client_name || (art?.client_id ? clientById[art.client_id]?.name : '') || '').toLowerCase();
       return (m.name || '').toLowerCase().includes(s) || artName.includes(s) || cliName.includes(s);
     });
-  }, [machines, articleById, clientById, search]);
+  }, [machines, articleById, clientById, search, lastChangeByMachine]);
 
   const filteredChanges = useMemo(() => {
     const s = search.trim().toLowerCase();
