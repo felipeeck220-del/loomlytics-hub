@@ -18,6 +18,7 @@ interface ChangeRow {
 }
 
 const CHANGE_HISTORY_PAGE_SIZE = 1000;
+const HISTORY_PAGE_SIZE = 20;
 
 const fmtDateTime = (iso: string | null | undefined) => {
   if (!iso) return '—';
