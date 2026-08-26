@@ -1,3 +1,7 @@
+- **26/08/2026 (Brasília) — Artigos em Produção (Clientes & Artigos):**
+    - O artigo exibido por máquina passa a considerar o "Próximo artigo" da última OT finalizada (fallback para o artigo da máquina).
+    - Padronizado o rodapé dos cards: máquinas sem OT finalizada agora exibem "Sem OT finalizada registrada" em vez de ficarem sem informação.
+
 - **24/08/2026 (Brasília) — Ajuste Visual de Artigos na OT (Mobile):**
     - Reorganizada a exibição do artigo atual e do próximo artigo em colunas equilibradas, com rótulos claros, seta centralizada e quebra natural de nomes longos no mobile.
 

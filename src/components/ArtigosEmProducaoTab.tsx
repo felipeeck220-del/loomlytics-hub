@@ -182,12 +182,16 @@ export default function ArtigosEmProducaoTab() {
                 ) : (
                   <p className="text-sm text-muted-foreground italic">Sem artigo atual</p>
                 )}
-                {last && (
-                  <div className="pt-2 border-t border-border text-xs text-muted-foreground">
-                    Última troca: <span className="text-foreground">{fmtDateTime(last.concluded_at)}</span>
-                    {last.ot_number ? <> · OT #{String(last.ot_number).padStart(3, '0')}</> : null}
-                  </div>
-                )}
+                <div className="pt-2 border-t border-border text-xs text-muted-foreground mt-auto">
+                  {last ? (
+                    <>
+                      Última troca: <span className="text-foreground">{fmtDateTime(last.concluded_at)}</span>
+                      {last.ot_number ? <> · OT #{String(last.ot_number).padStart(3, '0')}</> : null}
+                    </>
+                  ) : (
+                    <span className="italic">Sem OT finalizada registrada</span>
+                  )}
+                </div>
               </div>
             );
           })}
