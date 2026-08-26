@@ -249,11 +249,11 @@ export default function ArtigosEmProducaoTab() {
             <Input placeholder="Buscar por máquina, artigo ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
         </div>
-        {filteredChanges.length === 0 ? (
+        {pagedChanges.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">Nenhuma troca de artigo registrada</div>
         ) : (
           <div className="space-y-2">
-            {filteredChanges.map(c => {
+            {pagedChanges.map(c => {
               const mach = machines.find((m: any) => m.id === c.machine_id);
               return (
                 <div key={c.id} className="rounded-lg border border-border bg-background p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -269,6 +269,41 @@ export default function ArtigosEmProducaoTab() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {historyTotalPages > 1 && (
+          <div className="flex items-center justify-center gap-1 pt-3">
+            <button
+              type="button"
+              onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+              disabled={safeHistoryPage <= 1}
+              className="px-3 py-1.5 rounded-md text-sm border border-border bg-background hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            {Array.from({ length: historyTotalPages }, (_, i) => i + 1)
+              .filter(p => Math.abs(p - safeHistoryPage) <= 2 || p === 1 || p === historyTotalPages)
+              .map((p, idx, arr) => (
+                <span key={p} className="flex items-center">
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-muted-foreground">…</span>}
+                  <button
+                    type="button"
+                    onClick={() => setHistoryPage(p)}
+                    className={`min-w-[2rem] px-2 py-1.5 rounded-md text-sm border ${p === safeHistoryPage ? 'bg-primary text-primary-foreground border-primary' : 'border-border bg-background hover:bg-accent'}`}
+                  >
+                    {p}
+                  </button>
+                </span>
+              ))}
+            <button
+              type="button"
+              onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))}
+              disabled={safeHistoryPage >= historyTotalPages}
+              className="px-3 py-1.5 rounded-md text-sm border border-border bg-background hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Próximo
+            </button>
           </div>
         )}
       </div>
