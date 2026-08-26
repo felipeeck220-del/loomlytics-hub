@@ -44,6 +44,7 @@ export default function ArtigosEmProducaoTab() {
   const [changes, setChanges] = useState<ChangeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [historyPage, setHistoryPage] = useState(1);
 
   const articleById = useMemo(() => {
     const m: Record<string, any> = {};
