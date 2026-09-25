@@ -5372,6 +5372,10 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_next_of_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
       get_article_change_orders_list: {
         Args: {
           p_company_id: string
