@@ -90,9 +90,12 @@ export function useBillingOrders() {
     queryKey: ['billing_orders', user?.company_id],
     queryFn: async () => {
       if (!user?.company_id) return [];
-      const { data, error } = await supabase
-        .from('billing_orders')
-        .select(`
+      const pageSize = 500;
+      const allOrders: BillingOrder[] = [];
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase
+          .from('billing_orders')
+          .select(`
           *,
           client:clients(name),
           article:articles(name),
@@ -105,12 +108,17 @@ export function useBillingOrders() {
           prioritizer:profiles!billing_orders_priority_by_fkey(name, code),
           canceller:profiles!billing_orders_cancelled_by_fkey(name, code),
           editor:profiles!billing_orders_last_edited_by_fkey(name, code)
-        `)
-        .eq('company_id', user.company_id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as any[] as BillingOrder[];
+          `)
+          .eq('company_id', user.company_id)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as BillingOrder[];
+        allOrders.push(...batch);
+        if (batch.length < pageSize) break;
+      }
+      return allOrders;
     },
     enabled: !!user?.company_id,
   });
