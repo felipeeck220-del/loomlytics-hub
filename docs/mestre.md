@@ -1,3 +1,8 @@
+- **27/09/2026 (Brasília) — Sequência de OF acima de 999:**
+    - Corrigida a formatação do último/próximo número: o preenchimento com zeros só vale até três dígitos, sem truncar OFs #1000+.
+    - A sugestão do modal Nova OF consulta a sequência atual ao abrir; criação simultânea é serializada por empresa e o envio duplicado foi removido.
+    - A listagem de OFs agora carrega todos os registros em lotes estáveis de 500, sem o corte padrão de 1000 linhas.
+
 - **26/08/2026 (Brasília) — Paginação no Histórico de Trocas (Artigos em Produção):**
     - Adicionada paginação de 20 em 20 registros na aba "Histórico de Trocas de Artigo" com controles (Anterior, 1, 2, 3…, Próximo) e elipse para intervalos grandes.
     - Página reinicia para 1 ao alterar a busca.

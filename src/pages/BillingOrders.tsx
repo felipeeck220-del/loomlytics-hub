@@ -266,16 +266,8 @@ const BillingOrders = () => {
     let cancelled = false;
     (async () => {
       try {
-        // Fase 1 (docs/rpcBillingOrders.md): usa bootstrap quando já carregado,
-        // caindo na RPC direta só como fallback.
-        let last: string | null;
-        let next: string;
-        if (bootstrap?.next_of_number) {
-          last = bootstrap.last_of_number ?? null;
-          next = bootstrap.next_of_number;
-        } else {
-          ({ last, next } = await getNextOfNumber());
-        }
+        // A sugestão precisa refletir a sequência atual, não o bootstrap em cache.
+        const { last, next } = await getNextOfNumber();
         if (cancelled) return;
         setLastOfNumber(last);
         setForm(f => ({ ...f, of_number: next }));
@@ -283,7 +275,7 @@ const BillingOrders = () => {
       } catch {/* ignore */}
     })();
     return () => { cancelled = true; };
-  }, [showCreateModal, bootstrap?.next_of_number, bootstrap?.last_of_number]);
+  }, [showCreateModal, user?.company_id]);
 
   const [launchForm, setLaunchForm] = useState({
     pieces_real: '',
@@ -582,7 +574,6 @@ const BillingOrders = () => {
       admin_notes: form.admin_notes?.trim() || null,
     };
     // Check balance removed as part of Manual Stock removal
-    await submitCreateOrder(payload);
     await submitCreateOrder(payload);
   };
 
