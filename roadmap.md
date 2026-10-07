@@ -4,4 +4,4 @@
 - [x] Gerar demonstrativo por NF com novas páginas por fio e cabeçalho com logo.
 - [x] Verificar filtros, download real e páginas do PDF; atualizar histórico mestre.
 - [x] Alinhar cabeçalhos, dados e totais; adicionar fio abaixo do título.
-- [ ] Verificar visualmente o PDF atualizado.
+- [x] Verificar visualmente o PDF atualizado: cinco páginas sem desalinhamento ou sobreposição.
