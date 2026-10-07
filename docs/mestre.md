@@ -1,3 +1,7 @@
+- **07/10/2026 (Brasília) — Alinhamento da exportação geral de NFs:**
+    - Cabeçalhos, dados e totais compartilham o mesmo alinhamento por coluna: Fio/NF/Status à esquerda e pesos à direita.
+    - Nome do fio aparece em uma nova linha abaixo de NOTAS FISCAIS DE CLIENTES em todas as páginas, preservando logo e espaço para nomes longos.
+
 - **07/10/2026 (Brasília) — Exportação geral de NFs por cliente:**
     - Demonstrativo por NF/fio com colunas Fio, NF, Entrada, Saída, Saldo e Status; Tipo de Dados define as colunas de peso exibidas.
     - Filtros Status e Fio/NF respeitam o período de emissão das entradas e exibem abertas antes das encerradas; saldo atual considera todas as saídas vinculadas, inclusive posteriores ao período.

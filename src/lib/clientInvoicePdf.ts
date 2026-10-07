@@ -53,14 +53,20 @@ interface BaseOpts {
   companyName: string;
   logoInfo: LogoInfo;
   reportTitle: string;
+  reportSubtitle?: string;
   periodLabel: string;
 }
 
 export function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: number, y: number) {
-  const headerH = 25;
   const leftX = margin + 5;
   const rightX = pageWidth - margin - 5;
   const titleMaxWidth = pageWidth - 2 * margin - 90;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(10);
+  const subtitleLines: string[] = opts.reportSubtitle
+    ? pdf.splitTextToSize(sanitizePdfText(opts.reportSubtitle), titleMaxWidth)
+    : [];
+  const headerH = Math.max(25, 21 + subtitleLines.length * 4);
 
   pdf.setFillColor(...colors.grayBg);
   pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
@@ -84,7 +90,7 @@ export function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: 
   pdf.setFontSize(8);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(...colors.textMid);
-  pdf.text(dateStr, leftX, y + 22);
+  pdf.text(dateStr, leftX, y + headerH - 3);
 
   // Title centered
   pdf.setFontSize(14);
@@ -97,6 +103,11 @@ export function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: 
     pdf.text(line, (pageWidth - w) / 2, titleY);
     titleY += 6;
   });
+  pdf.setFontSize(10);
+  subtitleLines.forEach((line) => {
+    pdf.text(line, pageWidth / 2, titleY, { align: 'center' });
+    titleY += 4;
+  });
 
   // Period right
   pdf.setFontSize(8);
@@ -104,7 +115,7 @@ export function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: 
   pdf.setTextColor(...colors.textMid);
   const periodText = sanitizePdfText(opts.periodLabel);
   const pW = pdf.getTextWidth(periodText);
-  pdf.text(periodText, rightX - pW, y + 22);
+  pdf.text(periodText, rightX - pW, y + headerH - 3);
 
   return y + headerH + 8;
 }
@@ -156,16 +167,19 @@ export async function exportClientInvoicesGeneralPdf(params: {
     if (exportType !== 'saida') foot.push(statementWeight(totals.weight_entrada));
     if (exportType !== 'entrada') foot.push(statementWeight(totals.weight_saida));
     foot.push(statementWeight(totals.saldo), '');
-    const columns: Record<number, { halign?: 'right'; cellWidth?: number }> = {
-      0: { cellWidth: 70 }, 1: { cellWidth: 32 },
+    const columns: Record<number, { halign: 'left' | 'right'; cellWidth?: number }> = {
+      0: { halign: 'left', cellWidth: 70 }, 1: { halign: 'left', cellWidth: 32 },
     };
     for (let index = 2; index < headings.length - 1; index++) columns[index] = { halign: 'right' };
-    columns[headings.length - 1] = { cellWidth: 30 };
-    const sectionText = sanitizePdfText(`Cliente: ${params.clientName || '-'}   |   Fio: ${yarnName}`);
+    columns[headings.length - 1] = { halign: 'left', cellWidth: 30 };
+    const headerOpts = { companyName: params.companyName, logoInfo,
+      reportTitle: 'NOTAS FISCAIS DE CLIENTES', reportSubtitle: yarnName, periodLabel: params.periodLabel };
+    const sectionY = drawHeader(pdf, headerOpts, pageWidth, margin, margin);
+    const sectionText = sanitizePdfText(`Cliente: ${params.clientName || '-'}`);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     const sectionLines = pdf.splitTextToSize(sectionText, pageWidth - margin * 2) as string[];
-    const tableTop = margin + 25 + 8 + sectionLines.length * 4 + 4;
+    const tableTop = sectionY + sectionLines.length * 4 + 4;
     autoTable(pdf, {
       startY: tableTop,
       head: [headings], body: rows.map(cells), foot: [foot],
@@ -175,11 +189,14 @@ export async function exportClientInvoicesGeneralPdf(params: {
       alternateRowStyles: { fillColor: colors.grayBg },
       footStyles: { fillColor: colors.border, textColor: colors.textDark, fontStyle: 'bold' },
       columnStyles: columns,
+      didParseCell: (data) => {
+        // AutoTable columnStyles do not apply to headers/footers by default.
+        // Use the same text anchor in every section of each column.
+        data.cell.styles.halign = columns[data.column.index]?.halign || 'left';
+      },
       margin: { top: tableTop, left: margin, right: margin, bottom: 15 },
       willDrawPage: () => {
-        const y = drawHeader(pdf, { companyName: params.companyName, logoInfo,
-          reportTitle: 'NOTAS FISCAIS DE CLIENTES', periodLabel: params.periodLabel,
-        }, pageWidth, margin, margin);
+        const y = drawHeader(pdf, headerOpts, pageWidth, margin, margin);
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(...colors.textDark);
         pdf.text(sectionLines, margin, y);
       },

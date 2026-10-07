@@ -1,5 +1,7 @@
 # Tarefas
-- [ ] Corrigir geração do PDF geral individual por cliente.
-- [ ] Implementar seleção por status e fio/NF respeitando o período.
-- [ ] Gerar demonstrativo por NF com novas páginas por fio e cabeçalho com logo.
-- [ ] Verificar filtros, download real e páginas do PDF; atualizar histórico mestre.
+- [x] Corrigir geração do PDF geral individual por cliente.
+- [x] Implementar seleção por status e fio/NF respeitando o período.
+- [x] Gerar demonstrativo por NF com novas páginas por fio e cabeçalho com logo.
+- [x] Verificar filtros, download real e páginas do PDF; atualizar histórico mestre.
+- [x] Alinhar cabeçalhos, dados e totais; adicionar fio abaixo do título.
+- [x] Verificar visualmente o PDF atualizado: cinco páginas sem desalinhamento ou sobreposição.
