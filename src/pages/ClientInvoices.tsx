@@ -1203,14 +1203,22 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   }), [exportRows, exportMonth, exportFrom, exportTo, exportStatus]);
   const exportYarnOptions = useMemo(() => {
     const ids = [...new Set(eligibleExportRows.map(row => row.yarn_id))];
-    return [{ value: 'all', label: 'Todos' }, ...ids.map(id => ({
-      value: id || 'unknown',
-      label: eligibleExportRows.filter(row => row.yarn_id === id)
-        .map(row => `${row.yarn_name} · NF ${row.invoice_number} · ${row.status}`).join(' / '),
-    }))];
+    return [{ value: 'all', label: 'Todos' }, ...ids.flatMap(id => {
+      const rows = eligibleExportRows.filter(row => row.yarn_id === id);
+      return [
+        { value: `yarn:${id}`, label: `${rows[0]?.yarn_name || 'Fio não informado'} · Todas as notas (${rows.length})` },
+        ...rows.map(row => ({
+          value: `nf:${JSON.stringify([row.id, row.yarn_id])}`,
+          label: `${row.yarn_name} · NF ${row.invoice_number} · ${row.status}`,
+        })),
+      ];
+    })];
   }, [eligibleExportRows]);
   useEffect(() => { setExportYarn('all'); }, [exportStatus, exportMonth, exportFrom, exportTo]);
-  const exportInvoices = useMemo(() => eligibleExportRows.filter(row => exportYarn === 'all' || (row.yarn_id || 'unknown') === exportYarn), [eligibleExportRows, exportYarn]);
+  const exportInvoices = useMemo(() => eligibleExportRows.filter(row =>
+    exportYarn === 'all' || `yarn:${row.yarn_id}` === exportYarn ||
+    `nf:${JSON.stringify([row.id, row.yarn_id])}` === exportYarn
+  ), [eligibleExportRows, exportYarn]);
 
   // Available months from invoices
   const monthOptions = useMemo(() => {

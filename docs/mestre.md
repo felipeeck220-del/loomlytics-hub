@@ -1,3 +1,7 @@
+- **07/10/2026 (Brasília) — Seleção individual de NF na exportação geral:**
+    - Seletor Fio mantém a opção de todas as notas de cada fio e acrescenta opções individuais por NF, identificadas por fio, número e status.
+    - Contagem e PDF respeitam a seleção individual, além dos filtros existentes de status e período.
+
 - **07/10/2026 (Brasília) — Alinhamento da exportação geral de NFs:**
     - Cabeçalhos, dados e totais compartilham o mesmo alinhamento por coluna: Fio/NF/Status à esquerda e pesos à direita.
     - Nome do fio aparece em uma nova linha abaixo de NOTAS FISCAIS DE CLIENTES em todas as páginas, preservando logo e espaço para nomes longos.
