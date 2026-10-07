@@ -1,3 +1,6 @@
+- **06/10/2026 (Brasília) — Notas Fiscais (Clientes) sem limite de 1000:**
+    - Notas e vínculos de saída agora são carregados integralmente em lotes estáveis, corrigindo notas antigas (ex.: 290696) que não apareciam em "Descontar de Notas de Entrada".
+
 - **27/09/2026 (Brasília) — Sequência de OF acima de 999:**
     - Corrigida a formatação do último/próximo número: o preenchimento com zeros só vale até três dígitos, sem truncar OFs #1000+.
     - A sugestão do modal Nova OF consulta a sequência atual ao abrir; criação simultânea é serializada por empresa e o envio duplicado foi removido.
