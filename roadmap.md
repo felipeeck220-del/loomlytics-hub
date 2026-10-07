@@ -5,3 +5,5 @@
 - [x] Verificar filtros, download real e páginas do PDF; atualizar histórico mestre.
 - [x] Alinhar cabeçalhos, dados e totais; adicionar fio abaixo do título.
 - [x] Verificar visualmente o PDF atualizado: cinco páginas sem desalinhamento ou sobreposição.
+- [x] Permitir selecionar todas as notas de um fio ou uma NF individual.
+- [ ] Validar seleção agrupada e individual no modal e no PDF.
