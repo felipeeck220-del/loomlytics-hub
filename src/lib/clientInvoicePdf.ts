@@ -1,5 +1,6 @@
 import { sanitizePdfText } from './pdfUtils';
 import { format } from 'date-fns';
+import type { ClientInvoiceExportRow, ExportDataType } from './clientInvoiceExport';
 
 type LogoInfo = { data: string; width: number; height: number } | null;
 
@@ -112,74 +113,82 @@ export async function exportClientInvoicesGeneralPdf(params: {
   companyName: string;
   logoUrl: string | null;
   periodLabel: string;
-  exportType?: 'entrada' | 'saida' | 'ambos';
+  exportType?: ExportDataType;
   clientName?: string;
-  // Fase 3 rpcclientInvoices: payload já vem pronto do banco (get_client_invoices_export)
-  rows: Array<{
-    issue_date: string | null;
-    invoice_number: string | null;
-    type: 'entrada' | 'saida';
-    yarn_name: string | null;
-    supplier_name: string | null;
-    weight_entrada: number;
-    weight_saida: number;
-    saldo: number;
-  }>;
-  totals: { totalEntrada: number; totalSaida: number; totalSaldo: number; totalNotas: number };
+  rows: ClientInvoiceExportRow[];
 }) {
   const { jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
   const pdf = new jsPDF('l', 'mm', 'a4');
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const margin = 12;
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 15;
   const logoInfo = await loadLogoForPdf(params.logoUrl);
-
   const exportType = params.exportType || 'ambos';
-  const typeLabel = exportType === 'entrada' ? 'ENTRADAS' : exportType === 'saida' ? 'SAÍDAS' : 'ENTRADAS + SAÍDAS';
-
-  let y = drawHeader(pdf, {
-    companyName: params.companyName,
-    logoInfo,
-    reportTitle: `NOTAS FISCAIS DE CLIENTES — RELATÓRIO GERAL (${typeLabel})`,
-    periodLabel: params.periodLabel,
-  }, pageWidth, margin, margin);
-
-  // KPIs vindos da RPC
-  const { totalEntrada, totalSaida, totalNotas } = params.totals;
-
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(...colors.textDark);
-  pdf.text(
-    `${params.clientName ? 'Cliente: ' + params.clientName + '    ' : ''}Total de Notas: ${totalNotas}    Entrada (kg): ${fmt(totalEntrada)}    Saída (kg): ${fmt(totalSaida)}    Saldo: ${fmt(totalEntrada - totalSaida)}`,
-    margin, y,
-  );
-  y += 4;
-
-  const rows = params.rows.map(r => {
-    const isEntrada = r.type === 'entrada';
-    return [
-      dateBR(r.issue_date),
-      r.invoice_number || '-',
-      r.yarn_name || '-',
-      r.supplier_name || '-',
-      isEntrada ? fmt(r.weight_entrada) : '-',
-      !isEntrada ? fmt(r.weight_saida) : '-',
-      isEntrada ? fmt(r.saldo) : '-',
-    ].map((c: any) => sanitizePdfText(String(c ?? '')));
-  });
-
-  autoTable(pdf, {
-    startY: y + 2,
-    head: [['Data', 'NF', 'Fio', 'Fornecedor', 'Peso Entrada (kg)', 'Peso Saída (kg)', 'Saldo (kg)']],
-    body: rows,
-    styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: colors.headerFill, textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: { 4: { halign: 'right' }, 5: { halign: 'right' }, 6: { halign: 'right' } },
-    margin: { left: margin, right: margin },
-  });
-
+  const groups = new Map<string, ClientInvoiceExportRow[]>();
+  for (const row of params.rows) {
+    const group = groups.get(row.yarn_id) || [];
+    group.push(row);
+    groups.set(row.yarn_id, group);
+  }
+  let section = 0;
+  for (const rows of groups.values()) {
+    if (section++ > 0) pdf.addPage();
+    const yarnName = rows[0]?.yarn_name || '-';
+    const headings = ['Fio', 'NF'];
+    if (exportType !== 'saida') headings.push('Entrada (kg)');
+    if (exportType !== 'entrada') headings.push('Saída (kg)');
+    headings.push('Saldo (kg)', 'Status');
+    const cells = (row: ClientInvoiceExportRow) => {
+      const values = [row.yarn_name, row.invoice_number];
+      if (exportType !== 'saida') values.push(fmt(row.weight_entrada));
+      if (exportType !== 'entrada') values.push(fmt(row.weight_saida));
+      values.push(fmt(row.saldo), row.status);
+      return values.map(sanitizePdfText);
+    };
+    const totals = rows.reduce((total, row) => ({
+      weight_entrada: total.weight_entrada + row.weight_entrada,
+      weight_saida: total.weight_saida + row.weight_saida,
+      saldo: total.saldo + row.saldo,
+    }), { weight_entrada: 0, weight_saida: 0, saldo: 0 });
+    const foot = ['TOTAL', String(rows.length) + ' NFs'];
+    if (exportType !== 'saida') foot.push(fmt(totals.weight_entrada));
+    if (exportType !== 'entrada') foot.push(fmt(totals.weight_saida));
+    foot.push(fmt(totals.saldo), '');
+    const columns: Record<number, { halign?: 'right'; cellWidth?: number }> = {
+      0: { cellWidth: 70 }, 1: { cellWidth: 32 },
+    };
+    for (let index = 2; index < headings.length - 1; index++) columns[index] = { halign: 'right' };
+    columns[headings.length - 1] = { cellWidth: 30 };
+    const sectionText = sanitizePdfText(`Cliente: ${params.clientName || '-'}   |   Fio: ${yarnName}`);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    const sectionLines = pdf.splitTextToSize(sectionText, pageWidth - margin * 2) as string[];
+    const tableTop = margin + 25 + 8 + sectionLines.length * 4 + 4;
+    autoTable(pdf, {
+      startY: tableTop,
+      head: [headings], body: rows.map(cells), foot: [foot],
+      showFoot: 'lastPage',
+      styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' },
+      headStyles: { fillColor: colors.headerFill, textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: colors.grayBg },
+      footStyles: { fillColor: colors.border, textColor: colors.textDark, fontStyle: 'bold' },
+      columnStyles: columns,
+      margin: { top: tableTop, left: margin, right: margin, bottom: 15 },
+      willDrawPage: () => {
+        const y = drawHeader(pdf, { companyName: params.companyName, logoInfo,
+          reportTitle: 'NOTAS FISCAIS DE CLIENTES', periodLabel: params.periodLabel,
+        }, pageWidth, margin, margin);
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(...colors.textDark);
+        pdf.text(sectionLines, margin, y);
+      },
+    });
+  }
+  const pageCount = pdf.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
+    pdf.setPage(page); pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
+    pdf.text(`Página ${page} de ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+  }
   pdf.save(`notas-clientes-geral-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
 }
 
