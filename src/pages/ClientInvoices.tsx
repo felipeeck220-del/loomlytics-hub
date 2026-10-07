@@ -22,7 +22,8 @@ import { exportClientInvoicesGeneralPdf, exportClientInvoiceByNfPdf } from '@/li
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { cn } from '@/lib/utils';
+import { cn, getFriendlyErrorMessage } from '@/lib/utils';
+import { buildClientInvoiceExportRows, filterClientInvoiceExportRows, type ExportStatus } from '@/lib/clientInvoiceExport';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import {
   AlertDialog,
@@ -1101,6 +1102,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'general' | 'by_nf'>('general');
   const [exportType, setExportType] = useState<'entrada' | 'saida' | 'ambos'>('ambos');
+  const [exportStatus, setExportStatus] = useState<ExportStatus>('ambos');
+  const [exportYarn, setExportYarn] = useState('all');
   const [exportMonth, setExportMonth] = useState<string>('all');
   const [exportFrom, setExportFrom] = useState<string>('');
   const [exportTo, setExportTo] = useState<string>('');
@@ -1194,17 +1197,20 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const totalPages = Math.max(1, Math.ceil(serverTotal / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
-  // ---- Build dataset for export based on filters ----
-  const exportInvoices = useMemo(() => {
-    let base = invoices;
-    if (exportType !== 'ambos') base = base.filter((i: any) => i.type === exportType);
-    if (exportMonth && exportMonth !== 'all') {
-      base = base.filter((i: any) => (i.issue_date || '').startsWith(exportMonth));
-    }
-    if (exportFrom) base = base.filter((i: any) => (i.issue_date || '') >= exportFrom);
-    if (exportTo) base = base.filter((i: any) => (i.issue_date || '') <= exportTo);
-    return base;
-  }, [invoices, exportMonth, exportFrom, exportTo, exportType]);
+  const exportRows = useMemo(() => buildClientInvoiceExportRows(invoices, exitLinksAll, yarnTypes), [invoices, exitLinksAll, yarnTypes]);
+  const eligibleExportRows = useMemo(() => filterClientInvoiceExportRows(exportRows, {
+    month: exportMonth, from: exportFrom, to: exportTo, status: exportStatus,
+  }), [exportRows, exportMonth, exportFrom, exportTo, exportStatus]);
+  const exportYarnOptions = useMemo(() => {
+    const ids = [...new Set(eligibleExportRows.map(row => row.yarn_id))];
+    return [{ value: 'all', label: 'Todos' }, ...ids.map(id => ({
+      value: id || 'unknown',
+      label: eligibleExportRows.filter(row => row.yarn_id === id)
+        .map(row => `${row.yarn_name} · NF ${row.invoice_number} · ${row.status}`).join(' / '),
+    }))];
+  }, [eligibleExportRows]);
+  useEffect(() => { setExportYarn('all'); }, [exportStatus, exportMonth, exportFrom, exportTo]);
+  const exportInvoices = useMemo(() => eligibleExportRows.filter(row => exportYarn === 'all' || (row.yarn_id || 'unknown') === exportYarn), [eligibleExportRows, exportYarn]);
 
   // Available months from invoices
   const monthOptions = useMemo(() => {
@@ -1226,32 +1232,18 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       const periodLabel = periodParts.length ? periodParts.join(' · ') : 'Todo o período';
 
       if (exportMode === 'general') {
-        // Fase 3 rpcclientInvoices — payload consolidado do banco
-        const { data: payload, error } = await (supabase.rpc as any)('get_client_invoices_export', {
-          p_company_id: companyId,
-          p_client_id: clientId,
-          p_type: exportType,
-          p_month: exportMonth || 'all',
-          p_start: exportFrom || null,
-          p_end: exportTo || null,
-        });
-        if (error) throw error;
-        const rows = (payload?.rows || []) as any[];
-        if (rows.length === 0) { toast.error('Nenhuma nota no período selecionado'); return; }
+        if (exportFrom && exportTo && exportFrom > exportTo) { toast.error('A data início deve ser anterior à data fim'); return; }
+        if (exportInvoices.length === 0) { toast.error('Nenhuma nota nos filtros selecionados'); return; }
         await exportClientInvoicesGeneralPdf({
-          companyName: payload?.company?.name || companyName,
-          logoUrl:     payload?.company?.logo_url ?? companyLogoUrl,
-          periodLabel,
-          exportType,
-          clientName:  payload?.client?.name,
-          rows,
-          totals: payload?.totals || { totalEntrada: 0, totalSaida: 0, totalSaldo: 0, totalNotas: rows.length },
+          companyName, logoUrl: companyLogoUrl, periodLabel, exportType,
+          clientName: allClients.find((client: any) => client.id === clientId)?.name,
+          rows: exportInvoices,
         });
         toast.success('PDF gerado com sucesso');
         setExportOpen(false);
       }
     } catch (e: any) {
-      console.error(e); toast.error('Erro ao gerar PDF');
+      console.error(e); toast.error(`Erro ao gerar PDF: ${getFriendlyErrorMessage(e)}`);
     } finally { setExportLoading(false); }
   };
 
@@ -1281,7 +1273,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       toast.success('PDF gerado com sucesso');
       setExportOpen(false);
     } catch (e: any) {
-      console.error(e); toast.error('Erro ao gerar PDF');
+      console.error(e); toast.error(`Erro ao gerar PDF: ${getFriendlyErrorMessage(e)}`);
     } finally { setExportLoading(false); }
   };
 
@@ -1602,9 +1594,6 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
             {exportMode === 'general' ? (
               <>
-                <p className="text-xs text-muted-foreground">
-                  Gera um PDF com a lista de todas as notas (entradas e saídas) do cliente filtradas por mês e/ou intervalo de datas.
-                </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Tipo de Dados</Label>
@@ -1616,6 +1605,18 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                         <SelectItem value="saida">Somente Saída</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Status</Label>
+                    <SearchableSelect value={exportStatus} onValueChange={value => setExportStatus(value as ExportStatus)} options={[
+                      { value: 'ambos', label: 'Ambos' },
+                      { value: 'aberto', label: 'Em Aberto' },
+                      { value: 'encerradas', label: 'Encerradas' },
+                    ]} />
+                  </div>
+                  <div className="space-y-1 col-span-2 min-w-0">
+                    <Label className="text-xs">Fio</Label>
+                    <SearchableSelect value={exportYarn} onValueChange={setExportYarn} options={exportYarnOptions} searchPlaceholder="Buscar fio ou NF..." />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Mês</Label>
@@ -1712,7 +1713,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
           <DialogFooter>
             <Button variant="outline" onClick={() => setExportOpen(false)}>Fechar</Button>
             {exportMode === 'general' && (
-              <Button onClick={handleExport} disabled={exportLoading} className="gap-2">
+              <Button onClick={handleExport} disabled={exportLoading || exportInvoices.length === 0} className="gap-2">
                 {exportLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 Gerar PDF
               </Button>
