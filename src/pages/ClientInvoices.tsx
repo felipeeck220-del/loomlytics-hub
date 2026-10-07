@@ -1609,7 +1609,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                   <div className="space-y-1">
                     <Label className="text-xs">Status</Label>
                     <SearchableSelect value={exportStatus} onValueChange={value => setExportStatus(value as ExportStatus)} options={[
-                      { value: 'ambos', label: 'Em Aberto + Encerradas' },
+                      { value: 'ambos', label: 'Ambos' },
                       { value: 'aberto', label: 'Em Aberto' },
                       { value: 'encerradas', label: 'Encerradas' },
                     ]} />

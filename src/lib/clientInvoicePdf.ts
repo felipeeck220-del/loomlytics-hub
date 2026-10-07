@@ -68,7 +68,7 @@ export function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: 
   pdf.setLineWidth(0.5);
   pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
 
-  const dateStr = new Date().toLocaleString('pt-BR');
+  const dateStr = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
   if (opts.logoInfo) {
     try {
@@ -125,6 +125,7 @@ export async function exportClientInvoicesGeneralPdf(params: {
   const margin = 15;
   const logoInfo = await loadLogoForPdf(params.logoUrl);
   const exportType = params.exportType || 'ambos';
+  const statementWeight = (value: number) => Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const groups = new Map<string, ClientInvoiceExportRow[]>();
   for (const row of params.rows) {
     const group = groups.get(row.yarn_id) || [];
@@ -141,9 +142,9 @@ export async function exportClientInvoicesGeneralPdf(params: {
     headings.push('Saldo (kg)', 'Status');
     const cells = (row: ClientInvoiceExportRow) => {
       const values = [row.yarn_name, row.invoice_number];
-      if (exportType !== 'saida') values.push(fmt(row.weight_entrada));
-      if (exportType !== 'entrada') values.push(fmt(row.weight_saida));
-      values.push(fmt(row.saldo), row.status);
+      if (exportType !== 'saida') values.push(statementWeight(row.weight_entrada));
+      if (exportType !== 'entrada') values.push(statementWeight(row.weight_saida));
+      values.push(statementWeight(row.saldo), row.status);
       return values.map(sanitizePdfText);
     };
     const totals = rows.reduce((total, row) => ({
@@ -152,9 +153,9 @@ export async function exportClientInvoicesGeneralPdf(params: {
       saldo: total.saldo + row.saldo,
     }), { weight_entrada: 0, weight_saida: 0, saldo: 0 });
     const foot = ['TOTAL', String(rows.length) + ' NFs'];
-    if (exportType !== 'saida') foot.push(fmt(totals.weight_entrada));
-    if (exportType !== 'entrada') foot.push(fmt(totals.weight_saida));
-    foot.push(fmt(totals.saldo), '');
+    if (exportType !== 'saida') foot.push(statementWeight(totals.weight_entrada));
+    if (exportType !== 'entrada') foot.push(statementWeight(totals.weight_saida));
+    foot.push(statementWeight(totals.saldo), '');
     const columns: Record<number, { halign?: 'right'; cellWidth?: number }> = {
       0: { cellWidth: 70 }, 1: { cellWidth: 32 },
     };
