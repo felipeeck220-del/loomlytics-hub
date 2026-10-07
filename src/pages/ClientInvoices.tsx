@@ -135,13 +135,22 @@ export default function ClientInvoices() {
   const { data: clientInvoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['client_invoices', companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('client_invoices')
-        .select('*, items:client_invoice_items(*)')
-        .eq('company_id', companyId)
-        .order('issue_date', { ascending: false });
-      if (error) throw error;
-      return data || [];
+      // Sem limite: carrega todos os registros em lotes estáveis de 500
+      const PAGE = 500;
+      let all: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('client_invoices')
+          .select('*, items:client_invoice_items(*)')
+          .eq('company_id', companyId)
+          .order('issue_date', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        all = all.concat(data || []);
+        if (!data || data.length < PAGE) break;
+      }
+      return all;
     },
     enabled: !!companyId,
   });
@@ -150,12 +159,21 @@ export default function ClientInvoices() {
   const { data: exitLinksAll = [] } = useQuery({
     queryKey: ['client_invoice_exit_links', companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('client_invoice_exit_links')
-        .select('*')
-        .eq('company_id', companyId);
-      if (error) throw error;
-      return data || [];
+      const PAGE = 1000;
+      let all: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('client_invoice_exit_links')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        all = all.concat(data || []);
+        if (!data || data.length < PAGE) break;
+      }
+      return all;
     },
     enabled: !!companyId,
   });
