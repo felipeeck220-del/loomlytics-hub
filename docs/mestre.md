@@ -1,3 +1,8 @@
+- **07/10/2026 (Brasília) — Exportação geral de NFs por cliente:**
+    - Demonstrativo por NF/fio com colunas Fio, NF, Entrada, Saída, Saldo e Status; Tipo de Dados define as colunas de peso exibidas.
+    - Filtros Status e Fio/NF respeitam o período de emissão das entradas e exibem abertas antes das encerradas; saldo atual considera todas as saídas vinculadas, inclusive posteriores ao período.
+    - PDF usa os dados completos já carregados, sem depender da RPC de exportação geral; cada fio começa nova página com cabeçalho padrão e logo repetidos nas continuações.
+
 - **06/10/2026 (Brasília) — Notas Fiscais (Clientes) sem limite de 1000:**
     - Notas e vínculos de saída agora são carregados integralmente em lotes estáveis, corrigindo notas antigas (ex.: 290696) que não apareciam em "Descontar de Notas de Entrada".
 
