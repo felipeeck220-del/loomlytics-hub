@@ -324,7 +324,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const addCreatePhotoDraft = (file: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
-    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    
     setCreatePhotoDrafts(prev => {
       if (prev.length >= 2) { toast.error('Máximo de 2 fotos'); return prev; }
       const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
@@ -605,7 +605,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const addFinishPhotoDraft = (file: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
-    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    
     setFinishPhotoDrafts(prev => {
       if (prev.length >= 2) { toast.error('Máximo de 2 fotos'); return prev; }
       const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
@@ -877,7 +877,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (photoDraftPreview) { try { URL.revokeObjectURL(photoDraftPreview); } catch { /* */ } }
     if (!file) { setPhotoDraftFile(null); setPhotoDraftPreview(null); return; }
     if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
-    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    
     setPhotoDraftFile(file);
     setPhotoDraftPreview(URL.createObjectURL(file));
   };
@@ -2325,7 +2325,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                         const f = e.target.files?.[0] || null;
                         e.currentTarget.value = '';
                         if (!f || !f.type.startsWith('image/')) return;
-                        if (f.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+                        
                         const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
                         setEscalatePhotos(prev => prev.length >= 3 ? prev : [...prev, { id, file: f, preview: URL.createObjectURL(f), description: '' }]);
                       }} />
@@ -2337,7 +2337,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                         const f = e.target.files?.[0] || null;
                         e.currentTarget.value = '';
                         if (!f || !f.type.startsWith('image/')) return;
-                        if (f.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+                        
                         const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
                         setEscalatePhotos(prev => prev.length >= 3 ? prev : [...prev, { id, file: f, preview: URL.createObjectURL(f), description: '' }]);
                       }} />
