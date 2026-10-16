@@ -55,10 +55,6 @@ export const OfCollectPhotosModal: React.FC<Props> = ({
 
   const addFile = (f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
-    if (f.size > 8 * 1024 * 1024) {
-      toast({ title: 'Imagem acima de 8 MB', variant: 'destructive' });
-      return;
-    }
     setDrafts(prev => prev.length >= MAX_PHOTOS
       ? prev
       : [...prev, { id: uid(), file: f, preview: URL.createObjectURL(f), description: '' }]);
