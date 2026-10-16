@@ -16,6 +16,7 @@
 
 const MAX_DIM = 1600;
 const QUALITY = 0.72;
+const TARGET_MAX_BYTES = 7.5 * 1024 * 1024; // sempre abaixo de 8 MB
 const SKIP_BYTES = 300 * 1024; // <300KB não vale a pena comprimir
 
 export interface CompressResult {
@@ -45,20 +46,27 @@ export async function compressImage(input: File): Promise<CompressResult> {
 
     const bitmap = await loadBitmap(input);
     const { width: w0, height: h0 } = bitmap;
-    const scale = Math.min(1, MAX_DIM / Math.max(w0, h0));
-    const w = Math.max(1, Math.round(w0 * scale));
-    const h = Math.max(1, Math.round(h0 * scale));
-
-    const canvas = typeof OffscreenCanvas !== 'undefined'
-      ? new OffscreenCanvas(w, h)
-      : Object.assign(document.createElement('canvas'), { width: w, height: h });
-    const ctx = (canvas as any).getContext('2d');
-    if (!ctx) return done(input, true);
-    ctx.drawImage(bitmap as any, 0, 0, w, h);
+    // Tentativas progressivas: garante resultado sempre abaixo de TARGET_MAX_BYTES.
+    const attempts: Array<[number, number]> = [
+      [MAX_DIM, QUALITY], [MAX_DIM, 0.6], [1280, 0.6], [1024, 0.55], [800, 0.5], [640, 0.45],
+    ];
+    let blob: Blob | null = null;
+    for (const [dim, q] of attempts) {
+      const scale = Math.min(1, dim / Math.max(w0, h0));
+      const w = Math.max(1, Math.round(w0 * scale));
+      const h = Math.max(1, Math.round(h0 * scale));
+      const canvas = typeof OffscreenCanvas !== 'undefined'
+        ? new OffscreenCanvas(w, h)
+        : Object.assign(document.createElement('canvas'), { width: w, height: h });
+      const ctx = (canvas as any).getContext('2d');
+      if (!ctx) break;
+      ctx.drawImage(bitmap as any, 0, 0, w, h);
+      blob = await canvasToBlob(canvas as any, 'image/jpeg', q);
+      if (blob && blob.size <= TARGET_MAX_BYTES) break;
+    }
     if ((bitmap as any).close) (bitmap as any).close();
 
-    const blob: Blob | null = await canvasToBlob(canvas as any, 'image/jpeg', QUALITY);
-    if (!blob || blob.size >= originalBytes) return done(input, true);
+    if (!blob || (blob.size >= originalBytes && originalBytes <= TARGET_MAX_BYTES)) return done(input, true);
 
     const baseName = (input.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
     const outFile = new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });

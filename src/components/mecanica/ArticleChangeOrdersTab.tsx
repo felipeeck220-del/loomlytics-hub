@@ -1271,7 +1271,7 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
       const room = MAX_PHOTOS - prev.length;
       if (room <= 0) { toast.error(`Máximo de ${MAX_PHOTOS} fotos`); return prev; }
       const accepted = incoming.slice(0, room).filter(f => {
-        if (f.size > 8 * 1024 * 1024) { toast.error(`${f.name}: máximo 8 MB por foto`); return false; }
+
         return true;
       });
       if (incoming.length > room) toast.error(`Máximo de ${MAX_PHOTOS} fotos`);
@@ -1462,7 +1462,7 @@ function FinalizeModal({ o, onClose, onDone, machines, articles }: { o: OT; onCl
               </Label>
               <span className="text-[10px] text-muted-foreground">{photoDrafts.length}/{MAX_PHOTOS}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground">Até {MAX_PHOTOS} imagens (8 MB cada). São comprimidas automaticamente antes do envio.</p>
+            <p className="text-[11px] text-muted-foreground">Até {MAX_PHOTOS} imagens (qualquer tamanho). São comprimidas automaticamente antes do envio.</p>
             <input ref={photoInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { addPhotoFiles(e.target.files); e.currentTarget.value = ''; }} />
             <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { addPhotoFiles(e.target.files); e.currentTarget.value = ''; }} />
             <div className="flex flex-wrap gap-2">

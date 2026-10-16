@@ -1,3 +1,6 @@
+- **16/10/2026 (Brasília) — Fotos da Mecânica sem limite de 8 MB:**
+    - OC/OE/OT aceitam fotos de qualquer tamanho; a compressão reduz progressivamente dimensão e qualidade até ficar abaixo de 8 MB.
+
 - **07/10/2026 (Brasília) — Seleção individual de NF na exportação geral:**
     - Seletor Fio mantém a opção de todas as notas de cada fio e acrescenta opções individuais por NF, identificadas por fio, número e status.
     - Contagem e PDF respeitam a seleção individual, além dos filtros existentes de status e período.
