@@ -1,5 +1,5 @@
 # Tarefas
-- [ ] Tornar manutenção e nova versão exclusivos e bloquear acesso com mensagem de migração; verificar regras, telas e registrar no mestre.
+- [x] Tornar manutenção e nova versão exclusivos e bloquear acesso com mensagem de migração; verificar regras, telas e registrar no mestre.
 - [x] Adicionar controle de manutenção por empresa e bloqueio dos usuários.
 - [x] Verificar gravação real com manutenção desativada, regras de isolamento e tela de bloqueio simulada no desktop/mobile; atualizar arquivo mestre sem interromper usuários reais.
 - [x] Corrigir geração do PDF geral individual por cliente.

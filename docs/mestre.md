@@ -1,3 +1,9 @@
+- **07/11/2026, 12:25 (Brasília) — Bloqueio por migração e modos exclusivos:**
+    - “Nova versão do app” agora bloqueia o acesso dos demais usuários ao app antigo, inclusive após login, exibindo a mensagem de migração e o botão para https://apptramacerta.web.app/; administrador principal mantém acesso.
+    - Ativar manutenção desativa migração automaticamente e vice-versa, em atualização única autorizada; restrição no banco impede os dois modos ativos simultaneamente.
+    - Trigger de auditoria passa a monitorar também mudanças no link; configuração anterior com ambos ativos corrigida preservando a migração.
+    - Dez testes de acesso aprovados; troca real dos controles e auditoria verificadas. Tela de usuário bloqueado conferida no computador/celular com autorização de não administrador simulada, sem carregamento dos dados da empresa; compilação sem erros.
+
 - **07/11/2026, 12:25 (Brasília) — Aviso de nova versão do app por empresa:**
     - Configurações > Empresa ganha o controle "Nova versão do app" abaixo de "Site em manutenção", restrito ao administrador principal e com confirmação antes de ativar.
     - Ao ativar, todos os usuários da empresa veem um aviso fixo no topo do app convidando a migrar para o novo endereço (https://apptramacerta.web.app/), com botão "Acessar novo app" abrindo em nova guia.
