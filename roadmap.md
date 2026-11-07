@@ -1,4 +1,6 @@
 # Tarefas
+- [ ] Adicionar controle de manutenção por empresa e bloqueio dos usuários.
+- [ ] Verificar ativação/desativação, isolamento e mensagem; atualizar arquivo mestre.
 - [x] Corrigir geração do PDF geral individual por cliente.
 - [x] Implementar seleção por status e fio/NF respeitando o período.
 - [x] Gerar demonstrativo por NF com novas páginas por fio e cabeçalho com logo.
