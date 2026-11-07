@@ -8,6 +8,13 @@
       "when": 1794054186783,
       "tag": "0000_company_maintenance_access",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794065063477,
+      "tag": "0001_exclusive_company_access_modes",
+      "breakpoints": true
     }
   ]
 }
