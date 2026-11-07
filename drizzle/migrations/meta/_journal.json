@@ -15,6 +15,13 @@
       "when": 1794065063477,
       "tag": "0001_exclusive_company_access_modes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794065085861,
+      "tag": "0002_validate_company_access_modes",
+      "breakpoints": true
     }
   ]
 }

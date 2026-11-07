@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings VALIDATE CONSTRAINT company_access_modes_exclusive;
