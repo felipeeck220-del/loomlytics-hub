@@ -20,5 +20,5 @@ export function parseCompanyMaintenanceState(value: unknown, companyId: string):
 }
 
 export function isCompanyMaintenanceBlocked(state: CompanyMaintenanceState): boolean {
-  return state.enabled && !state.can_manage;
+  return (state.enabled || state.new_app_url !== null) && !state.can_manage;
 }

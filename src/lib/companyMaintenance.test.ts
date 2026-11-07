@@ -21,6 +21,12 @@ describe('company maintenance access', () => {
 });
 
 describe('new app version notice', () => {
+  it('blocks old app access when migration is selected without maintenance', () => {
+    expect(isCompanyMaintenanceBlocked({ company_id: 'trama', enabled: false, can_manage: false, new_app_url: 'https://apptramacerta.web.app/' })).toBe(true);
+  });
+  it('preserves principal administrator access during migration', () => {
+    expect(isCompanyMaintenanceBlocked({ company_id: 'trama', enabled: false, can_manage: true, new_app_url: 'https://apptramacerta.web.app/' })).toBe(false);
+  });
   it('keeps the new app link when the notice is enabled', () => {
     const state = parseCompanyMaintenanceState({ company_id: 'trama', enabled: false, can_manage: true, new_app_url: 'https://apptramacerta.web.app/' }, 'trama');
     expect(state.new_app_url).toBe('https://apptramacerta.web.app/');

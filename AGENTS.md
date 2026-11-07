@@ -1,5 +1,5 @@
 # Architecture rules
-- Check tenant maintenance through server-authorized RPCs before mounting company data and routes; only the active principal administrator can manage it, and changes are audited by a database trigger.
+- Check tenant maintenance or migration through server-authorized RPCs before mounting company data and routes; only the active principal administrator can manage or bypass either block. Enforce exclusive modes in the database and audit both fields through the same trigger.
 - Build the client invoice general statement from the complete tenant-scoped invoice and exit-link datasets through `clientInvoiceExport.ts`; shared filtering keeps the selector, preview count and PDF consistent without a separate export query.
 - General client invoice statements use one entry NF/yarn row with lifetime linked and legacy consumption; period filters select entry issue dates, so current balances and statuses match the client screen.
 - Render each yarn section on a fresh PDF page and repeat the standard header on overflow pages; grouping must not truncate records.

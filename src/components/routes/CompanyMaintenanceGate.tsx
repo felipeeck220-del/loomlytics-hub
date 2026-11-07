@@ -28,10 +28,16 @@ export default function CompanyMaintenanceGate({ children }: { children: ReactNo
     return (
       <div className="min-h-screen bg-muted/50 flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-5">
-          <Wrench className="mx-auto h-14 w-14 text-primary" aria-hidden="true" />
+          {state.new_app_url ? <Rocket className="mx-auto h-14 w-14 text-primary" aria-hidden="true" /> : <Wrench className="mx-auto h-14 w-14 text-primary" aria-hidden="true" />}
           <p className="text-sm font-medium text-muted-foreground break-words">{user?.company_name}</p>
-          <h1 className="text-2xl font-bold text-foreground">Site em manutenção</h1>
-          <p className="text-muted-foreground">O acesso foi temporariamente suspenso pelo administrador da empresa. Aguarde a conclusão da manutenção.</p>
+          <h1 className="text-2xl font-bold text-foreground">{state.new_app_url ? 'Nova versão do app' : 'Site em manutenção'}</h1>
+          <p className="text-muted-foreground">{state.new_app_url ? 'O acesso a este app foi encerrado. Migre para o novo endereço para continuar utilizando o aplicativo.' : 'O acesso foi temporariamente suspenso pelo administrador da empresa. Aguarde a conclusão da manutenção.'}</p>
+          {state.new_app_url && (
+            <div className="space-y-3">
+              <p className="text-sm text-primary break-all">{state.new_app_url}</p>
+              <Button asChild><a href={state.new_app_url} target="_blank" rel="noopener noreferrer"><Rocket className="mr-2 h-4 w-4" />Acessar novo app</a></Button>
+            </div>
+          )}
           <Button variant="outline" onClick={() => void logout()}><LogOut className="mr-2 h-4 w-4" />Sair</Button>
         </div>
       </div>

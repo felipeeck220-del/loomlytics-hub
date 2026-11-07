@@ -47,7 +47,7 @@ export default function CompanyNewAppControl() {
             <Switch id="company-new-app" checked={enabled} onCheckedChange={on => on ? setConfirmOpen(true) : void save(null)} disabled={saving} />}
         </div>
         <p className={enabled ? 'text-sm text-primary' : 'text-sm text-muted-foreground'}>
-          {enabled ? 'Aviso ativo · usuários veem o convite para migrar.' : 'Aviso desativado · nenhum convite exibido.'}
+          {enabled ? 'Migração ativa · acesso ao app antigo bloqueado para os demais usuários.' : 'Migração desativada.'}
         </p>
         {enabled && state.new_app_url && (
           <a href={state.new_app_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4 break-all">
@@ -58,8 +58,8 @@ export default function CompanyNewAppControl() {
       <AlertDialog open={confirmOpen} onOpenChange={open => { if (!saving) setConfirmOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ativar aviso de nova versão?</AlertDialogTitle>
-            <AlertDialogDescription>Todos os usuários desta empresa passarão a ver um aviso no topo do app convidando a migrar para o novo endereço: {NEW_APP_URL}</AlertDialogDescription>
+            <AlertDialogTitle>Ativar nova versão do app?</AlertDialogTitle>
+            <AlertDialogDescription>O acesso dos demais usuários a este app será bloqueado, mostrando a mensagem de migração para {NEW_APP_URL} A manutenção será desativada automaticamente. Você continuará com acesso para alterar esta configuração.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button variant="outline" disabled={saving} onClick={() => setConfirmOpen(false)}>Cancelar</Button>
