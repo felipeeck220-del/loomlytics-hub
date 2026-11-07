@@ -89,6 +89,7 @@ import AuditHistoryModal from '@/components/AuditHistoryModal';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import CompanyMaintenanceControl from '@/components/CompanyMaintenanceControl';
 
 interface Profile {
   id: string;
@@ -1153,6 +1154,8 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </div>
+
+                <CompanyMaintenanceControl />
 
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
