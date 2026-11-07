@@ -1108,6 +1108,7 @@ export type Database = {
           enabled_nav_items: Json
           grace_period_end: string | null
           id: string
+          maintenance_enabled: boolean
           monthly_plan_value: number
           platform_active: boolean
           shift_manha_end: string
@@ -1131,6 +1132,7 @@ export type Database = {
           enabled_nav_items?: Json
           grace_period_end?: string | null
           id?: string
+          maintenance_enabled?: boolean
           monthly_plan_value?: number
           platform_active?: boolean
           shift_manha_end?: string
@@ -1154,6 +1156,7 @@ export type Database = {
           enabled_nav_items?: Json
           grace_period_end?: string | null
           id?: string
+          maintenance_enabled?: boolean
           monthly_plan_value?: number
           platform_active?: boolean
           shift_manha_end?: string
@@ -5479,6 +5482,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_company_maintenance_state: { Args: never; Returns: Json }
       get_company_public_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -6204,6 +6208,10 @@ export type Database = {
           p_priority: boolean
           p_reason?: string
         }
+        Returns: Json
+      }
+      set_company_maintenance: {
+        Args: { p_company_id: string; p_enabled: boolean }
         Returns: Json
       }
       start_billing_order_separation: {
