@@ -43,14 +43,14 @@ export default function CompanyMaintenanceControl() {
             <Switch id="company-maintenance" checked={state.enabled} onCheckedChange={enabled => enabled ? setConfirmOpen(true) : void save(false)} disabled={saving} />}
         </div>
         <p className={state.enabled ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}>
-          {state.enabled ? 'Manutenção ativa · acesso dos usuários suspenso.' : 'Manutenção desativada · acesso liberado.'}
+          {state.enabled ? 'Manutenção ativa · acesso dos usuários suspenso.' : 'Manutenção desativada.'}
         </p>
       </div>
       <AlertDialog open={confirmOpen} onOpenChange={open => { if (!saving) setConfirmOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Ativar site em manutenção?</AlertDialogTitle>
-            <AlertDialogDescription>Todos os outros usuários desta empresa, inclusive administradores secundários, terão o acesso suspenso. Você continuará com acesso para desativar a manutenção.</AlertDialogDescription>
+            <AlertDialogDescription>Todos os outros usuários desta empresa, inclusive administradores secundários, terão o acesso suspenso. A migração para a nova versão será desativada automaticamente. Você continuará com acesso para desativar a manutenção.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button variant="outline" disabled={saving} onClick={() => setConfirmOpen(false)}>Cancelar</Button>
