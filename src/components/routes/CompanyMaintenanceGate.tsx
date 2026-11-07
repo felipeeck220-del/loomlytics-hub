@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Loader2, LogOut, RefreshCw, Wrench } from 'lucide-react';
+import { Loader2, LogOut, RefreshCw, Rocket, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyMaintenance } from '@/contexts/CompanyMaintenanceContext';
@@ -37,5 +37,23 @@ export default function CompanyMaintenanceGate({ children }: { children: ReactNo
       </div>
     );
   }
-  return <>{children}</>;
+  return (
+    <>
+      {state.new_app_url && (
+        <div className="sticky top-0 z-50 bg-primary text-primary-foreground px-4 py-2.5 shadow-md">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center text-sm">
+            <span className="inline-flex items-center gap-2 font-medium">
+              <Rocket className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Nova versão do app disponível! Migre para o novo endereço.
+            </span>
+            <a href={state.new_app_url} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary-foreground px-3 py-1 text-xs font-semibold text-primary transition-opacity hover:opacity-90">
+              Acessar novo app
+            </a>
+          </div>
+        </div>
+      )}
+      {children}
+    </>
+  );
 }
