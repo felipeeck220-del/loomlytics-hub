@@ -9,6 +9,7 @@ interface MaintenanceContextValue {
   error: string | null;
   refresh: () => Promise<void>;
   setEnabled: (enabled: boolean) => Promise<void>;
+  setNewAppUrl: (url: string | null) => Promise<void>;
 }
 
 const CompanyMaintenanceContext = createContext<MaintenanceContextValue | null>(null);
@@ -62,9 +63,18 @@ export function CompanyMaintenanceProvider({ children }: { children: ReactNode }
     setError(null);
   }, [companyId]);
 
+  const setNewAppUrl = useCallback(async (url: string | null) => {
+    if (!companyId) throw new Error('Empresa não encontrada.');
+    const { data, error: rpcError } = await supabase.rpc('set_company_new_app_url', { p_company_id: companyId, p_url: url });
+    if (rpcError) throw rpcError;
+    ++requestId.current;
+    setState(parseCompanyMaintenanceState(data, companyId));
+    setError(null);
+  }, [companyId]);
+
   const currentState = state?.company_id === companyId ? state : null;
   return (
-    <CompanyMaintenanceContext.Provider value={{ state: currentState, error, refresh, setEnabled }}>
+    <CompanyMaintenanceContext.Provider value={{ state: currentState, error, refresh, setEnabled, setNewAppUrl }}>
       {children}
     </CompanyMaintenanceContext.Provider>
   );
