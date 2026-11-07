@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CompanyDataProvider } from "@/contexts/CompanyDataContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import CompanyRouteInner from "./CompanyRouteInner";
+import { CompanyMaintenanceProvider } from "@/contexts/CompanyMaintenanceContext";
+import CompanyMaintenanceGate from "./CompanyMaintenanceGate";
 
 export default function CompanyRoute() {
   const { user, loading, companies, setActiveCompany } = useAuth();
@@ -34,10 +36,14 @@ export default function CompanyRoute() {
   if (!companyResolved) return null;
 
   return (
-    <CompanyDataProvider>
-      <SubscriptionProvider>
-        <CompanyRouteInner />
-      </SubscriptionProvider>
-    </CompanyDataProvider>
+    <CompanyMaintenanceProvider key={user.company_id}>
+      <CompanyMaintenanceGate>
+        <CompanyDataProvider>
+          <SubscriptionProvider>
+            <CompanyRouteInner />
+          </SubscriptionProvider>
+        </CompanyDataProvider>
+      </CompanyMaintenanceGate>
+    </CompanyMaintenanceProvider>
   );
 }

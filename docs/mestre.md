@@ -1,3 +1,8 @@
+- **07/11/2026, 09:26 (Brasília) — Site em manutenção por empresa:**
+    - Configurações > Empresa permite ao administrador principal ativar/desativar a manutenção, com confirmação antes do bloqueio.
+    - Todos os demais usuários, inclusive administradores secundários, veem “Site em manutenção”; o administrador principal mantém acesso para liberar a empresa.
+    - Verificação antes de carregar os dados da empresa e a cada 5 segundos, também ao reconectar/retornar à janela; alterações autorizadas no servidor, isoladas por empresa e registradas no histórico.
+
 - **16/10/2026 (Brasília) — Fotos da Mecânica sem limite de 8 MB:**
     - OC/OE/OT aceitam fotos de qualquer tamanho; a compressão reduz progressivamente dimensão e qualidade até ficar abaixo de 8 MB.
 
