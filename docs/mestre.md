@@ -1,3 +1,9 @@
+- **07/11/2026, 12:25 (Brasília) — Aviso de nova versão do app por empresa:**
+    - Configurações > Empresa ganha o controle "Nova versão do app" abaixo de "Site em manutenção", restrito ao administrador principal e com confirmação antes de ativar.
+    - Ao ativar, todos os usuários da empresa veem um aviso fixo no topo do app convidando a migrar para o novo endereço (https://apptramacerta.web.app/), com botão "Acessar novo app" abrindo em nova guia.
+    - Link gravado no servidor via `set_company_new_app_url` (somente https://, isolado por empresa) e retornado por `get_company_maintenance_state`; alterações registradas no histórico pelo trigger `guard_company_maintenance_change`.
+    - Verificação a cada 5 segundos junto com a checagem de manutenção; oito testes de regras aprovados; ativação, rejeição de link inseguro e exibição do aviso conferidos na conta autenticada.
+
 - **07/11/2026, 09:27 (Brasília) — Site em manutenção por empresa:**
     - Configurações > Empresa permite ao administrador principal ativar/desativar a manutenção, com confirmação antes do bloqueio.
     - Todos os demais usuários, inclusive administradores secundários, veem “Site em manutenção”; o administrador principal mantém acesso para liberar a empresa.
