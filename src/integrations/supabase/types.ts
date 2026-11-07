@@ -1110,6 +1110,7 @@ export type Database = {
           id: string
           maintenance_enabled: boolean
           monthly_plan_value: number
+          new_app_url: string | null
           platform_active: boolean
           shift_manha_end: string
           shift_manha_start: string
@@ -1134,6 +1135,7 @@ export type Database = {
           id?: string
           maintenance_enabled?: boolean
           monthly_plan_value?: number
+          new_app_url?: string | null
           platform_active?: boolean
           shift_manha_end?: string
           shift_manha_start?: string
@@ -1158,6 +1160,7 @@ export type Database = {
           id?: string
           maintenance_enabled?: boolean
           monthly_plan_value?: number
+          new_app_url?: string | null
           platform_active?: boolean
           shift_manha_end?: string
           shift_manha_start?: string
@@ -6212,6 +6215,10 @@ export type Database = {
       }
       set_company_maintenance: {
         Args: { p_company_id: string; p_enabled: boolean }
+        Returns: Json
+      }
+      set_company_new_app_url: {
+        Args: { p_company_id: string; p_url: string }
         Returns: Json
       }
       start_billing_order_separation: {
